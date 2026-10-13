@@ -1,0 +1,4 @@
+{
+  // To host a Mini App, uncomment and set "static.source" to its build output folder.
+  "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json"
+}
