@@ -1,6 +1,6 @@
 # Telegram Cloud Sandbox
 
-A reusable private workspace for building multiple Telegram BotFather Serverless bots with the official `tgcloud` CLI.
+A reusable public workspace for building multiple Telegram BotFather Serverless bots with the official `tgcloud` CLI.
 
 ## Layout
 
@@ -11,7 +11,7 @@ Each bot has its own `package.json`, `tgcloud.jsonc`, and `tgcloud/` modules. Do
 
 ## One-time setup
 
-1. In this private repository, open **Settings → Secrets and variables → Actions → New repository secret**.
+1. In this repository, open **Settings → Secrets and variables → Actions → New repository secret**.
 2. Set the secret name to `TGCLOUD_TOKEN`.
 3. Paste the CLI access token for the bot you intend to work on. Obtain it from BotFather → that bot → Serverless → CLI Access. This is not the Bot API token. Never commit it or send it in chat.
 
@@ -33,6 +33,6 @@ Create a new directory directly under `bots/` using the official scaffold, then 
 
 ## Security notes
 
-- The repository is private, but secrets still belong only in GitHub Actions secrets.
+- This repository is public. Never commit credentials or sensitive data; keep tokens only in GitHub Actions secrets.
 - Never add CLI tokens, Bot API tokens, or `.tgcloud/credentials` to source control.
 - The workflow does not print the token. Its app ID check prevents deploying to the wrong bot when the secret and selected target disagree.
