@@ -258,11 +258,11 @@ function scoreItem(item, query, tokens) {
 
 export async function searchDocs(rawQuery = '', rawOffset = 0) {
   const index = await getIndex();
-  const originalQuery = String(rawQuery).trim().replace(/^\\/+/, '');
+  const originalQuery = String(rawQuery).trim().replace(/^\/+/, '');
   const query = originalQuery.toLowerCase();
   const parsedOffset = Number.parseInt(String(rawOffset || '0'), 10);
   const offset = Number.isSafeInteger(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0;
-  const tokens = query.split(/\\s+/).filter(Boolean);
+  const tokens = query.split(/\s+/).filter(Boolean);
 
   function page(results) {
     return {
@@ -297,7 +297,7 @@ export async function searchDocs(rawQuery = '', rawOffset = 0) {
       const children = createChildItems(parent);
       const selectedNames = suffix
         .split(',')
-        .map((name) => name.trim().replace(/^\\*$/, '*').toLowerCase())
+        .map((name) => name.trim().replace(/^\*$/, '*').toLowerCase())
         .filter(Boolean);
 
       // A trailing dot (or legacy wildcard) lists all child articles.
