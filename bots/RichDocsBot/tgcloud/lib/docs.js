@@ -13,12 +13,12 @@ let inFlight;
 function cleanText(value = '') {
   return String(value)
     .replace(/<[^>]*>/g, ' ')
-    .replace(/!?\\[([^\\]]+)\\]\\([^)]*\\)/g, '$1')
-    .replace(/\\x60([^\\x60]+)\\x60/g, '$1')
-    .replace(/\\*\\*(.*?)\\*\\*/g, '$1')
+    .replace(/!?\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\x60([^\x60]+)\x60/g, '$1')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/__(.*?)__/g, '$1')
-    .replace(/\\*(.*?)\\*/g, '$1')
-    .replace(/\\s+/g, ' ')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -188,8 +188,8 @@ function scoreItem(item, query, tokens) {
 
 export async function searchDocs(rawQuery = '') {
   const index = await getIndex();
-  const query = String(rawQuery).trim().replace(/^\\/+/, '').toLowerCase();
-  const tokens = query.split(/\\s+/).filter(Boolean);
+  const query = String(rawQuery).trim().replace(/^\/+/, '').toLowerCase();
+  const tokens = query.split(/\s+/).filter(Boolean);
   let ranked = index.items.map((item) => ({ item, score: query ? scoreItem(item, query, tokens) : 0 }));
   if (query && tokens.length === 1) {
     const directMatches = ranked.filter(({ item }) => item.name.toLowerCase() === query || item.name.toLowerCase().startsWith(query));
