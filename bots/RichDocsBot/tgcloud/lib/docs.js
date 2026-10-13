@@ -408,7 +408,14 @@ export function renderDocBlocks(item, version = 'unknown') {
   if (item.kind === 'method') {
     if (item.params.length) {
       blocks.push(heading('Parameters', 4));
-      blocks.push(paragraph(item.params.length + ' parameters are available as separate results below. Search "' + item.name + '.*" to list them all, or "' + item.name + '.question" (replace question with a parameter name) to inspect one.'));
+      const rows = item.params.map((param) => [
+        param.name,
+        param.typeRich || [param.type],
+        param.required ? 'Required' : 'Optional',
+        param.descriptionRich?.length && param.description ? param.descriptionRich : (param.description || '—'),
+      ]);
+      blocks.push(tableBlock(['Parameter', 'Type', 'Required', 'Description'], rows));
+      blocks.push(paragraph('To filter this list, search "' + item.name + '.*" for separate parameter articles or "' + item.name + '.question" (replace question with a parameter name) for one parameter.'));
     }
     if (item.returns) {
       blocks.push(heading('Return type', 4));
@@ -440,11 +447,6 @@ export function renderDocBlocks(item, version = 'unknown') {
     ]];
     blocks.push(heading(label + ' details', 4));
     blocks.push(tableBlock([label, 'Type', 'Required', 'Description'], rows));
-    if (isParameter) {
-      blocks.push({ type: 'paragraph', text: [richTextLink('Open ' + item.parentName + ' documentation', item.parentUrl || API_DOCS_URL)] });
-    } else {
-      blocks.push({ type: 'paragraph', text: [richTextLink('Open ' + item.parentName + ' documentation', item.parentUrl || API_DOCS_URL)] });
-    }
   }
 
   blocks.push({ type: 'divider' });
