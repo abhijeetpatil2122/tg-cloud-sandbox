@@ -9,7 +9,7 @@ RichDocsBot is an inline Telegram Bot API documentation search bot running on Te
 
 With an empty query, the first result is a compact usage guide, followed by popular default documentation articles. Search results are paginated at up to 50 articles per page using Telegram's `next_offset` mechanism.
 
-Selecting a result inserts its documentation as a native Telegram Rich Message, with headings, linked type references, tables, parameter/field descriptions, return types, and a link to the official reference. Markdown and HTML links present in schema descriptions are preserved where available.
+Selecting a method or type inserts its overview as a native Telegram Rich Message. Parameters and fields are separate results, each with a compact one-row table; this avoids hiding entries behind an arbitrary row limit. Type references and links in the source descriptions remain clickable, while parameter and field names are not unnecessarily linked back to the parent method or type. Text spacing around inline links is preserved.
 
 ## Commands
 - `/start` — welcome message.
