@@ -46,7 +46,7 @@ This response uses **bold**, *italic*, ~~strikethrough~~, and \`inline code\`.
 
 > A quoted line
 
-Inline code: `const answer = 42`.`;
+Inline code: \`const answer = 42\`.`;
 
 const layoutDemo = `
 <h1>Layout showcase</h1>
