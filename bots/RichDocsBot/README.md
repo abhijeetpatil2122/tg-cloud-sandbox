@@ -3,17 +3,21 @@
 RichDocsBot is an inline Telegram Bot API documentation search bot running on Telegram Serverless.
 
 ## Inline search
-- `@RichDocsBot sendPoll` — find a method, followed by separate articles for each parameter.
-- `@RichDocsBot sendPoll.*` — list all parameters for a method.
+- `@RichDocsBot sendPoll` — show only the method overview, including its full parameter table.
+- `@RichDocsBot sendPoll.` — list all parameters as separate articles.
 - `@RichDocsBot sendPoll.question` — open one parameter only.
-- `@RichDocsBot ChatMember` — find a type, followed by separate articles for each field.
-- `@RichDocsBot ChatMember.*` — list all fields for a type.
+- `@RichDocsBot sendPoll.question,options` — show only the selected parameters together in one table.
+- `@RichDocsBot ChatMember` — show only the type overview.
+- `@RichDocsBot ChatMember.` — list all fields as separate articles.
 - `@RichDocsBot ChatMember.status` — open one field only.
-- `@RichDocsBot chat_id` — find methods that use a parameter.
+- `@RichDocsBot ChatMember.id,first_name,username` — show selected fields together in one table.
+- `@RichDocsBot chat_id` — find parameters by exact name across methods.
+
+A trailing dot lists children; an explicit field after the dot filters to that field; comma-separated field names create one article containing only the requested rows. Method and type overview queries do not automatically mix in their child articles.
 
 With an empty query, the first result is a compact usage guide, followed by popular default documentation articles. Search results are paginated at up to 50 articles per page using Telegram's `next_offset` mechanism.
 
-Selecting a method or type inserts its overview as a native Telegram Rich Message. Parameters and fields are separate results, each with a compact one-row table; this avoids hiding entries behind an arbitrary row limit. Type references and links in the source descriptions remain clickable, while parameter and field names are not unnecessarily linked back to the parent method or type. Text spacing around inline links is preserved.
+Selecting a method or type inserts its overview as a native Telegram Rich Message. Method overviews contain the full parameter table. Individual parameters and fields have a compact one-row table without a duplicate description paragraph. Multi-field searches show one table with only the requested rows. Type references and links in source descriptions remain clickable, while parameter and field names are not unnecessarily linked back to the parent method or type. Text spacing around inline links is preserved.
 
 ## Commands
 - `/start` — welcome message.
