@@ -52,7 +52,7 @@ function richTextFromDescription(value = '') {
     appendPlain(source.slice(cursor, match.index));
     const label = cleanText(match[1] ?? match[4] ?? '');
     const target = match[2] ?? match[3] ?? '';
-    if (label) parts.push({ type: 'url', text: label, url: normalizeDocUrl(target) });
+    if (label) parts.push(richTextLink(label, normalizeDocUrl(target)));
     cursor = pattern.lastIndex;
   }
   appendPlain(source.slice(cursor));
@@ -70,11 +70,34 @@ function refName(ref = '') {
   return ref.startsWith('#/components/schemas/') ? ref.slice('#/components/schemas/'.length) : '';
 }
 
+const PRIMITIVE_TYPES = new Set(['integer', 'number', 'string', 'boolean', 'array', 'null']);
+const TYPE_LABELS = { integer: 'Integer', number: 'Float', string: 'String', boolean: 'Boolean', array: 'Array', object: 'Object', null: 'null' };
+
+function isPrimitiveAlias(schema, schemas, depth = 0) {
+  if (!schema || depth > 8) return false;
+  if (schema.$ref) return isPrimitiveAlias(schemas[refName(schema.$ref)], schemas, depth + 1);
+  if (schema.type && PRIMITIVE_TYPES.has(schema.type) && !schema.properties) return true;
+  const choices = schema.anyOf || schema.oneOf;
+  return Array.isArray(choices) && choices.length > 0 &&
+    choices.every((choice) => isPrimitiveAlias(choice, schemas, depth + 1));
+}
+
 function typeRichText(property, schemas, depth = 0) {
   if (!property || depth > 8) return ['Any'];
   if (property.$ref) {
     const name = refName(property.$ref);
-    return name ? [{ type: 'url', text: name, url: normalizeDocUrl('#' + name.toLowerCase()) }] : ['Object'];
+    const target = name ? schemas[name] : null;
+    // Primitive aliases such as ChatId are implementation details, not
+    // documented objects. Expand them into their real API types instead of
+    // creating broken links like #chatid.
+    if (target && isPrimitiveAlias(target, schemas, depth + 1)) {
+      return typeRichText(target, schemas, depth + 1);
+    }
+    if (name && target && (target.description || target.properties ||
+        target.oneOf || target.anyOf || target.allOf)) {
+      return [richTextLink(name, normalizeDocUrl('#' + name.toLowerCase()))];
+    }
+    return [name || 'Object'];
   }
   if (property.type === 'array') return [...typeRichText(property.items, schemas, depth + 1), '[]'];
   const choices = property.anyOf || property.oneOf;
@@ -87,7 +110,7 @@ function typeRichText(property, schemas, depth = 0) {
     return output;
   }
   if (Array.isArray(property.enum)) return [property.enum.join(' | ')];
-  return [property.type || 'Object'];
+  return [TYPE_LABELS[property.type] || property.type || 'Object'];
 }
 
 function resolveSchema(schema, schemas, depth = 0) {
@@ -118,16 +141,23 @@ function responseType(operation, schemas) {
   return refName(resultRef) || refName(schema.$ref) || '';
 }
 
-function propertyType(property, schemas) {
-  if (!property) return 'Any';
-  if (property.$ref) return refName(property.$ref) || 'Object';
-  if (property.type === 'array') return propertyType(property.items, schemas) + '[]';
-  if (property.anyOf || property.oneOf) {
-    const choices = property.anyOf || property.oneOf;
-    return choices.map((choice) => choice.$ref ? refName(choice.$ref) : choice.type || 'Any').join(' | ');
+function propertyType(property, schemas, depth = 0) {
+  if (!property || depth > 8) return 'Any';
+  if (property.$ref) {
+    const name = refName(property.$ref);
+    const target = name ? schemas[name] : null;
+    if (target && isPrimitiveAlias(target, schemas, depth + 1)) {
+      return propertyType(target, schemas, depth + 1);
+    }
+    return name || 'Object';
+  }
+  if (property.type === 'array') return propertyType(property.items, schemas, depth + 1) + '[]';
+  const choices = property.anyOf || property.oneOf;
+  if (Array.isArray(choices) && choices.length) {
+    return choices.map((choice) => propertyType(choice, schemas, depth + 1)).join(' | ');
   }
   if (property.enum) return property.enum.join(' | ');
-  return property.type || 'Object';
+  return TYPE_LABELS[property.type] || property.type || 'Object';
 }
 
 function operationParams(operation, schemas) {
@@ -409,7 +439,14 @@ function createChildItems(parent) {
 }
 
 function richTextLink(text, url) {
-  return { type: 'url', text, url };
+  return {
+    type: 'button',
+    button: {
+      text: String(text),
+      url: String(url || API_DOCS_URL),
+      style: 'primary',
+    },
+  };
 }
 
 function tableBlock(headers, rows, caption) {
@@ -441,7 +478,14 @@ export function renderDocBlocks(item, version = 'unknown') {
   const blocks = [heading(item.title, 2)];
 
   if (!isFilteredEntry && !isSelection) {
-    blocks.push(paragraph(item.descriptionRich?.length ? item.descriptionRich : (item.description || 'No description is available in the current schema.')));
+    const descriptionText = item.descriptionRich?.length
+      ? item.descriptionRich
+      : (item.description || 'No description is available in the current schema.');
+    if (item.kind === 'method') {
+      blocks.push({ type: 'expandable_blockquote', text: descriptionText });
+    } else {
+      blocks.push(paragraph(descriptionText));
+    }
     blocks.push({ type: 'paragraph', text: [{ type: 'bold', text: 'Category: ' }, item.category || (item.kind === 'method' ? 'Bot API method' : 'Types and objects')] });
   }
 
