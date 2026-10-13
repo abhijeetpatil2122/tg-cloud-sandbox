@@ -3,7 +3,7 @@ import { fetch } from 'sdk';
 export const API_SCHEMA_URL = 'https://corefork.telegram.org/bots/api.json';
 export const API_DOCS_URL = 'https://core.telegram.org/bots/api';
 const CACHE_TTL_MS = 10 * 60 * 1000;
-const MAX_QUERY_RESULTS = 10;
+const MAX_QUERY_RESULTS = 50;
 const MAX_TABLE_ROWS = 18;
 
 let cachedIndex;
@@ -22,8 +22,56 @@ function cleanText(value = '') {
     .trim();
 }
 
+function normalizeDocUrl(url = '') {
+  const value = String(url).trim();
+  if (!value) return API_DOCS_URL;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith('#')) return API_DOCS_URL + value;
+  if (value.startsWith('/')) return 'https://core.telegram.org' + value;
+  return API_DOCS_URL + '#' + value.replace(/^#/, '').toLowerCase();
+}
+
+function richTextFromDescription(value = '') {
+  const source = String(value || '');
+  const pattern = /\[([^\]]+)\]\(([^)]+)\)|<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const parts = [];
+  let cursor = 0;
+  let match;
+  while ((match = pattern.exec(source))) {
+    const before = cleanText(source.slice(cursor, match.index));
+    if (before) parts.push(before);
+    const label = cleanText(match[1] ?? match[4] ?? '');
+    const target = match[2] ?? match[3] ?? '';
+    if (label) parts.push({ type: 'url', text: label, url: normalizeDocUrl(target) });
+    cursor = pattern.lastIndex;
+  }
+  const after = cleanText(source.slice(cursor));
+  if (after) parts.push(after);
+  return parts.length ? parts : [cleanText(source)];
+}
+
 function refName(ref = '') {
   return ref.startsWith('#/components/schemas/') ? ref.slice('#/components/schemas/'.length) : '';
+}
+
+function typeRichText(property, schemas, depth = 0) {
+  if (!property || depth > 8) return ['Any'];
+  if (property.$ref) {
+    const name = refName(property.$ref);
+    return name ? [{ type: 'url', text: name, url: normalizeDocUrl('#' + name.toLowerCase()) }] : ['Object'];
+  }
+  if (property.type === 'array') return [...typeRichText(property.items, schemas, depth + 1), '[]'];
+  const choices = property.anyOf || property.oneOf;
+  if (Array.isArray(choices) && choices.length) {
+    const output = [];
+    choices.forEach((choice, index) => {
+      if (index) output.push(' | ');
+      output.push(...typeRichText(choice, schemas, depth + 1));
+    });
+    return output;
+  }
+  if (Array.isArray(property.enum)) return [property.enum.join(' | ')];
+  return [property.type || 'Object'];
 }
 
 function resolveSchema(schema, schemas, depth = 0) {
@@ -78,6 +126,8 @@ function operationParams(operation, schemas) {
     type: propertyType(property, schemas),
     required: required.has(name),
     description: cleanText(property.description || ''),
+    descriptionRich: richTextFromDescription(property.description || ''),
+    typeRich: typeRichText(property, schemas),
     raw: property,
   }));
 }
@@ -101,6 +151,7 @@ function buildIndex(document) {
         title: name,
         category,
         description,
+        descriptionRich: richTextFromDescription(operation.description || operation.summary || ''),
         path,
         params,
         returns,
@@ -119,6 +170,8 @@ function buildIndex(document) {
       type: propertyType(property, schemas),
       required: (schema.required || []).includes(propertyName),
       description: cleanText(property.description || ''),
+      descriptionRich: richTextFromDescription(property.description || ''),
+      typeRich: typeRichText(property, schemas),
       raw: property,
     }));
     if (!properties.length && !rawSchema.description) continue;
@@ -132,6 +185,7 @@ function buildIndex(document) {
       title: name,
       category: 'Types and objects',
       description,
+      descriptionRich: richTextFromDescription(rawSchema.description || schema.description || ''),
       properties,
       variants,
       url: API_DOCS_URL + '#' + name.toLowerCase(),
@@ -186,21 +240,43 @@ function scoreItem(item, query, tokens) {
   return score;
 }
 
-export async function searchDocs(rawQuery = '') {
+export async function searchDocs(rawQuery = '', rawOffset = 0) {
   const index = await getIndex();
-  const query = String(rawQuery).trim().replace(/^\/+/, '').toLowerCase();
-  const tokens = query.split(/\s+/).filter(Boolean);
-  let ranked = index.items.map((item) => ({ item, score: query ? scoreItem(item, query, tokens) : 0 }));
-  if (query && tokens.length === 1) {
+  const query = String(rawQuery).trim().replace(/^\\/+/, '').toLowerCase();
+  const parsedOffset = Number.parseInt(String(rawOffset || '0'), 10);
+  const offset = Number.isSafeInteger(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0;
+  const tokens = query.split(/\\s+/).filter(Boolean);
+
+  if (!query) {
+    const popularNames = ['sendMessage', 'sendRichMessage', 'answerInlineQuery', 'getMe', 'getChat'];
+    const popular = popularNames.map((name) => index.items.find((item) => item.kind === 'method' && item.name === name)).filter(Boolean);
+    const allResults = [{
+      kind: 'help',
+      name: 'inline-help',
+      title: 'How to use RichDocsBot',
+      description: 'Quick guide to searching the Telegram Bot API.',
+    }, ...popular];
+    return {
+      version: index.version,
+      results: allResults.slice(offset, offset + MAX_QUERY_RESULTS),
+      nextOffset: offset + MAX_QUERY_RESULTS < allResults.length ? String(offset + MAX_QUERY_RESULTS) : '',
+    };
+  }
+
+  let ranked = index.items.map((item) => ({ item, score: scoreItem(item, query, tokens) }));
+  if (tokens.length === 1) {
     const directMatches = ranked.filter(({ item }) => item.name.toLowerCase() === query || item.name.toLowerCase().startsWith(query));
     if (directMatches.length) ranked = directMatches;
   }
-  const results = ranked
-    .filter(({ item, score }) => query ? score > 0 : item.kind === 'method' && ['sendMessage', 'sendRichMessage', 'answerInlineQuery', 'getMe', 'getChat'].includes(item.name))
+  const matches = ranked
+    .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name))
-    .slice(0, MAX_QUERY_RESULTS)
     .map(({ item }) => item);
-  return { version: index.version, results };
+  return {
+    version: index.version,
+    results: matches.slice(offset, offset + MAX_QUERY_RESULTS),
+    nextOffset: offset + MAX_QUERY_RESULTS < matches.length ? String(offset + MAX_QUERY_RESULTS) : '',
+  };
 }
 
 function richTextLink(text, url) {
@@ -209,7 +285,7 @@ function richTextLink(text, url) {
 
 function tableBlock(headers, rows, caption) {
   const cells = [headers, ...rows].map((row, rowIndex) => row.map((value) => ({
-    text: String(value ?? '—'),
+    text: Array.isArray(value) ? value : String(value ?? '—'),
     ...(rowIndex === 0 ? { is_header: true } : {}),
   })));
   return {
@@ -233,14 +309,19 @@ function heading(text, size = 4) {
 export function renderDocBlocks(item, version = 'unknown') {
   const blocks = [
     heading(item.title, 2),
-    paragraph(item.description || 'No description is available in the current schema.'),
+    paragraph(item.descriptionRich?.length ? item.descriptionRich : (item.description || 'No description is available in the current schema.')),
     { type: 'paragraph', text: [{ type: 'bold', text: 'Category: ' }, item.category || (item.kind === 'method' ? 'Bot API method' : 'Types and objects')] },
   ];
 
   if (item.kind === 'method') {
     if (item.params.length) {
       blocks.push(heading('Parameters', 4));
-      const rows = item.params.slice(0, MAX_TABLE_ROWS).map((param) => [param.name, param.type, param.required ? 'Required' : 'Optional', param.description || '—']);
+      const rows = item.params.slice(0, MAX_TABLE_ROWS).map((param) => [
+        [{ type: 'url', text: param.name, url: normalizeDocUrl('#' + param.name.toLowerCase()) }],
+        param.typeRich || [param.type],
+        param.required ? 'Required' : 'Optional',
+        param.descriptionRich?.length && param.description ? param.descriptionRich : (param.description || '—'),
+      ]);
       blocks.push(tableBlock(['Parameter', 'Type', 'Required', 'Description'], rows, item.params.length + ' parameter(s)'));
       if (item.params.length > MAX_TABLE_ROWS) blocks.push(paragraph('Showing the first ' + MAX_TABLE_ROWS + ' of ' + item.params.length + ' parameters.'));
     }
@@ -260,7 +341,12 @@ export function renderDocBlocks(item, version = 'unknown') {
     }
     if (item.properties?.length) {
       blocks.push(heading('Fields', 4));
-      const rows = item.properties.slice(0, MAX_TABLE_ROWS).map((property) => [property.name, property.type, property.required ? 'Required' : 'Optional', property.description || '—']);
+      const rows = item.properties.slice(0, MAX_TABLE_ROWS).map((property) => [
+        [{ type: 'url', text: property.name, url: normalizeDocUrl('#' + property.name.toLowerCase()) }],
+        property.typeRich || [property.type],
+        property.required ? 'Required' : 'Optional',
+        property.descriptionRich?.length && property.description ? property.descriptionRich : (property.description || '—'),
+      ]);
       blocks.push(tableBlock(['Field', 'Type', 'Required', 'Description'], rows, item.properties.length + ' field(s)'));
       if (item.properties.length > MAX_TABLE_ROWS) blocks.push(paragraph('Showing the first ' + MAX_TABLE_ROWS + ' of ' + item.properties.length + ' fields.'));
     }
@@ -272,7 +358,34 @@ export function renderDocBlocks(item, version = 'unknown') {
   return blocks;
 }
 
+export function getInlineHelpResult() {
+  return {
+    type: 'article',
+    id: 'inline-help',
+    title: 'How to use RichDocsBot',
+    description: 'Search methods, parameters, and types. Example: sendMessage, chat_id, ChatMember.',
+    input_message_content: {
+      rich_message: {
+        blocks: [
+          heading('RichDocsBot · Quick guide', 2),
+          paragraph('Search the official Telegram Bot API directly from any chat using inline mode.'),
+          heading('Search examples', 4),
+          { type: 'list', items: [
+            { blocks: [{ type: 'paragraph', text: ['Method: ', { type: 'code', text: 'sendMessage' }] }] },
+            { blocks: [{ type: 'paragraph', text: ['Parameter: ', { type: 'code', text: 'chat_id' }] }] },
+            { blocks: [{ type: 'paragraph', text: ['Type or object: ', { type: 'code', text: 'ChatMember' }] }] },
+          ] },
+          paragraph('Type @RichDocsBot followed by a name or keyword, then select a result to send its formatted documentation. Scroll the results to load more matches.'),
+          { type: 'paragraph', text: [richTextLink('Official Telegram Bot API documentation', API_DOCS_URL)] },
+          { type: 'footer', text: 'RichDocsBot · Official Bot API schema search' },
+        ],
+      },
+    },
+  };
+}
+
 export function toInlineResult(item, index, version) {
+  if (item.kind === 'help') return getInlineHelpResult();
   const summary = item.kind === 'method'
     ? (item.category || 'Bot API') + ' · Method' + (item.returns ? ' · Returns ' + item.returns : '')
     : 'Type / object · ' + (item.properties?.length || 0) + ' field(s)';
