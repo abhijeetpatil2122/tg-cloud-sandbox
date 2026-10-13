@@ -368,7 +368,6 @@ function createChildItems(parent) {
   return [];
 }
 
-function richTextLink
 function richTextLink(text, url) {
   return { type: 'url', text, url };
 }
