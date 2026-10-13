@@ -18,8 +18,10 @@
 - Render useful native Rich Messages: title, summary, parameter/field tables, return types, related types, and official documentation links.
 - Return at most 50 inline results per page and implement Telegram pagination with `next_offset`; parse the incoming inline query `offset` as the next page position. With an empty query, show a concise usage guide first, followed by popular default documentation articles.
 - Preserve Markdown/HTML links from the live schema as Rich Text URLs, including spaces around link spans. Make referenced schema types clickable in type cells; do not link parameter or field names back to the parent method/type when that link adds no information.
-- Methods and types should be overview articles, with parameters/fields exposed as individual inline articles with a one-row table. Query `sendPoll` lists the method and its parameter articles; `sendPoll.*` lists all its parameters; `sendPoll.question` filters to one parameter. Apply the same grammar to types, e.g. `ChatMember`, `ChatMember.*`, and `ChatMember.status`.
-- Do not arbitrarily truncate parameter/field lists at 18 rows. Use scoped child articles and Telegram inline pagination (maximum 50 results per response) to make every entry accessible.
+- Exact method/type queries (e.g. `sendMessage`, `ChatMember`) return only the overview article. Method overview articles retain their complete parameter table.
+- A trailing dot (e.g. `sendMessage.`, `ChatMember.`) returns the parent’s children as separate articles. A single field query (e.g. `sendMessage.text`, `ChatMember.status`) returns only that field article. Comma-separated field queries (e.g. `sendMessage.text,parse_mode`, `User.id,first_name,username`) return one compact article/table with only the requested fields.
+- Individual parameter/field articles must not repeat their description as a separate introductory paragraph when it already appears in the table. Keep the message minimal and avoid duplicate documentation links.
+- Do not arbitrarily truncate parameter/field lists. Use scoped child articles and Telegram inline pagination (maximum 50 results per response) to make every entry accessible.
 - Keep personal caching. Do not add a database migration unless it is deliberately designed and the deployment workflow is updated to apply it safely.
 - Phase one is Bot API documentation only. Do not add errors.json search until explicitly requested.
 
