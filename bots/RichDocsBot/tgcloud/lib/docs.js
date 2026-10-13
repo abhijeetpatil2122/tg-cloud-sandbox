@@ -450,7 +450,6 @@ export function renderDocBlocks(item, version = 'unknown') {
   return blocks;
 }
 
-export function getInlineHelpResult
 export function getInlineHelpResult() {
   return {
     type: 'article',
