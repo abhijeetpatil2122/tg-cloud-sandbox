@@ -138,7 +138,11 @@ function responseType(operation, schemas) {
   if (!schema) return '';
   const resolved = resolveSchema(schema, schemas);
   const resultRef = resolved?.properties?.result?.$ref;
-  return refName(resultRef) || refName(schema.$ref) || '';
+  const name = refName(resultRef) || refName(schema.$ref) || '';
+  if (!name) return '';
+  const target = schemas[name];
+  if (target && isPrimitiveAlias(target, schemas)) return propertyType(target, schemas);
+  return name;
 }
 
 function propertyType(property, schemas, depth = 0) {
@@ -191,6 +195,7 @@ function buildIndex(document) {
       const params = operationParams(operation, schemas);
       const category = (operation.tags || []).join(', ');
       const returns = responseType(operation, schemas);
+      const returnsLink = Boolean(returns && schemas[returns] && !isPrimitiveAlias(schemas[returns], schemas));
       items.push({
         kind: 'method',
         name,
@@ -201,6 +206,7 @@ function buildIndex(document) {
         path,
         params,
         returns,
+        returnsLink,
         url: API_DOCS_URL + '#' + name.toLowerCase(),
         searchText: (name + ' ' + category + ' ' + description + ' ' + path + ' ' +
           params.map((p) => p.name + ' ' + p.type + ' ' + p.description).join(' ') + ' ' + returns).toLowerCase(),
@@ -223,8 +229,24 @@ function buildIndex(document) {
     if (!properties.length && !rawSchema.description) continue;
     const description = cleanText(rawSchema.description || schema.description || '');
     const variants = (rawSchema.oneOf || rawSchema.anyOf || schema.oneOf || schema.anyOf || [])
-      .map((variant) => variant.$ref ? refName(variant.$ref) : variant.type || '')
-      .filter(Boolean);
+      .map((variant) => {
+        if (variant.$ref) {
+          const variantName = refName(variant.$ref);
+          const target = variantName ? schemas[variantName] : null;
+          if (target && isPrimitiveAlias(target, schemas)) {
+            return { name: propertyType(target, schemas), url: '' };
+          }
+          return {
+            name: variantName,
+            url: variantName && target && (target.description || target.properties ||
+              target.oneOf || target.anyOf || target.allOf)
+              ? normalizeDocUrl('#' + variantName.toLowerCase())
+              : '',
+          };
+        }
+        return { name: TYPE_LABELS[variant.type] || variant.type || '', url: '' };
+      })
+      .filter((variant) => variant.name);
     items.push({
       kind: 'type',
       name,
@@ -235,7 +257,7 @@ function buildIndex(document) {
       properties,
       variants,
       url: API_DOCS_URL + '#' + name.toLowerCase(),
-      searchText: (name + ' ' + description + ' ' + variants.join(' ') + ' ' +
+      searchText: (name + ' ' + description + ' ' + variants.map((variant) => variant.name).join(' ') + ' ' +
         properties.map((p) => p.name + ' ' + p.type + ' ' + p.description).join(' ')).toLowerCase(),
     });
   }
@@ -503,7 +525,9 @@ export function renderDocBlocks(item, version = 'unknown') {
     }
     if (item.returns) {
       blocks.push(heading('Return type', 4));
-      blocks.push({ type: 'paragraph', text: [richTextLink(item.returns, API_DOCS_URL + '#' + item.returns.toLowerCase())] });
+      blocks.push({ type: 'paragraph', text: [item.returnsLink
+        ? richTextLink(item.returns, API_DOCS_URL + '#' + item.returns.toLowerCase())
+        : item.returns] });
     }
   } else if (item.kind === 'type') {
     if (item.variants?.length) {
@@ -511,7 +535,7 @@ export function renderDocBlocks(item, version = 'unknown') {
       blocks.push({
         type: 'list',
         items: item.variants.map((variant) => ({
-          blocks: [{ type: 'paragraph', text: [richTextLink(variant, API_DOCS_URL + '#' + variant.toLowerCase())] }],
+          blocks: [{ type: 'paragraph', text: [variant.url ? richTextLink(variant.name, variant.url) : variant.name] }],
         })),
       });
     }
