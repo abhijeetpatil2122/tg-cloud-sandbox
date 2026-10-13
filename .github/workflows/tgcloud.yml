@@ -68,8 +68,8 @@ jobs:
           set -euo pipefail
           cd "$BOT_PATH"
           mapfile -t modules < <(
-            find tgcloud -type f -name '*.js' \\
-              \\( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \\) \\
+            find tgcloud -type f -name '*.js' \
+              \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
               -print | sort
           )
           if (( ${#modules[@]} == 0 )); then
