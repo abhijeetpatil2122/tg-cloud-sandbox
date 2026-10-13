@@ -4,7 +4,6 @@ export const API_SCHEMA_URL = 'https://corefork.telegram.org/bots/api.json';
 export const API_DOCS_URL = 'https://core.telegram.org/bots/api';
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const MAX_QUERY_RESULTS = 50;
-const MAX_TABLE_ROWS = 18;
 
 let cachedIndex;
 let cachedAt = 0;
@@ -35,20 +34,36 @@ function richTextFromDescription(value = '') {
   const source = String(value || '');
   const pattern = /\[([^\]]+)\]\(([^)]+)\)|<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   const parts = [];
+
+  function appendPlain(raw) {
+    const text = cleanText(raw);
+    if (!text) return;
+    const leadingSpace = /\s/.test(raw[0] || '');
+    const trailingSpace = /\s/.test(raw[raw.length - 1] || '');
+    let value = text;
+    if (parts.length && leadingSpace) value = ' ' + value;
+    if (trailingSpace) value += ' ';
+    parts.push(value);
+  }
+
   let cursor = 0;
   let match;
   while ((match = pattern.exec(source))) {
-    const before = cleanText(source.slice(cursor, match.index));
-    if (before) parts.push(before);
+    appendPlain(source.slice(cursor, match.index));
     const label = cleanText(match[1] ?? match[4] ?? '');
     const target = match[2] ?? match[3] ?? '';
     if (label) parts.push({ type: 'url', text: label, url: normalizeDocUrl(target) });
     cursor = pattern.lastIndex;
   }
-  const after = cleanText(source.slice(cursor));
-  if (after) parts.push(after);
-  const plain = cleanText(source);
-  return parts.length ? parts : (plain ? [plain] : []);
+  appendPlain(source.slice(cursor));
+
+  if (!parts.length) {
+    const plain = cleanText(source);
+    return plain ? [plain] : [];
+  }
+  if (typeof parts[0] === 'string') parts[0] = parts[0].replace(/^\s+/, '');
+  if (typeof parts[parts.length - 1] === 'string') parts[parts.length - 1] = parts[parts.length - 1].replace(/\s+$/, '');
+  return parts.filter((part) => typeof part !== 'string' || part.length > 0);
 }
 
 function refName(ref = '') {
@@ -243,43 +258,117 @@ function scoreItem(item, query, tokens) {
 
 export async function searchDocs(rawQuery = '', rawOffset = 0) {
   const index = await getIndex();
-  const query = String(rawQuery).trim().replace(/^\/+/, '').toLowerCase();
+  const originalQuery = String(rawQuery).trim().replace(/^\/+/, '');
+  const query = originalQuery.toLowerCase();
   const parsedOffset = Number.parseInt(String(rawOffset || '0'), 10);
   const offset = Number.isSafeInteger(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0;
   const tokens = query.split(/\s+/).filter(Boolean);
 
+  function page(results) {
+    return {
+      version: index.version,
+      results: results.slice(offset, offset + MAX_QUERY_RESULTS),
+      nextOffset: offset + MAX_QUERY_RESULTS < results.length ? String(offset + MAX_QUERY_RESULTS) : '',
+    };
+  }
+
   if (!query) {
     const popularNames = ['sendMessage', 'sendRichMessage', 'answerInlineQuery', 'getMe', 'getChat'];
     const popular = popularNames.map((name) => index.items.find((item) => item.kind === 'method' && item.name === name)).filter(Boolean);
-    const allResults = [{
+    return page([{
       kind: 'help',
       name: 'inline-help',
       title: 'How to use RichDocsBot',
       description: 'Quick guide to searching the Telegram Bot API.',
-    }, ...popular];
-    return {
-      version: index.version,
-      results: allResults.slice(offset, offset + MAX_QUERY_RESULTS),
-      nextOffset: offset + MAX_QUERY_RESULTS < allResults.length ? String(offset + MAX_QUERY_RESULTS) : '',
-    };
+    }, ...popular]);
   }
 
-  let ranked = index.items.map((item) => ({ item, score: scoreItem(item, query, tokens) }));
+  const dotted = originalQuery.match(/^([^.]+)\.(.*)$/);
+  let parentName = '';
+  let childFilter = null;
+  let childrenOnly = false;
+  if (dotted) {
+    parentName = dotted[1].trim().toLowerCase();
+    childFilter = dotted[2].trim().toLowerCase();
+    childrenOnly = true;
+  } else if (tokens.length >= 2) {
+    const candidate = index.items.find((item) => item.name.toLowerCase() === tokens[0]);
+    if (candidate && (candidate.kind === 'method' || candidate.kind === 'type')) {
+      parentName = candidate.name.toLowerCase();
+      childFilter = tokens.slice(1).join(' ').toLowerCase();
+      childrenOnly = true;
+    }
+  }
+
+  if (parentName) {
+    const parent = index.items.find((item) => item.name.toLowerCase() === parentName && (item.kind === 'method' || item.kind === 'type'));
+    if (parent) {
+      const children = createChildItems(parent);
+      const filtered = !childFilter || childFilter === '*'
+        ? children
+        : children.filter((item) => item.childName.toLowerCase() === childFilter || item.childName.toLowerCase().startsWith(childFilter) || item.childName.toLowerCase().includes(childFilter));
+      return page(filtered);
+    }
+  }
+
+  const exact = index.items.find((item) => item.name.toLowerCase() === query);
+  if (exact && (exact.kind === 'method' || exact.kind === 'type')) {
+    return page([exact, ...createChildItems(exact)]);
+  }
+
+  const ranked = index.items.map((item) => ({ item, score: scoreItem(item, query, tokens) }));
   if (tokens.length === 1) {
     const directMatches = ranked.filter(({ item }) => item.name.toLowerCase() === query || item.name.toLowerCase().startsWith(query));
-    if (directMatches.length) ranked = directMatches;
+    if (directMatches.length) {
+      directMatches.sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name));
+      return page(directMatches.map(({ item }) => item));
+    }
   }
+
   const matches = ranked
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name))
     .map(({ item }) => item);
-  return {
-    version: index.version,
-    results: matches.slice(offset, offset + MAX_QUERY_RESULTS),
-    nextOffset: offset + MAX_QUERY_RESULTS < matches.length ? String(offset + MAX_QUERY_RESULTS) : '',
-  };
+  return page(matches);
 }
 
+function createChildItems(parent) {
+  if (parent.kind === 'method') {
+    return (parent.params || []).map((param) => ({
+      kind: 'parameter',
+      name: parent.name + '.' + param.name,
+      childName: param.name,
+      title: parent.name + ' · ' + param.name,
+      category: parent.category || 'Bot API method',
+      description: param.description,
+      descriptionRich: param.descriptionRich,
+      parentName: parent.name,
+      parentUrl: parent.url,
+      parentTitle: parent.title,
+      param,
+      searchText: (parent.name + ' ' + param.name + ' ' + param.type + ' ' + param.description).toLowerCase(),
+    }));
+  }
+  if (parent.kind === 'type') {
+    return (parent.properties || []).map((property) => ({
+      kind: 'field',
+      name: parent.name + '.' + property.name,
+      childName: property.name,
+      title: parent.name + ' · ' + property.name,
+      category: 'Field of ' + parent.name,
+      description: property.description,
+      descriptionRich: property.descriptionRich,
+      parentName: parent.name,
+      parentUrl: parent.url,
+      parentTitle: parent.title,
+      property,
+      searchText: (parent.name + ' ' + property.name + ' ' + property.type + ' ' + property.description).toLowerCase(),
+    }));
+  }
+  return [];
+}
+
+function richTextLink
 function richTextLink(text, url) {
   return { type: 'url', text, url };
 }
@@ -317,48 +406,52 @@ export function renderDocBlocks(item, version = 'unknown') {
   if (item.kind === 'method') {
     if (item.params.length) {
       blocks.push(heading('Parameters', 4));
-      const rows = item.params.slice(0, MAX_TABLE_ROWS).map((param) => [
-        [{ type: 'url', text: param.name, url: item.url || API_DOCS_URL }],
-        param.typeRich || [param.type],
-        param.required ? 'Required' : 'Optional',
-        param.descriptionRich?.length && param.description ? param.descriptionRich : (param.description || '—'),
-      ]);
-      blocks.push(tableBlock(['Parameter', 'Type', 'Required', 'Description'], rows, item.params.length + ' parameter(s)'));
-      if (item.params.length > MAX_TABLE_ROWS) blocks.push(paragraph('Showing the first ' + MAX_TABLE_ROWS + ' of ' + item.params.length + ' parameters.'));
+      blocks.push(paragraph(item.params.length + ' parameters are available as separate results below. Search "' + item.name + '.*" to list them all, or "' + item.name + '.question" (replace question with a parameter name) to inspect one.'));
     }
     if (item.returns) {
       blocks.push(heading('Return type', 4));
       blocks.push({ type: 'paragraph', text: [richTextLink(item.returns, API_DOCS_URL + '#' + item.returns.toLowerCase())] });
     }
-  } else {
+  } else if (item.kind === 'type') {
     if (item.variants?.length) {
       blocks.push(heading('Variants', 4));
       blocks.push({
         type: 'list',
-        items: item.variants.slice(0, MAX_TABLE_ROWS).map((variant) => ({
+        items: item.variants.map((variant) => ({
           blocks: [{ type: 'paragraph', text: [richTextLink(variant, API_DOCS_URL + '#' + variant.toLowerCase())] }],
         })),
       });
     }
     if (item.properties?.length) {
       blocks.push(heading('Fields', 4));
-      const rows = item.properties.slice(0, MAX_TABLE_ROWS).map((property) => [
-        [{ type: 'url', text: property.name, url: item.url || API_DOCS_URL }],
-        property.typeRich || [property.type],
-        property.required ? 'Required' : 'Optional',
-        property.descriptionRich?.length && property.description ? property.descriptionRich : (property.description || '—'),
-      ]);
-      blocks.push(tableBlock(['Field', 'Type', 'Required', 'Description'], rows, item.properties.length + ' field(s)'));
-      if (item.properties.length > MAX_TABLE_ROWS) blocks.push(paragraph('Showing the first ' + MAX_TABLE_ROWS + ' of ' + item.properties.length + ' fields.'));
+      blocks.push(paragraph(item.properties.length + ' fields are available as separate results below. Search "' + item.name + '.*" to list them all, or "' + item.name + '.status" (replace status with a field name) to inspect one.'));
+    }
+  } else if (item.kind === 'parameter' || item.kind === 'field') {
+    const isParameter = item.kind === 'parameter';
+    const entry = isParameter ? item.param : item.property;
+    const label = isParameter ? 'Parameter' : 'Field';
+    const rows = [[
+      entry.name,
+      entry.typeRich || [entry.type],
+      entry.required ? 'Required' : 'Optional',
+      entry.descriptionRich?.length && entry.description ? entry.descriptionRich : (entry.description || '—'),
+    ]];
+    blocks.push(heading(label + ' details', 4));
+    blocks.push(tableBlock([label, 'Type', 'Required', 'Description'], rows));
+    if (isParameter) {
+      blocks.push({ type: 'paragraph', text: [richTextLink('Open ' + item.parentName + ' documentation', item.parentUrl || API_DOCS_URL)] });
+    } else {
+      blocks.push({ type: 'paragraph', text: [richTextLink('Open ' + item.parentName + ' documentation', item.parentUrl || API_DOCS_URL)] });
     }
   }
 
   blocks.push({ type: 'divider' });
-  blocks.push({ type: 'paragraph', text: [richTextLink('Open the official documentation', item.url || API_DOCS_URL)] });
+  blocks.push({ type: 'paragraph', text: [richTextLink('Open the official documentation', item.url || item.parentUrl || API_DOCS_URL)] });
   blocks.push({ type: 'footer', text: 'Source: Telegram Bot API ' + version + ' · RichDocsBot' });
   return blocks;
 }
 
+export function getInlineHelpResult
 export function getInlineHelpResult() {
   return {
     type: 'article',
@@ -389,7 +482,13 @@ export function toInlineResult(item, index, version) {
   if (item.kind === 'help') return getInlineHelpResult();
   const summary = item.kind === 'method'
     ? (item.category || 'Bot API') + ' · Method' + (item.returns ? ' · Returns ' + item.returns : '')
-    : 'Type / object · ' + (item.properties?.length || 0) + ' field(s)';
+    : item.kind === 'type'
+      ? 'Type / object · ' + (item.properties?.length || 0) + ' field(s)'
+      : item.kind === 'parameter'
+        ? 'Parameter of ' + item.parentName + ' · ' + (item.param.required ? 'Required' : 'Optional')
+        : item.kind === 'field'
+          ? 'Field of ' + item.parentName + ' · ' + item.property.type
+          : 'Telegram Bot API documentation';
   return {
     type: 'article',
     id: (item.kind + ':' + item.name).slice(0, 64) || String(index),
