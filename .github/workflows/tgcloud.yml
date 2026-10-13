@@ -63,6 +63,24 @@ jobs:
           cd "$BOT_PATH"
           npm install --no-audit --no-fund
 
+      - name: Validate JavaScript module syntax
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          mapfile -t modules < <(
+            find tgcloud -type f -name '*.js' \\
+              \\( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \\) \\
+              -print | sort
+          )
+          if (( ${#modules[@]} == 0 )); then
+            echo "::error::No deployable JavaScript modules were found."
+            exit 1
+          fi
+          for module in "${modules[@]}"; do
+            echo "Checking $module"
+            node --check "$module"
+          done
+
       - name: Validate CLI token matches selected app
         env:
           TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
