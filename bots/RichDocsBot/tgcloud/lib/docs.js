@@ -313,6 +313,12 @@ export async function searchDocs(rawQuery = '', rawOffset = 0) {
     return page([exact, ...createChildItems(exact)]);
   }
 
+  const matchingChildren = index.items
+    .filter((item) => item.kind === 'method' || item.kind === 'type')
+    .flatMap((item) => createChildItems(item))
+    .filter((item) => item.childName.toLowerCase() === query);
+  if (matchingChildren.length) return page(matchingChildren);
+
   const ranked = index.items.map((item) => ({ item, score: scoreItem(item, query, tokens) }));
   if (tokens.length === 1) {
     const directMatches = ranked.filter(({ item }) => item.name.toLowerCase() === query || item.name.toLowerCase().startsWith(query));
