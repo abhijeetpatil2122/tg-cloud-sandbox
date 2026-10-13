@@ -3,9 +3,13 @@
 RichDocsBot is an inline Telegram Bot API documentation search bot running on Telegram Serverless.
 
 ## Inline search
-- @RichDocsBot sendMessage — find a Bot API method.
-- @RichDocsBot chat_id — find methods that use a parameter.
-- @RichDocsBot ChatMember — find API objects and types.
+- `@RichDocsBot sendPoll` — find a method, followed by separate articles for each parameter.
+- `@RichDocsBot sendPoll.*` — list all parameters for a method.
+- `@RichDocsBot sendPoll.question` — open one parameter only.
+- `@RichDocsBot ChatMember` — find a type, followed by separate articles for each field.
+- `@RichDocsBot ChatMember.*` — list all fields for a type.
+- `@RichDocsBot ChatMember.status` — open one field only.
+- `@RichDocsBot chat_id` — find methods that use a parameter.
 
 With an empty query, the first result is a compact usage guide, followed by popular default documentation articles. Search results are paginated at up to 50 articles per page using Telegram's `next_offset` mechanism.
 
