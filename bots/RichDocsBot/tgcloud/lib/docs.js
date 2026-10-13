@@ -258,11 +258,11 @@ function scoreItem(item, query, tokens) {
 
 export async function searchDocs(rawQuery = '', rawOffset = 0) {
   const index = await getIndex();
-  const originalQuery = String(rawQuery).trim().replace(/^\/+/, '');
+  const originalQuery = String(rawQuery).trim().replace(/^\\/+/, '');
   const query = originalQuery.toLowerCase();
   const parsedOffset = Number.parseInt(String(rawOffset || '0'), 10);
   const offset = Number.isSafeInteger(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0;
-  const tokens = query.split(/\s+/).filter(Boolean);
+  const tokens = query.split(/\\s+/).filter(Boolean);
 
   function page(results) {
     return {
@@ -283,36 +283,61 @@ export async function searchDocs(rawQuery = '', rawOffset = 0) {
     }, ...popular]);
   }
 
-  const dotted = originalQuery.match(/^([^.]+)\.(.*)$/);
-  let parentName = '';
-  let childFilter = null;
-  if (dotted) {
-    parentName = dotted[1].trim().toLowerCase();
-    childFilter = dotted[2].trim().toLowerCase();
-  } else if (tokens.length >= 2) {
-    const candidate = index.items.find((item) => item.name.toLowerCase() === tokens[0]);
-    if (candidate && (candidate.kind === 'method' || candidate.kind === 'type')) {
-      parentName = candidate.name.toLowerCase();
-      childFilter = tokens.slice(1).join(' ').toLowerCase();
-    }
-  }
+  // Scoped search: Parent. lists children, Parent.field selects one, and
+  // Parent.field1,field2 creates one article containing only those fields.
+  const dotIndex = originalQuery.indexOf('.');
+  if (dotIndex >= 0) {
+    const parentQuery = originalQuery.slice(0, dotIndex).trim().toLowerCase();
+    const suffix = originalQuery.slice(dotIndex + 1).trim();
+    const parent = index.items.find((item) =>
+      item.name.toLowerCase() === parentQuery && (item.kind === 'method' || item.kind === 'type')
+    );
 
-  if (parentName) {
-    const parent = index.items.find((item) => item.name.toLowerCase() === parentName && (item.kind === 'method' || item.kind === 'type'));
     if (parent) {
       const children = createChildItems(parent);
-      const filtered = !childFilter || childFilter === '*'
-        ? children
-        : children.filter((item) => item.childName.toLowerCase() === childFilter || item.childName.toLowerCase().startsWith(childFilter) || item.childName.toLowerCase().includes(childFilter));
-      return page(filtered);
+      const selectedNames = suffix
+        .split(',')
+        .map((name) => name.trim().replace(/^\\*$/, '*').toLowerCase())
+        .filter(Boolean);
+
+      // A trailing dot (or legacy wildcard) lists all child articles.
+      if (!selectedNames.length || (selectedNames.length === 1 && selectedNames[0] === '*')) {
+        return page(children);
+      }
+
+      const requested = selectedNames.filter((name) => name !== '*');
+      const selected = requested.map((name) =>
+        children.find((child) => child.childName.toLowerCase() === name)
+      ).filter(Boolean);
+
+      if (!selected.length) return page([]);
+
+      // Multiple explicitly selected fields are combined into one compact table.
+      if (requested.length > 1) {
+        return page([{
+          kind: 'selection',
+          name: parent.name + '.' + requested.join(','),
+          title: parent.name + ' · Selected fields',
+          category: parent.category || 'Types and objects',
+          parentName: parent.name,
+          parentUrl: parent.url,
+          parentKind: parent.kind,
+          selected,
+          url: parent.url,
+          description: '',
+        }]);
+      }
+
+      // A single explicit field returns only its own article.
+      return page(selected.slice(0, 1));
     }
   }
 
+  // An exact method/type query returns only its overview article.
   const exact = index.items.find((item) => item.name.toLowerCase() === query);
-  if (exact && (exact.kind === 'method' || exact.kind === 'type')) {
-    return page([exact, ...createChildItems(exact)]);
-  }
+  if (exact && (exact.kind === 'method' || exact.kind === 'type')) return page([exact]);
 
+  // Global exact parameter/property lookup remains available without a parent prefix.
   const matchingChildren = index.items
     .filter((item) => item.kind === 'method' || item.kind === 'type')
     .flatMap((item) => createChildItems(item))
@@ -321,7 +346,9 @@ export async function searchDocs(rawQuery = '', rawOffset = 0) {
 
   const ranked = index.items.map((item) => ({ item, score: scoreItem(item, query, tokens) }));
   if (tokens.length === 1) {
-    const directMatches = ranked.filter(({ item }) => item.name.toLowerCase() === query || item.name.toLowerCase().startsWith(query));
+    const directMatches = ranked.filter(({ item }) =>
+      item.name.toLowerCase() === query || item.name.toLowerCase().startsWith(query)
+    );
     if (directMatches.length) {
       directMatches.sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name));
       return page(directMatches.map(({ item }) => item));
@@ -399,11 +426,14 @@ function heading(text, size = 4) {
 }
 
 export function renderDocBlocks(item, version = 'unknown') {
-  const blocks = [
-    heading(item.title, 2),
-    paragraph(item.descriptionRich?.length ? item.descriptionRich : (item.description || 'No description is available in the current schema.')),
-    { type: 'paragraph', text: [{ type: 'bold', text: 'Category: ' }, item.category || (item.kind === 'method' ? 'Bot API method' : 'Types and objects')] },
-  ];
+  const isFilteredEntry = item.kind === 'parameter' || item.kind === 'field';
+  const isSelection = item.kind === 'selection';
+  const blocks = [heading(item.title, 2)];
+
+  if (!isFilteredEntry && !isSelection) {
+    blocks.push(paragraph(item.descriptionRich?.length ? item.descriptionRich : (item.description || 'No description is available in the current schema.')));
+    blocks.push({ type: 'paragraph', text: [{ type: 'bold', text: 'Category: ' }, item.category || (item.kind === 'method' ? 'Bot API method' : 'Types and objects')] });
+  }
 
   if (item.kind === 'method') {
     if (item.params.length) {
@@ -435,6 +465,21 @@ export function renderDocBlocks(item, version = 'unknown') {
       blocks.push(heading('Fields', 4));
       blocks.push(paragraph(item.properties.length + ' fields are available as separate results below. Search "' + item.name + '.*" to list them all, or "' + item.name + '.status" (replace status with a field name) to inspect one.'));
     }
+  } else if (item.kind === 'selection') {
+    const isParameterSelection = item.parentKind === 'method';
+    const rows = item.selected.map((child) => {
+      const entry = isParameterSelection ? child.param : child.property;
+      return [
+        entry.name,
+        entry.typeRich || [entry.type],
+        entry.required ? 'Required' : 'Optional',
+        entry.descriptionRich?.length && entry.description ? entry.descriptionRich : (entry.description || '—'),
+      ];
+    });
+    blocks.push(tableBlock(
+      [isParameterSelection ? 'Parameter' : 'Field', 'Type', 'Required', 'Description'],
+      rows
+    ));
   } else if (item.kind === 'parameter' || item.kind === 'field') {
     const isParameter = item.kind === 'parameter';
     const entry = isParameter ? item.param : item.property;
@@ -491,7 +536,9 @@ export function toInlineResult(item, index, version) {
         ? 'Parameter of ' + item.parentName + ' · ' + (item.param.required ? 'Required' : 'Optional')
         : item.kind === 'field'
           ? 'Field of ' + item.parentName + ' · ' + item.property.type
-          : 'Telegram Bot API documentation';
+          : item.kind === 'selection'
+            ? item.selected.length + ' selected fields from ' + item.parentName
+            : 'Telegram Bot API documentation';
   return {
     type: 'article',
     id: (item.kind + ':' + item.name).slice(0, 64) || String(index),
