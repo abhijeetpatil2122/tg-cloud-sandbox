@@ -286,17 +286,14 @@ export async function searchDocs(rawQuery = '', rawOffset = 0) {
   const dotted = originalQuery.match(/^([^.]+)\.(.*)$/);
   let parentName = '';
   let childFilter = null;
-  let childrenOnly = false;
   if (dotted) {
     parentName = dotted[1].trim().toLowerCase();
     childFilter = dotted[2].trim().toLowerCase();
-    childrenOnly = true;
   } else if (tokens.length >= 2) {
     const candidate = index.items.find((item) => item.name.toLowerCase() === tokens[0]);
     if (candidate && (candidate.kind === 'method' || candidate.kind === 'type')) {
       parentName = candidate.name.toLowerCase();
       childFilter = tokens.slice(1).join(' ').toLowerCase();
-      childrenOnly = true;
     }
   }
 
