@@ -40,7 +40,6 @@ jobs:
       BOT_PATH: ${{ inputs.bot_path }}
       EXPECTED_APP_ID: ${{ inputs.expected_app_id }}
       DEPLOY_MODE: ${{ inputs.mode }}
-      TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
     steps:
       - name: Check out workspace
         uses: actions/checkout@v4
@@ -50,7 +49,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Validate selection and install CLI
+      - name: Validate project and install CLI
         run: |
           set -euo pipefail
           if [[ ! "$BOT_PATH" =~ ^bots/[A-Za-z0-9._-]+$ ]]; then
@@ -61,6 +60,14 @@ jobs:
             echo "::error::The selected folder is not a tgcloud project: $BOT_PATH"
             exit 1
           fi
+          cd "$BOT_PATH"
+          npm install --no-audit --no-fund
+
+      - name: Validate CLI token matches selected app
+        env:
+          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+        run: |
+          set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
             echo "::error::Add the repository Actions secret TGCLOUD_TOKEN before running the CLI."
             exit 1
@@ -74,10 +81,10 @@ jobs:
             echo "::error::The token app ID does not match expected_app_id. Check the selected bot and secret; no deploy was attempted."
             exit 1
           fi
-          cd "$BOT_PATH"
-          npm install --no-audit --no-fund
 
       - name: Fetch cloud state and show status
+        env:
+          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -86,6 +93,8 @@ jobs:
 
       - name: Deploy selected bot modules
         if: inputs.mode == 'deploy'
+        env:
+          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
