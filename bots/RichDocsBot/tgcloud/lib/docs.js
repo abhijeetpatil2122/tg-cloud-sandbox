@@ -273,14 +273,14 @@ export async function searchDocs(rawQuery = '', rawOffset = 0) {
   }
 
   if (!query) {
-    const popularNames = ['sendMessage', 'sendRichMessage', 'answerInlineQuery', 'getMe', 'getChat'];
-    const popular = popularNames.map((name) => index.items.find((item) => item.kind === 'method' && item.name === name)).filter(Boolean);
+    const methods = index.items.filter((item) => item.kind === 'method')
+      .sort((a, b) => a.name.localeCompare(b.name));
     return page([{
       kind: 'help',
       name: 'inline-help',
       title: 'How to use RichDocsBot',
       description: 'Quick guide to searching the Telegram Bot API.',
-    }, ...popular]);
+    }, ...methods]);
   }
 
   // Scoped search: Parent. lists children, Parent.field selects one, and
@@ -317,7 +317,7 @@ export async function searchDocs(rawQuery = '', rawOffset = 0) {
         return page([{
           kind: 'selection',
           name: parent.name + '.' + requested.join(','),
-          title: parent.name + ' · Selected fields',
+          title: parent.name + ' · ' + selected.map((child) => child.childName).join(', '),
           category: parent.category || 'Types and objects',
           parentName: parent.name,
           parentUrl: parent.url,
@@ -333,9 +333,19 @@ export async function searchDocs(rawQuery = '', rawOffset = 0) {
     }
   }
 
-  // An exact method/type query returns only its overview article.
+  // Keep the exact article first, but include other matching method/type names.
+  // For example, sendMessage should also discover sendRichMessage.
   const exact = index.items.find((item) => item.name.toLowerCase() === query);
-  if (exact && (exact.kind === 'method' || exact.kind === 'type')) return page([exact]);
+  if (exact && (exact.kind === 'method' || exact.kind === 'type')) {
+    const related = index.items.filter((item) => item !== exact &&
+      (item.kind === 'method' || item.kind === 'type') &&
+      (item.name.toLowerCase().includes(query) ||
+        (exact.kind === 'method' && item.kind === 'method' &&
+          item.name.toLowerCase().includes(query.replace(/^send/, ''))))
+    );
+    related.sort((a, b) => a.name.localeCompare(b.name));
+    return page([exact, ...related]);
+  }
 
   // Global exact parameter/property lookup remains available without a parent prefix.
   const matchingChildren = index.items
@@ -444,8 +454,8 @@ export function renderDocBlocks(item, version = 'unknown') {
         param.required ? 'Required' : 'Optional',
         param.descriptionRich?.length && param.description ? param.descriptionRich : (param.description || '—'),
       ]);
-      blocks.push(tableBlock(['Parameter', 'Type', 'Required', 'Description'], rows));
-      blocks.push(paragraph('To filter this list, search "' + item.name + '.*" for separate parameter articles or "' + item.name + '.question" (replace question with a parameter name) for one parameter.'));
+      blocks.push(tableBlock(['Parameter', 'Type', 'Required', 'Description'], rows, item.params.length + ' parameter(s)'));
+
     }
     if (item.returns) {
       blocks.push(heading('Return type', 4));
@@ -463,7 +473,12 @@ export function renderDocBlocks(item, version = 'unknown') {
     }
     if (item.properties?.length) {
       blocks.push(heading('Fields', 4));
-      blocks.push(paragraph(item.properties.length + ' fields are available as separate results below. Search "' + item.name + '.*" to list them all, or "' + item.name + '.status" (replace status with a field name) to inspect one.'));
+      const rows = item.properties.map((field) => [
+        field.name, field.typeRich || [field.type],
+        field.required ? 'Required' : 'Optional',
+        field.descriptionRich?.length && field.description ? field.descriptionRich : (field.description || '—'),
+      ]);
+      blocks.push(tableBlock(['Field', 'Type', 'Required', 'Description'], rows, item.properties.length + ' field(s)'));
     }
   } else if (item.kind === 'selection') {
     const isParameterSelection = item.parentKind === 'method';
@@ -478,7 +493,8 @@ export function renderDocBlocks(item, version = 'unknown') {
     });
     blocks.push(tableBlock(
       [isParameterSelection ? 'Parameter' : 'Field', 'Type', 'Required', 'Description'],
-      rows
+      rows,
+      rows.length + (isParameterSelection ? ' parameter(s)' : ' field(s)')
     ));
   } else if (item.kind === 'parameter' || item.kind === 'field') {
     const isParameter = item.kind === 'parameter';
@@ -491,12 +507,14 @@ export function renderDocBlocks(item, version = 'unknown') {
       entry.descriptionRich?.length && entry.description ? entry.descriptionRich : (entry.description || '—'),
     ]];
     blocks.push(heading(label + ' details', 4));
-    blocks.push(tableBlock([label, 'Type', 'Required', 'Description'], rows));
+    blocks.push(tableBlock([label, 'Type', 'Required', 'Description'], rows, '1 ' + label.toLowerCase()));
   }
 
   blocks.push({ type: 'divider' });
-  blocks.push({ type: 'paragraph', text: [richTextLink('Open the official documentation', item.url || item.parentUrl || API_DOCS_URL)] });
-  blocks.push({ type: 'footer', text: 'Source: Telegram Bot API ' + version + ' · RichDocsBot' });
+  blocks.push({ type: 'footer', text: [
+    'Telegram Bot API ' + version + ' · ',
+    richTextLink('Documentation', item.url || item.parentUrl || API_DOCS_URL),
+  ] });
   return blocks;
 }
 
@@ -516,8 +534,10 @@ export function getInlineHelpResult() {
             { blocks: [{ type: 'paragraph', text: ['Method: ', { type: 'code', text: 'sendMessage' }] }] },
             { blocks: [{ type: 'paragraph', text: ['Parameter: ', { type: 'code', text: 'chat_id' }] }] },
             { blocks: [{ type: 'paragraph', text: ['Type or object: ', { type: 'code', text: 'ChatMember' }] }] },
+            { blocks: [{ type: 'paragraph', text: ['All fields: ', { type: 'code', text: 'sendMessage.' }] }] },
+            { blocks: [{ type: 'paragraph', text: ['Selected fields: ', { type: 'code', text: 'sendMessage.text,parse_mode' }] }] },
           ] },
-          paragraph('Type @RichDocsBot followed by a name or keyword, then select a result to send its formatted documentation. Scroll the results to load more matches.'),
+          paragraph('Search a method or type by name. Add a trailing dot to list its fields, or select fields with commas. Scroll to browse more methods.'),
           { type: 'paragraph', text: [richTextLink('Official Telegram Bot API documentation', API_DOCS_URL)] },
           { type: 'footer', text: 'RichDocsBot · Official Bot API schema search' },
         ],
