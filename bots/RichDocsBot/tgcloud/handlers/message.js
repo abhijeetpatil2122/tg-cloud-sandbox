@@ -72,7 +72,7 @@ const COMMANDS = {
 export default async function (message) {
   const text = String(message.text || '').trim();
   if (!text.startsWith('/')) return;
-  const command = text.split(/\\s+/)[0].split('@')[0].toLowerCase();
+  const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
   const blocks = COMMANDS[command];
   if (!blocks) return;
 
