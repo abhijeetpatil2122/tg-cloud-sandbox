@@ -26,7 +26,7 @@ function normalizeDocUrl(url = '') {
   const value = String(url).trim();
   if (!value) return API_DOCS_URL;
   if (/^https?:\/\//i.test(value)) return value;
-  if (value.startsWith('#')) return API_DOCS_URL + value;
+  if (value.startsWith('#')) return API_DOCS_URL + '#' + value.slice(1).toLowerCase();
   if (value.startsWith('/')) return 'https://core.telegram.org' + value;
   return API_DOCS_URL + '#' + value.replace(/^#/, '').toLowerCase();
 }
@@ -318,7 +318,7 @@ export function renderDocBlocks(item, version = 'unknown') {
     if (item.params.length) {
       blocks.push(heading('Parameters', 4));
       const rows = item.params.slice(0, MAX_TABLE_ROWS).map((param) => [
-        [{ type: 'url', text: param.name, url: normalizeDocUrl('#' + param.name.toLowerCase()) }],
+        [{ type: 'url', text: param.name, url: item.url || API_DOCS_URL }],
         param.typeRich || [param.type],
         param.required ? 'Required' : 'Optional',
         param.descriptionRich?.length && param.description ? param.descriptionRich : (param.description || '—'),
@@ -343,7 +343,7 @@ export function renderDocBlocks(item, version = 'unknown') {
     if (item.properties?.length) {
       blocks.push(heading('Fields', 4));
       const rows = item.properties.slice(0, MAX_TABLE_ROWS).map((property) => [
-        [{ type: 'url', text: property.name, url: normalizeDocUrl('#' + property.name.toLowerCase()) }],
+        [{ type: 'url', text: property.name, url: item.url || API_DOCS_URL }],
         property.typeRich || [property.type],
         property.required ? 'Required' : 'Optional',
         property.descriptionRich?.length && property.description ? property.descriptionRich : (property.description || '—'),
