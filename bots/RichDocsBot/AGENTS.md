@@ -16,7 +16,9 @@
 - Treat the live OpenAPI JSON as the source of truth. Index operations from paths, request parameter schemas from requestBody, and objects from components.schemas.
 - Search should find methods (sendMessage), parameters (chat_id), types/objects (ChatMember), and related descriptions. Prefer direct name matches, then prefixes, then description/token matches.
 - Render useful native Rich Messages: title, summary, parameter/field tables, return types, related types, and official documentation links.
-- Keep inline result counts bounded and use personal caching. Do not add a database migration unless it is deliberately designed and the deployment workflow is updated to apply it safely.
+- Return at most 50 inline results per page and implement Telegram pagination with `next_offset`; parse the incoming inline query `offset` as the next page position. With an empty query, show a concise usage guide first, followed by popular default documentation articles.
+- Preserve Markdown/HTML links from the live schema as Rich Text URLs. Make referenced schema types clickable in tables and link parameter/field names to their containing official documentation section.
+- Keep personal caching. Do not add a database migration unless it is deliberately designed and the deployment workflow is updated to apply it safely.
 - Phase one is Bot API documentation only. Do not add errors.json search until explicitly requested.
 
 ## Validation
