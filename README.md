@@ -4,7 +4,7 @@ A reusable public workspace for building multiple Telegram BotFather Serverless 
 
 ## Layout
 
-- bots/<BotName>/ — one self-contained CLI project per bot.
+- bots/NAME/ — one self-contained CLI project per bot.
 - .github/workflows/tgcloud.yml — manually triggered status check or deployment for a selected bot.
 
 Each bot has its own package.json, tgcloud.jsonc, and tgcloud/ modules. Do not copy a bot's .tgcloud/ local state or credentials into Git.
@@ -18,7 +18,7 @@ Add a separate repository Actions secret for each bot:
 | bots/BotZoneBot | TGCLOUD_TOKEN |
 | bots/RichDocsBot | TGCLOUD_TOKEN_RICHDOCSBOT |
 
-Get each token from BotFather → that bot → Serverless → CLI Access. This is the Serverless CLI token, not the ordinary Bot API token. Never commit a token or send it in chat. The workflow selects the matching secret from the bot path and checks that the token's app<id>: prefix matches the numeric app ID entered in the form.
+Get each token from BotFather → that bot → Serverless → CLI Access. This is the Serverless CLI token, not the ordinary Bot API token. Never commit a token or send it in chat. The workflow selects the matching secret from the bot path and checks that the token's app123456: prefix matches the numeric app ID entered in the form.
 
 ## Run a bot
 
