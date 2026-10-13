@@ -1,0 +1,105 @@
+name: Telegram Serverless CLI
+
+on:
+  workflow_dispatch:
+    inputs:
+      bot_path:
+        description: "Bot folder to use (for example bots/BotZoneBot)"
+        required: true
+        default: "bots/BotZoneBot"
+        type: string
+      expected_app_id:
+        description: "Numeric app ID from this bot's CLI token (app<id>:...)"
+        required: true
+        type: string
+      mode:
+        description: "Check the selected bot or deploy its modules"
+        required: true
+        default: "status"
+        type: choice
+        options:
+          - status
+          - deploy
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tgcloud-${{ inputs.bot_path }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: CLI check / deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    env:
+      BOT_PATH: ${{ inputs.bot_path }}
+      EXPECTED_APP_ID: ${{ inputs.expected_app_id }}
+      DEPLOY_MODE: ${{ inputs.mode }}
+      TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+    steps:
+      - name: Check out workspace
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate selection and install CLI
+        run: |
+          set -euo pipefail
+          if [[ ! "$BOT_PATH" =~ ^bots/[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::bot_path must point to a single directory directly under bots/."
+            exit 1
+          fi
+          if [[ ! -f "$BOT_PATH/package.json" || ! -f "$BOT_PATH/tgcloud.jsonc" || ! -d "$BOT_PATH/tgcloud" ]]; then
+            echo "::error::The selected folder is not a tgcloud project: $BOT_PATH"
+            exit 1
+          fi
+          if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
+            echo "::error::Add the repository Actions secret TGCLOUD_TOKEN before running the CLI."
+            exit 1
+          fi
+          if [[ ! "$TGCLOUD_TOKEN" =~ ^app([0-9]+):.+$ ]]; then
+            echo "::error::TGCLOUD_TOKEN does not look like a Telegram Serverless CLI token."
+            exit 1
+          fi
+          token_app_id="${BASH_REMATCH[1]}"
+          if [[ ! "$EXPECTED_APP_ID" =~ ^[0-9]+$ || "$token_app_id" != "$EXPECTED_APP_ID" ]]; then
+            echo "::error::The token app ID does not match expected_app_id. Check the selected bot and secret; no deploy was attempted."
+            exit 1
+          fi
+          cd "$BOT_PATH"
+          npm install --no-audit --no-fund
+
+      - name: Fetch cloud state and show status
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          npx tgcloud fetch
+          npx tgcloud status
+
+      - name: Deploy selected bot modules
+        if: inputs.mode == 'deploy'
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          mapfile -t modules < <(
+            find tgcloud -type f -name '*.js' \
+              \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+              -print | sort
+          )
+          if (( ${#modules[@]} == 0 )); then
+            echo "::error::No deployable JavaScript modules were found."
+            exit 1
+          fi
+          printf 'Deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
+          # Targeted push updates only the modules in this folder and cannot
+          # delete unrelated cloud modules that are not represented locally.
+          npx tgcloud push "${modules[@]}"
+          npx tgcloud status
