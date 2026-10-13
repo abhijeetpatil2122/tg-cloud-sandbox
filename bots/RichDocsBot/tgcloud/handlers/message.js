@@ -5,7 +5,7 @@ const WELCOME = [
   { type: 'paragraph', text: 'Search the official Telegram Bot API documentation directly from any chat using inline mode.' },
   { type: 'paragraph', text: ['Start typing ', { type: 'bold', text: '@RichDocsBot' }, ' in any chat, then add a method, parameter, or type name.'] },
   { type: 'paragraph', text: ['For example: ', { type: 'code', text: '@RichDocsBot sendMessage' }] },
-  { type: 'paragraph', text: ['Use ', { type: 'url', text: '/help', url: 'https://t.me/RichDocsBot?start=help' }, ' to see commands, or /howtouse for a quick tutorial.'] },
+  { type: 'paragraph', text: ['Use ', { type: 'code', text: '/help' }, ' to see commands, or ', { type: 'code', text: '/howtouse' }, ' for a quick tutorial.'] },
   { type: 'footer', text: 'Official Telegram Bot API schema · Rich Message results' },
 ];
 
