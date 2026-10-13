@@ -101,7 +101,7 @@ const BLOCKS_DEMO = [
   { type: 'details', summary: 'Expandable block', blocks: [{ type: 'paragraph', text: 'This content is nested inside a details block.' }] },
   { type: 'buttons', align: 'center', buttons: [
     { text: 'Test callback', callback_data: 'richdemo:callback', style: 'primary' },
-    { text: 'Telegram docs', url: 'https://core.telegram.org/bots/api', style: 'link' }
+    { text: 'Telegram docs', url: 'https://core.telegram.org/bots/api', style: 'success' }
   ] },
   { type: 'footer', text: 'End of structured block demo' }
 ];
