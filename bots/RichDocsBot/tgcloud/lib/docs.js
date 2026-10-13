@@ -47,7 +47,8 @@ function richTextFromDescription(value = '') {
   }
   const after = cleanText(source.slice(cursor));
   if (after) parts.push(after);
-  return parts.length ? parts : [cleanText(source)];
+  const plain = cleanText(source);
+  return parts.length ? parts : (plain ? [plain] : []);
 }
 
 function refName(ref = '') {
@@ -242,10 +243,10 @@ function scoreItem(item, query, tokens) {
 
 export async function searchDocs(rawQuery = '', rawOffset = 0) {
   const index = await getIndex();
-  const query = String(rawQuery).trim().replace(/^\\/+/, '').toLowerCase();
+  const query = String(rawQuery).trim().replace(/^\/+/, '').toLowerCase();
   const parsedOffset = Number.parseInt(String(rawOffset || '0'), 10);
   const offset = Number.isSafeInteger(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0;
-  const tokens = query.split(/\\s+/).filter(Boolean);
+  const tokens = query.split(/\s+/).filter(Boolean);
 
   if (!query) {
     const popularNames = ['sendMessage', 'sendRichMessage', 'answerInlineQuery', 'getMe', 'getChat'];
