@@ -13,8 +13,8 @@ import {
 export default async function (inlineQuery) {
   const query = String(inlineQuery.query || '').trim();
   const offset = String(inlineQuery.offset || '0');
-  const isErrorMode = /^E(?:\\s|$)/i.test(query);
-  const errorQuery = isErrorMode ? query.replace(/^E(?:\\s+|$)/i, '').trim() : '';
+  const isErrorMode = /^E(?:\s|$)/i.test(query);
+  const errorQuery = isErrorMode ? query.replace(/^E(?:\s+|$)/i, '').trim() : '';
 
   try {
     if (isErrorMode) {
