@@ -2,6 +2,10 @@ import { fetch } from 'sdk';
 import { API_SCHEMA_URL, CACHE_TTL_MS } from './config.js';
 import { buildIndex } from './indexer.js';
 
+let cachedIndex;
+let cachedAt = 0;
+let inFlight;
+
 export async function getIndex() {
   const now = Date.now();
   if (cachedIndex && now - cachedAt < CACHE_TTL_MS) return cachedIndex;
