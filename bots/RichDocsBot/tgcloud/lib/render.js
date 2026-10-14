@@ -39,6 +39,19 @@ export function renderDocBlocks(item, version = 'unknown') {
   const isFilteredEntry = item.kind === 'parameter' || item.kind === 'field';
   const isSelection = item.kind === 'selection';
   const blocks = [heading(item.title, 2)];
+  if (item.kind === 'method') {
+    blocks.push({
+      type: 'paragraph',
+      text: [{
+        type: 'button',
+        button: {
+          text: 'View errors',
+          switch_inline_query_current_chat: 'E ' + item.name,
+          style: 'primary',
+        },
+      }],
+    });
+  }
 
   if (!isFilteredEntry && !isSelection) {
     const descriptionText = item.descriptionRich?.length
