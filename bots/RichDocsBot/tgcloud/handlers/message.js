@@ -1,4 +1,5 @@
 import { api } from 'sdk';
+import { getInlineUsageStats } from '../lib/usage-stats.js';
 
 function getWelcomeBlocks(message) {
   const firstName = String(message.from?.first_name || '').trim();
@@ -155,10 +156,42 @@ const COMMANDS = {
   '/about': () => ABOUT,
 };
 
+const STATS_ADMIN_ID = 1314643983;
+
 export default async function (message) {
   const text = String(message.text || '').trim();
   if (!text.startsWith('/')) return;
   const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
+
+  if (command === '/stats') {
+    if (message.from?.id !== STATS_ADMIN_ID) return;
+
+    let blocks;
+    try {
+      const stats = await getInlineUsageStats();
+      blocks = [
+        { type: 'heading', size: 2, text: 'Global inline usage stats' },
+        { type: 'paragraph', text: [{ type: 'bold', text: 'Total inline queries: ' }, String(stats.totalQueries)] },
+        { type: 'paragraph', text: [{ type: 'bold', text: 'Documentation queries: ' }, String(stats.docsQueries)] },
+        { type: 'paragraph', text: [{ type: 'bold', text: 'Error-search queries: ' }, String(stats.errorQueries)] },
+        { type: 'paragraph', text: [{ type: 'bold', text: 'Unique users: ' }, String(stats.uniqueUsers)] },
+        { type: 'paragraph', text: 'Counts track inline-query requests received by the bot, not selected or sent results.' },
+      ];
+    } catch (error) {
+      console.error('RichDocsBot /stats failed:', error && error.message ? error.message : error);
+      blocks = [
+        { type: 'heading', size: 2, text: 'Usage stats unavailable' },
+        { type: 'paragraph', text: 'The usage database is not ready. Apply the pending Serverless database migration, then try /stats again.' },
+      ];
+    }
+
+    await api.sendRichMessage({
+      chat_id: message.chat.id,
+      rich_message: { blocks },
+    });
+    return;
+  }
+
   const getBlocks = COMMANDS[command];
   if (!getBlocks) return;
 
