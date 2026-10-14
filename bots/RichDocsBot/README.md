@@ -12,6 +12,11 @@ RichDocsBot is an inline Telegram Bot API documentation search bot running on Te
 - `@RichDocsBot ChatMember.status` — open one field only.
 - `@RichDocsBot ChatMember.id,first_name,username` — show selected fields together in one table.
 - `@RichDocsBot chat_id` — find parameters by exact name across methods.
+- `@RichDocsBot E sendMessage` — search errors associated with a Bot API method.
+- `@RichDocsBot E BUTTON_URL_INVALID` — search errors by message or identifier.
+- `@RichDocsBot E 429` — browse errors by status code.
+
+Error search uses the separate `https://corefork.telegram.org/bots/errors.json` dataset. The `E` prefix has its own help, search ranking, no-results article, and Rich Message renderer. Method documentation articles include a **View errors** Rich Message button that switches inline mode to `E <methodName>`.
 
 A trailing dot lists children; an explicit field after the dot filters to that field; comma-separated field names create one article containing only the requested rows. Method and type searches do not automatically mix in child articles; matching method/type names can appear as related results.
 
@@ -26,18 +31,20 @@ Selecting a method or type inserts its overview as a native Telegram Rich Messag
 - `/about` — information about RichDocsBot.
 
 ## Data source
-The bot reads the current OpenAPI schema from https://corefork.telegram.org/bots/api.json. The parsed index is cached for ten minutes within a warm Serverless isolate and refreshed after the cache expires. Error-reference search using errors.json is intentionally out of scope for phase one.
+The bot reads the current OpenAPI schema from https://corefork.telegram.org/bots/api.json and the error catalogue from https://corefork.telegram.org/bots/errors.json. Both indexes are cached for ten minutes within a warm Serverless isolate and refreshed after the cache expires.
 
 ## Code architecture
 The implementation is split by responsibility so new data sources can be added without growing one large module:
 
 - `tgcloud/lib/config.js` — shared endpoints, cache duration, pagination limit, and schema type labels.
 - `tgcloud/lib/schema-client.js` — fetches and caches the Bot API OpenAPI document; this is the schema data-access boundary.
+- `tgcloud/lib/error-client.js` — separately fetches, caches, indexes, and searches Bot API error mappings.
 - `tgcloud/lib/indexer.js` — turns the OpenAPI document into searchable method/type records.
 - `tgcloud/lib/schema-utils.js` — resolves references, aliases, and readable type names.
 - `tgcloud/lib/search.js` and `search-children.js` — query ranking, scoped field selection, and child articles.
 - `tgcloud/lib/rich-text.js` — shared text cleanup, URL normalization, and Rich Message text/button helpers.
-- `tgcloud/lib/render.js` — converts search records into native Rich Message blocks, tables, and inline results.
+- `tgcloud/lib/render.js` — converts documentation search records into native Rich Message blocks, tables, and inline results.
+- `tgcloud/lib/error-render.js` — renders error help, error details, no-results, and fallback articles.
 - `tgcloud/lib/docs.js` — small compatibility entry point used by handlers; re-exports the public search/render API.
 - `tgcloud/handlers/inline_query.js` — answers inline searches and handles graceful fallback.
 - `tgcloud/handlers/message.js` — `/start`, `/help`, `/howtouse`, and `/about` commands.
