@@ -23,8 +23,6 @@ function scoreItem(item, query, tokens) {
   return score;
 }
 
-export async
-
 export async function searchDocs(rawQuery = '', rawOffset = 0) {
   const index = await getIndex();
   const originalQuery = String(rawQuery).trim().replace(/^\/+/, '');
