@@ -1,5 +1,5 @@
 import { api } from 'sdk';
-import { searchDocs, toInlineResult, getFallbackResult } from '../lib/docs.js';
+import { searchDocs, toInlineResult, getNoResultsResult, getFallbackResult } from '../lib/docs.js';
 
 export default async function (inlineQuery) {
   const query = String(inlineQuery.query || '').trim();
@@ -8,7 +8,9 @@ export default async function (inlineQuery) {
     const result = await searchDocs(query, offset);
     await api.answerInlineQuery({
       inline_query_id: inlineQuery.id,
-      results: result.results.map((item, index) => toInlineResult(item, index, result.version)),
+      results: result.results.length === 0 && query && Number.parseInt(offset || '0', 10) === 0
+        ? [getNoResultsResult()]
+        : result.results.map((item, index) => toInlineResult(item, index, result.version)),
       next_offset: result.nextOffset || '',
       cache_time: 60,
       is_personal: true,
