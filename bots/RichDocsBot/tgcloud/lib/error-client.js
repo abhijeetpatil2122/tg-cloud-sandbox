@@ -83,7 +83,7 @@ export async function searchErrors(rawQuery = '', rawOffset = 0) {
   const parsedOffset = Number.parseInt(String(rawOffset || '0'), 10);
   const offset = Number.isSafeInteger(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0;
 
-  if (!query) return page([{ kind: 'help', name: 'error-help' }], index, 0);
+  if (!query) return page([{ kind: 'help', name: 'error-help' }, ...index.items], index, offset);
 
   if (/^\d{3}$/.test(query)) {
     return page(index.items.filter((item) => item.code === query), index, offset);
