@@ -131,7 +131,7 @@ export function getInlineHelpResult() {
   return {
     type: 'article',
     id: 'inline-help',
-    title: '❓ How to use RichDocsBot',
+    title: '❓ How to use',
     description: 'Search methods, parameters, and types with inline mode.',
     input_message_content: {
       rich_message: {
