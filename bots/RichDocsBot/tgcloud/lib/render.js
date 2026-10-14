@@ -136,8 +136,8 @@ export function getInlineHelpResult() {
     input_message_content: {
       rich_message: {
         blocks: [
-          heading('RichDocsBot · Quick guide', 2),
-          paragraph(['Search the Telegram Bot API from any chat. Type ', { type: 'code', text: '@RichDocsBot' }, ' followed by a method, type, or parameter name.']),
+          heading('Quick Guide', 2),
+          paragraph(['Search the Telegram Bot API from any chat. Type ', { type: 'code', text: '@RichDocsBot' }, ' followed by a ', { type: 'bold', text: 'method' }, ', ', { type: 'bold', text: 'type' }, ', or ', { type: 'bold', text: 'parameter' }, ' name.']),
           {
             type: 'details',
             summary: 'Search examples',
@@ -188,7 +188,6 @@ export function getInlineHelpResult() {
               },
             ],
           },
-          paragraph('Select a result to send its documentation into the chat. Scroll through the results to browse more matches.'),
         ],
       },
     },
@@ -205,7 +204,6 @@ export function getNoResultsResult() {
       rich_message: {
         blocks: [
           heading('No results found', 2),
-          paragraph('No matching Bot API documentation was found. Check the spelling or try a method, type, or parameter name.'),
         ],
       },
     },
