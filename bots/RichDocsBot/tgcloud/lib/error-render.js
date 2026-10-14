@@ -1,4 +1,4 @@
-import { API_DOCS_URL, API_ERRORS_URL, API_ARTICLE_THUMBNAIL_URL, NO_RESULTS_THUMBNAIL_URL } from './config.js';
+import { API_DOCS_URL, API_ERRORS_URL, NO_RESULTS_THUMBNAIL_URL } from './config.js';
 import { heading, paragraph, richTextLink, richTextFromDescription } from './rich-text.js';
 
 function listItems(values) {
@@ -125,7 +125,6 @@ export function toErrorInlineResult(item, index, version) {
     id: ('error:' + item.code + ':' + index).slice(0, 64),
     title: item.message.slice(0, 256),
     description: ('HTTP ' + item.code + ' · ' + item.methods.length + ' associated method(s)').slice(0, 256),
-    thumbnail_url: API_ARTICLE_THUMBNAIL_URL,
     input_message_content: { rich_message: { blocks } },
   };
 }
