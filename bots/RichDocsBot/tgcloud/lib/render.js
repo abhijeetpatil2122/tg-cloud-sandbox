@@ -1,4 +1,4 @@
-import { API_DOCS_URL } from './config.js';
+import { API_DOCS_URL, API_ARTICLE_THUMBNAIL_URL, NO_RESULTS_THUMBNAIL_URL } from './config.js';
 import { richTextLink, paragraph, heading } from './rich-text.js';
 
 function tableCellText(value) {
@@ -131,7 +131,7 @@ export function getInlineHelpResult() {
   return {
     type: 'article',
     id: 'inline-help',
-    title: 'How to use RichDocsBot',
+    title: '❓ How to use RichDocsBot',
     description: 'Search methods, parameters, and types with inline mode.',
     input_message_content: {
       rich_message: {
@@ -200,6 +200,7 @@ export function getNoResultsResult() {
     id: 'no-results-found',
     title: 'No results found',
     description: 'Try a method, type, or parameter name.',
+    thumbnail_url: NO_RESULTS_THUMBNAIL_URL,
     input_message_content: {
       rich_message: {
         blocks: [
@@ -228,6 +229,7 @@ export function toInlineResult(item, index, version) {
     id: (item.kind + ':' + item.name).slice(0, 64) || String(index),
     title: item.title.slice(0, 256),
     description: (item.description || summary).slice(0, 256),
+    thumbnail_url: API_ARTICLE_THUMBNAIL_URL,
     input_message_content: {
       rich_message: {
         blocks: renderDocBlocks(item, version),
