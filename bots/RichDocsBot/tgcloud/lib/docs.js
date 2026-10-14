@@ -3,3 +3,6 @@
 // errors.json) can be added without coupling retrieval, search, and rendering.
 export { searchDocs } from './search.js';
 export { toInlineResult, getInlineHelpResult, getNoResultsResult, getFallbackResult, renderDocBlocks } from './render.js';
+
+export { searchErrors } from './error-client.js';
+export { toErrorInlineResult, getErrorHelpResult, getErrorNoResultsResult, getErrorFallbackResult } from './error-render.js';
