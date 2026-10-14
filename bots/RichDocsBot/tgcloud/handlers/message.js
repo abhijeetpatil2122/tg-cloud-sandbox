@@ -36,8 +36,8 @@ const HELP = [
 
 const HOW_TO_USE = [
   { type: 'heading', size: 2, text: 'Inline search guide' },
-  { type: 'paragraph', text: ['In any chat, type ', { type: 'code', text: '@RichDocsBot' }, ' followed by a query. Choose an article to send its Rich Message documentation.'] },
-  { type: 'heading', size: 4, text: '1. Browse documentation' },
+  { type: 'paragraph', text: ['Type ', { type: 'code', text: '@RichDocsBot' }, ' followed by a method, type, or parameter name in any chat.'] },
+  { type: 'heading', size: 4, text: 'Browse' },
   {
     type: 'list',
     items: [
@@ -47,8 +47,8 @@ const HOW_TO_USE = [
           {
             type: 'list',
             items: [
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage' }, ' — method overview and its parameters'] }] },
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage.' }, ' — list all parameters separately'] }] },
+              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage' }, ' — method and its parameters'] }] },
+              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage.' }, ' — all parameters'] }] },
             ],
           },
         ],
@@ -59,16 +59,15 @@ const HOW_TO_USE = [
           {
             type: 'list',
             items: [
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'ChatMember' }, ' — type overview and fields'] }] },
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'ChatMember.' }, ' — list all fields separately'] }] },
+              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User' }, ' — object overview'] }] },
+              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User.' }, ' — all fields'] }] },
             ],
           },
         ],
       },
-      { blocks: [{ type: 'paragraph', text: 'Leave the query empty to browse methods; scroll for more results.' }] },
     ],
   },
-  { type: 'heading', size: 4, text: '2. Filter parameters or fields' },
+  { type: 'heading', size: 4, text: 'Filter' },
   {
     type: 'list',
     items: [
@@ -90,27 +89,15 @@ const HOW_TO_USE = [
           {
             type: 'list',
             items: [
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'ChatMember.status' }, ' — one field'] }] },
+              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User.first_name' }, ' — one field'] }] },
               { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User.id,first_name,username' }, ' — selected fields in one table'] }] },
             ],
           },
         ],
       },
-      {
-        blocks: [
-          { type: 'paragraph', text: 'Search across methods' },
-          {
-            type: 'list',
-            items: [
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'chat_id' }, ' — find matching parameters across methods'] }] },
-            ],
-          },
-        ],
-      },
+      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'chat_id' }, ' — find a parameter across methods'] }] },
     ],
   },
-  { type: 'heading', size: 4, text: '3. Send an article' },
-  { type: 'paragraph', text: 'Select a result to insert the documentation into the chat. Type references and the source documentation link are clickable.' },
 ];
 
 const ABOUT = [
