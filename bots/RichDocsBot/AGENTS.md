@@ -1,7 +1,7 @@
 # AGENTS.md — RichDocsBot
 
 ## Mission
-`@RichDocsBot` is a Telegram Serverless inline bot for searching the official Telegram Bot API documentation. Phase one uses https://corefork.telegram.org/bots/api.json. Error-reference search from errors.json is phase two; do not mix it into phase one.
+`@RichDocsBot` is a Telegram Serverless inline bot for searching the official Telegram Bot API documentation. Documentation search uses https://corefork.telegram.org/bots/api.json. Error search uses a separate pipeline sourced from https://corefork.telegram.org/bots/errors.json and is selected by the `E` inline-query prefix. Keep the two indexes and renderers separate.
 
 ## Runtime and deployment rules
 - This is a Telegram Serverless project, not a Node server. Runtime modules under tgcloud/ execute in Telegram's V8 isolates.
@@ -15,11 +15,13 @@
 ## Module boundaries
 - `lib/config.js` owns shared URLs, cache/pagination constants, and schema type labels.
 - `lib/schema-client.js` owns Bot API OpenAPI retrieval, response validation, and warm-isolate caching.
+- `lib/error-client.js` owns Bot API error-catalogue retrieval, response validation, indexing, search ranking, pagination, and warm-isolate caching.
 - `lib/indexer.js` converts the OpenAPI document into method/type search records.
 - `lib/schema-utils.js` resolves references, unions, aliases, and readable schema types.
 - `lib/search.js` and `lib/search-children.js` own query ranking, filtering, and child article creation.
 - `lib/rich-text.js` owns text cleanup, URL normalization, and shared Rich Message text helpers.
-- `lib/render.js` owns table construction and Rich Message article rendering.
+- `lib/render.js` owns documentation table construction and Rich Message article rendering.
+- `lib/error-render.js` owns error help, error articles, error no-results, and error fallback rendering.
 - `lib/docs.js` is the stable public entry point imported by handlers; keep it as a small re-export facade.
 - Keep data retrieval, indexing, search, and presentation independent. A future errors endpoint should have its own configuration and retrieval/indexing path, then integrate with search deliberately; do not mix it into `schema-client.js` by default.
 
@@ -32,12 +34,13 @@
 - Wrap larger method/type tables and multi-field selection tables in closed native Rich Message `details` blocks. Keep compact one-row parameter/field tables open. Preserve row-count captions inside the tables.
 - Render method descriptions as `expandable_blockquote` Rich Message blocks; keep other descriptions as paragraphs unless intentionally changed.
 - Resolve primitive schema aliases (including union aliases such as `ChatId`) into their real primitive types, and never link scalar aliases to object anchors. Only link references that resolve to documented object/union schemas.
-- Exact method/type queries (e.g. `sendMessage`, `ChatMember`) show the overview first and other matching method/type names when relevant, without mixing in child parameter/field articles. Method overview articles retain their complete parameter table.
+- Exact method/type queries (e.g. `sendMessage`, `ChatMember`) show the overview first and other matching method/type names when relevant, without mixing in child parameter/field articles. Method articles expose a native Rich Message `switch_inline_query_current_chat` button to start `E <methodName>` error search.
+- Queries beginning with `E` followed by whitespace or end-of-query route to the separate error pipeline. `E` alone shows error-search help; `E <methodName>` lists errors associated with that method; a three-digit status code filters by status; other terms search error text and indexed mappings. Method overview articles retain their complete parameter table.
 - A trailing dot (e.g. `sendMessage.`, `ChatMember.`) returns the parent’s children as separate articles. A single field query (e.g. `sendMessage.text`, `ChatMember.status`) returns only that field article. Comma-separated field queries (e.g. `sendMessage.text,parse_mode`, `User.id,first_name,username`) return one compact article/table with only the requested fields.
 - Individual parameter/field articles must not repeat their description as a separate introductory paragraph when it already appears in the table. Multi-field article titles list the actual selected field names. Include row-count captions on all documentation tables. After a divider, place one dynamic official-documentation link in a minimal source footer, without bot branding. Avoid duplicate documentation links and search instructions inside documentation articles.
 - Do not arbitrarily truncate parameter/field lists. Empty inline queries show a help result and all method articles, paginated in pages of up to 50. Use scoped child articles and Telegram inline pagination to make every entry accessible.
 - Keep personal caching. Do not add a database migration unless it is deliberately designed and the deployment workflow is updated to apply it safely.
-- Phase one is Bot API documentation only. Do not add errors.json search until explicitly requested.
+- Bot API documentation and `E`-prefixed error search are separate features. Do not merge the error catalogue into the OpenAPI schema index.
 
 ## Validation
 - Run node --check on every deployable .js module.
