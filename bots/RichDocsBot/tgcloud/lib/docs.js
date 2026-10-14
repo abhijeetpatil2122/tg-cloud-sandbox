@@ -460,20 +460,32 @@ function createChildItems(parent) {
   return [];
 }
 
-function richTextLink(text, url) {
+function richTextLink(text, url, style = 'primary') {
   return {
     type: 'button',
     button: {
       text: String(text),
       url: String(url || API_DOCS_URL),
-      style: 'primary',
+      ...(style ? { style } : {}),
     },
   };
 }
 
+function tableCellText(value) {
+  if (!Array.isArray(value)) return String(value ?? '—');
+  // Keep links inside table cells visually neutral. The style field is
+  // optional in RichMessageButton, so omitting it lets Telegram choose the
+  // app-specific default instead of rendering a colored primary button.
+  return value.map((part) => {
+    if (!part || typeof part !== 'object' || part.type !== 'button' || !part.button) return part;
+    const { style, ...button } = part.button;
+    return { ...part, button };
+  });
+}
+
 function tableBlock(headers, rows, caption) {
   const cells = [headers, ...rows].map((row, rowIndex) => row.map((value) => ({
-    text: Array.isArray(value) ? value : String(value ?? '—'),
+    text: tableCellText(value),
     ...(rowIndex === 0 ? { is_header: true } : {}),
   })));
   return {
@@ -492,6 +504,13 @@ function paragraph(text) {
 
 function heading(text, size = 4) {
   return { type: 'heading', size, text };
+}
+
+function tableDetails(summary, table, rowCount) {
+  // Single-row parameter/field articles are already compact; keep them open.
+  // Larger tables start collapsed to reduce the height of overview messages.
+  if (rowCount <= 1) return table;
+  return { type: 'details', summary, blocks: [table] };
 }
 
 export function renderDocBlocks(item, version = 'unknown') {
@@ -513,15 +532,14 @@ export function renderDocBlocks(item, version = 'unknown') {
 
   if (item.kind === 'method') {
     if (item.params.length) {
-      blocks.push(heading('Parameters', 4));
       const rows = item.params.map((param) => [
         param.name,
         param.typeRich || [param.type],
         param.required ? 'Required' : 'Optional',
         param.descriptionRich?.length && param.description ? param.descriptionRich : (param.description || '—'),
       ]);
-      blocks.push(tableBlock(['Parameter', 'Type', 'Required', 'Description'], rows, item.params.length + ' parameter(s)'));
-
+      const table = tableBlock(['Parameter', 'Type', 'Required', 'Description'], rows, item.params.length + ' parameter(s)');
+      blocks.push(tableDetails('Parameters', table, rows.length));
     }
     if (item.returns) {
       blocks.push(heading('Return type', 4));
@@ -540,13 +558,13 @@ export function renderDocBlocks(item, version = 'unknown') {
       });
     }
     if (item.properties?.length) {
-      blocks.push(heading('Fields', 4));
       const rows = item.properties.map((field) => [
         field.name, field.typeRich || [field.type],
         field.required ? 'Required' : 'Optional',
         field.descriptionRich?.length && field.description ? field.descriptionRich : (field.description || '—'),
       ]);
-      blocks.push(tableBlock(['Field', 'Type', 'Required', 'Description'], rows, item.properties.length + ' field(s)'));
+      const table = tableBlock(['Field', 'Type', 'Required', 'Description'], rows, item.properties.length + ' field(s)');
+      blocks.push(tableDetails('Fields', table, rows.length));
     }
   } else if (item.kind === 'selection') {
     const isParameterSelection = item.parentKind === 'method';
@@ -559,11 +577,12 @@ export function renderDocBlocks(item, version = 'unknown') {
         entry.descriptionRich?.length && entry.description ? entry.descriptionRich : (entry.description || '—'),
       ];
     });
-    blocks.push(tableBlock(
+    const table = tableBlock(
       [isParameterSelection ? 'Parameter' : 'Field', 'Type', 'Required', 'Description'],
       rows,
       rows.length + (isParameterSelection ? ' parameter(s)' : ' field(s)')
-    ));
+    );
+    blocks.push(tableDetails(isParameterSelection ? 'Selected parameters' : 'Selected fields', table, rows.length));
   } else if (item.kind === 'parameter' || item.kind === 'field') {
     const isParameter = item.kind === 'parameter';
     const entry = isParameter ? item.param : item.property;
