@@ -102,5 +102,3 @@ export function buildIndex(document) {
 
   return { version: document.info?.version || 'unknown', items };
 }
-
-async
