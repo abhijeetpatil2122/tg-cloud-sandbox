@@ -40,74 +40,38 @@ const HOW_TO_USE = [
   { type: 'paragraph', text: ['Type ', { type: 'code', text: '@RichDocsBot' }, ' followed by a method, type, or parameter name in any chat.'] },
   { type: 'heading', size: 4, text: 'Browse' },
   {
-    type: 'list',
-    items: [
-      {
-        blocks: [
-          { type: 'paragraph', text: 'Methods' },
-          {
-            type: 'list',
-            items: [
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage' }, ' — method and its parameters'] }] },
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage.' }, ' — all parameters'] }] },
-            ],
-          },
-        ],
-      },
-      {
-        blocks: [
-          { type: 'paragraph', text: 'Types and objects' },
-          {
-            type: 'list',
-            items: [
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User' }, ' — object overview'] }] },
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User.' }, ' — all fields'] }] },
-            ],
-          },
-        ],
-      },
+    type: 'expandable_blockquote',
+    text: [
+      'Methods\\n',
+      { type: 'code', text: 'sendMessage' }, ' — method and its parameters\\n',
+      { type: 'code', text: 'sendMessage.' }, ' — all parameters\\n\\n',
+      'Types and objects\\n',
+      { type: 'code', text: 'User' }, ' — object overview\\n',
+      { type: 'code', text: 'User.' }, ' — all fields',
     ],
   },
   { type: 'heading', size: 4, text: 'Filter' },
   {
-    type: 'list',
-    items: [
-      {
-        blocks: [
-          { type: 'paragraph', text: 'Methods' },
-          {
-            type: 'list',
-            items: [
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage.text' }, ' — one parameter'] }] },
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage.text,parse_mode' }, ' — selected parameters in one table'] }] },
-            ],
-          },
-        ],
-      },
-      {
-        blocks: [
-          { type: 'paragraph', text: 'Types and objects' },
-          {
-            type: 'list',
-            items: [
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User.first_name' }, ' — one field'] }] },
-              { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User.id,first_name,username' }, ' — selected fields in one table'] }] },
-            ],
-          },
-        ],
-      },
-      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'chat_id' }, ' — find a parameter across methods'] }] },
+    type: 'expandable_blockquote',
+    text: [
+      'Methods\\n',
+      { type: 'code', text: 'sendMessage.text' }, ' — one parameter\\n',
+      { type: 'code', text: 'sendMessage.text,parse_mode' }, ' — selected parameters in one table\\n\\n',
+      'Types and objects\\n',
+      { type: 'code', text: 'User.first_name' }, ' — one field\\n',
+      { type: 'code', text: 'User.id,first_name,username' }, ' — selected fields in one table\\n\\n',
+      { type: 'code', text: 'chat_id' }, ' — find a parameter across methods',
     ],
   },
   { type: 'heading', size: 4, text: 'Errors' },
-  { type: 'paragraph', text: ['Use ', { type: 'code', text: '@RichDocsBot E' }, ' followed by a method, error phrase, or status code.'] },
   {
-    type: 'list',
-    items: [
-      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'E sendMessage' }, ' — errors associated with a method'] }] },
-      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'E BUTTON_URL_INVALID' }, ' — search by error identifier'] }] },
-      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'E message is not modified' }, ' — search error text'] }] },
-      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'E 429' }, ' — browse errors by status code'] }] },
+    type: 'expandable_blockquote',
+    text: [
+      'Use ', { type: 'code', text: '@RichDocsBot E' }, ' followed by a method, error phrase, or status code.\\n',
+      { type: 'code', text: 'E sendMessage' }, ' — errors associated with a method\\n',
+      { type: 'code', text: 'E BUTTON_URL_INVALID' }, ' — search by error identifier\\n',
+      { type: 'code', text: 'E message is not modified' }, ' — search error text\\n',
+      { type: 'code', text: 'E 429' }, ' — browse errors by status code',
     ],
   },
 ];
@@ -140,6 +104,19 @@ const ABOUT = [
             button: {
               text: 'OpenAPI JSON schema',
               url: 'https://corefork.telegram.org/bots/api.json',
+              style: 'primary',
+            },
+          }],
+        }],
+      },
+      {
+        blocks: [{
+          type: 'paragraph',
+          text: [{
+            type: 'button',
+            button: {
+              text: 'Errors JSON database',
+              url: 'https://corefork.telegram.org/bots/errors.json',
               style: 'primary',
             },
           }],
