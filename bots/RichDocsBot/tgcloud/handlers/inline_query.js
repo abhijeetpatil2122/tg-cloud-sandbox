@@ -1,4 +1,5 @@
 import { api } from 'sdk';
+import { recordInlineUsage } from '../lib/usage-stats.js';
 import {
   searchDocs,
   toInlineResult,
@@ -15,6 +16,14 @@ export default async function (inlineQuery) {
   const offset = String(inlineQuery.offset || '0');
   const isErrorMode = /^E(?:\s|$)/i.test(query);
   const errorQuery = isErrorMode ? query.replace(/^E(?:\s+|$)/i, '').trim() : '';
+  
+  try {
+    await recordInlineUsage(inlineQuery, isErrorMode);
+  } catch (error) {
+    // Analytics must never break inline search if the database is not migrated
+    // yet or a transient database error occurs.
+    console.error('RichDocsBot usage tracking failed:', error && error.message ? error.message : error);
+  }
 
   try {
     if (isErrorMode) {
