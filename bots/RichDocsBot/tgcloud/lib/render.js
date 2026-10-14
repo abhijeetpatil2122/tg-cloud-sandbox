@@ -43,9 +43,8 @@ export function renderDocBlocks(item, version = 'unknown') {
     titleBlock.text = [item.title, ' ', {
       type: 'button',
       button: {
-        text: 'View errors',
+        text: 'Errors',
         switch_inline_query_current_chat: 'E ' + item.name,
-        style: 'primary',
       },
     }];
   }
