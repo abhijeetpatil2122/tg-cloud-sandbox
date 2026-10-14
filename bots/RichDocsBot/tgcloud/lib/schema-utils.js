@@ -1,15 +1,10 @@
-import { API_DOCS_URL, PRIMITIVE_TYPES, TYPE_LABELS } from './config.js';
+import { PRIMITIVE_TYPES, TYPE_LABELS } from './config.js';
 import { normalizeDocUrl, richTextLink } from './rich-text.js';
 
 export function refName(ref = '') {
   return ref.startsWith('#/components/schemas/') ? ref.slice('#/components/schemas/'.length) : '';
 }
 
-const PRIMITIVE_TYPES = new Set(['integer', 'number', 'string', 'boolean', 'array', 'null']);
-const TYPE_LABELS = { integer: 'Integer', number: 'Float', string: 'String', boolean: 'Boolean', array: 'Array', object: 'Object', null: 'null' };
-
-const PRIMITIVE_TYPES = new Set(['integer', 'number', 'string', 'boolean', 'array', 'null']);
-const TYPE_LABELS = { integer: 'Integer', number: 'Float', string: 'String', boolean: 'Boolean', array: 'Array', object: 'Object', null: 'null' };
 
 export function isPrimitiveAlias(schema, schemas, depth = 0) {
   if (!schema || depth > 8) return false;
