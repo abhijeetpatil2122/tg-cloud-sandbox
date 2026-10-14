@@ -171,10 +171,20 @@ export default async function (message) {
       const stats = await getInlineUsageStats();
       blocks = [
         { type: 'heading', size: 2, text: 'Global inline usage stats' },
-        { type: 'paragraph', text: [{ type: 'bold', text: 'Total inline queries: ' }, String(stats.totalQueries)] },
-        { type: 'paragraph', text: [{ type: 'bold', text: 'Documentation queries: ' }, String(stats.docsQueries)] },
-        { type: 'paragraph', text: [{ type: 'bold', text: 'Error-search queries: ' }, String(stats.errorQueries)] },
-        { type: 'paragraph', text: [{ type: 'bold', text: 'Unique users: ' }, String(stats.uniqueUsers)] },
+        {
+          type: 'table',
+          cells: [
+            [{ text: 'Metric', is_header: true }, { text: 'Count', is_header: true }],
+            [{ text: 'Total inline queries' }, { text: String(stats.totalQueries) }],
+            [{ text: 'Documentation queries' }, { text: String(stats.docsQueries) }],
+            [{ text: 'Error-search queries' }, { text: String(stats.errorQueries) }],
+            [{ text: 'Unique users' }, { text: String(stats.uniqueUsers) }],
+          ],
+          caption: 'Global usage since tracking began',
+          is_bordered: true,
+          is_striped: true,
+          is_compact: true,
+        },
         { type: 'paragraph', text: 'Counts track inline-query requests received by the bot, not selected or sent results.' },
       ];
     } catch (error) {
