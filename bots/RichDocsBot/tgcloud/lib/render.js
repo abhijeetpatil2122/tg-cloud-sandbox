@@ -28,14 +28,6 @@ function tableBlock(headers, rows, caption) {
   };
 }
 
-function paragraph(text) {
-  return { type: 'paragraph', text: text || 'No description is available in the schema.' };
-}
-
-function heading(text, size = 4) {
-  return { type: 'heading', size, text };
-}
-
 function tableDetails(summary, table, rowCount) {
   // Single-row parameter/field articles are already compact; keep them open.
   // Larger tables start collapsed to reduce the height of overview messages.
