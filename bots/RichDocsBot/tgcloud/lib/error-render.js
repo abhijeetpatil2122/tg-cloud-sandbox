@@ -1,4 +1,4 @@
-import { API_DOCS_URL, API_ERRORS_URL, NO_RESULTS_THUMBNAIL_URL } from './config.js';
+import { API_ERRORS_URL, NO_RESULTS_THUMBNAIL_URL } from './config.js';
 import { heading, paragraph, richTextLink, richTextFromDescription } from './rich-text.js';
 
 function listItems(values) {
@@ -38,9 +38,6 @@ export function getErrorHelpResult() {
               ],
             }],
           },
-          paragraph('Results are based on Telegram’s published Bot API error database. Method associations and response parameters are shown when the source provides them.'),
-          { type: 'divider' },
-          { type: 'footer', text: [richTextLink('Official Bot API', API_DOCS_URL), ' · ', richTextLink('Error data', API_ERRORS_URL)] },
         ],
       },
     },
@@ -58,8 +55,6 @@ export function getErrorNoResultsResult() {
       rich_message: {
         blocks: [
           heading('No matching errors found', 2),
-          paragraph('Try a Bot API method such as sendMessage, a distinctive error phrase, or a status code such as 429.'),
-          { type: 'paragraph', text: [richTextLink('Open the Bot API error database', API_ERRORS_URL)] },
         ],
       },
     },
@@ -108,17 +103,6 @@ export function toErrorInlineResult(item, index, version) {
     blocks.push(heading('MTProto descriptions', 4));
     for (const description of item.mtprotoDescriptions.slice(0, 5)) blocks.push(paragraph(richTextFromDescription(description)));
   }
-
-  blocks.push({ type: 'divider' });
-  blocks.push({
-    type: 'footer',
-    text: [
-      'Bot API ' + version + (item.mtprotoErrors.length ? ' · MTProto layer mapping' : '') + ' · ',
-      richTextLink('Official documentation', API_DOCS_URL),
-      ' · ',
-      richTextLink('Error data', API_ERRORS_URL),
-    ],
-  });
 
   return {
     type: 'article',
