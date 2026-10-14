@@ -45,6 +45,7 @@ export function renderDocBlocks(item, version = 'unknown') {
       button: {
         text: 'Errors',
         switch_inline_query_current_chat: 'E ' + item.name,
+        style: 'danger',
       },
     }];
   }
