@@ -132,23 +132,80 @@ export function getInlineHelpResult() {
     type: 'article',
     id: 'inline-help',
     title: 'How to use RichDocsBot',
-    description: 'Search methods, parameters, and types. Example: sendMessage, chat_id, ChatMember.',
+    description: 'Search methods, parameters, and types with inline mode.',
     input_message_content: {
       rich_message: {
         blocks: [
           heading('RichDocsBot · Quick guide', 2),
-          paragraph('Search the official Telegram Bot API directly from any chat using inline mode.'),
-          heading('Search examples', 4),
-          { type: 'list', items: [
-            { blocks: [{ type: 'paragraph', text: ['Method: ', { type: 'code', text: 'sendMessage' }] }] },
-            { blocks: [{ type: 'paragraph', text: ['Parameter: ', { type: 'code', text: 'chat_id' }] }] },
-            { blocks: [{ type: 'paragraph', text: ['Type or object: ', { type: 'code', text: 'ChatMember' }] }] },
-            { blocks: [{ type: 'paragraph', text: ['All fields: ', { type: 'code', text: 'sendMessage.' }] }] },
-            { blocks: [{ type: 'paragraph', text: ['Selected fields: ', { type: 'code', text: 'sendMessage.text,parse_mode' }] }] },
-          ] },
-          paragraph('Search a method or type by name. Add a trailing dot to list its fields, or select fields with commas. Scroll to browse more methods.'),
-          { type: 'paragraph', text: [richTextLink('Official Telegram Bot API documentation', API_DOCS_URL)] },
-          { type: 'footer', text: 'RichDocsBot · Official Bot API schema search' },
+          paragraph(['Search the Telegram Bot API from any chat. Type ', { type: 'code', text: '@RichDocsBot' }, ' followed by a method, type, or parameter name.']),
+          {
+            type: 'details',
+            summary: 'Search examples',
+            blocks: [
+              {
+                type: 'list',
+                items: [
+                  {
+                    blocks: [
+                      { type: 'paragraph', text: 'Methods' },
+                      {
+                        type: 'list',
+                        items: [
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage' }, ' — method overview and parameters'] }] },
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage.' }, ' — list all parameters separately'] }] },
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage.text' }, ' — one parameter'] }] },
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'sendMessage.text,parse_mode' }, ' — selected parameters in one table'] }] },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    blocks: [
+                      { type: 'paragraph', text: 'Types and objects' },
+                      {
+                        type: 'list',
+                        items: [
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'ChatMember' }, ' — type overview'] }] },
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'ChatMember.' }, ' — list all fields separately'] }] },
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'ChatMember.status' }, ' — one field'] }] },
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'User.id,first_name,username' }, ' — selected fields in one table'] }] },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    blocks: [
+                      { type: 'paragraph', text: 'Global parameter search' },
+                      {
+                        type: 'list',
+                        items: [
+                          { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'chat_id' }, ' — find matching parameters across methods'] }] },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          paragraph('Select a result to send its documentation into the chat. Scroll through the results to browse more matches.'),
+        ],
+      },
+    },
+  };
+}
+
+export function getNoResultsResult() {
+  return {
+    type: 'article',
+    id: 'no-results-found',
+    title: 'No results found',
+    description: 'Try a method, type, or parameter name.',
+    input_message_content: {
+      rich_message: {
+        blocks: [
+          heading('No results found', 2),
+          paragraph('No matching Bot API documentation was found. Check the spelling or try a method, type, or parameter name.'),
         ],
       },
     },
