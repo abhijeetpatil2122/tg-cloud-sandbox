@@ -28,11 +28,22 @@ Selecting a method or type inserts its overview as a native Telegram Rich Messag
 ## Data source
 The bot reads the current OpenAPI schema from https://corefork.telegram.org/bots/api.json. The parsed index is cached for ten minutes within a warm Serverless isolate and refreshed after the cache expires. Error-reference search using errors.json is intentionally out of scope for phase one.
 
-## Project files
-- tgcloud/handlers/inline_query.js — answers inline searches.
-- tgcloud/handlers/message.js — /start, /help, /howtouse, and /about.
-- tgcloud/lib/docs.js — schema loading, search ranking, and Rich Message rendering.
-- AGENTS.md — project-specific coding and deployment rules.
+## Code architecture
+The implementation is split by responsibility so new data sources can be added without growing one large module:
+
+- `tgcloud/lib/config.js` — shared endpoints, cache duration, pagination limit, and schema type labels.
+- `tgcloud/lib/schema-client.js` — fetches and caches the Bot API OpenAPI document; this is the schema data-access boundary.
+- `tgcloud/lib/indexer.js` — turns the OpenAPI document into searchable method/type records.
+- `tgcloud/lib/schema-utils.js` — resolves references, aliases, and readable type names.
+- `tgcloud/lib/search.js` and `search-children.js` — query ranking, scoped field selection, and child articles.
+- `tgcloud/lib/rich-text.js` — shared text cleanup, URL normalization, and Rich Message text/button helpers.
+- `tgcloud/lib/render.js` — converts search records into native Rich Message blocks, tables, and inline results.
+- `tgcloud/lib/docs.js` — small compatibility entry point used by handlers; re-exports the public search/render API.
+- `tgcloud/handlers/inline_query.js` — answers inline searches and handles graceful fallback.
+- `tgcloud/handlers/message.js` — `/start`, `/help`, `/howtouse`, and `/about` commands.
+- `AGENTS.md` — project-specific coding and deployment rules.
+
+Keep external data access, schema indexing, search behavior, and presentation separate. A future errors endpoint should get its own config entry and data-access/indexing module rather than being embedded into the existing Bot API schema client.
 
 ## Deployment
 Deploy through the shared tg-cloud-sandbox GitHub Actions workflow using bot_path=bots/RichDocsBot, this bot's numeric Serverless app ID, and mode=deploy. The workflow selects TGCLOUD_TOKEN_RICHDOCSBOT for this folder. Never commit .tgcloud/ state or any token.
