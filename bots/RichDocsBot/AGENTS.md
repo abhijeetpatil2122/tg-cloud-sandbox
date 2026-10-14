@@ -39,7 +39,7 @@
 - A trailing dot (e.g. `sendMessage.`, `ChatMember.`) returns the parent’s children as separate articles. A single field query (e.g. `sendMessage.text`, `ChatMember.status`) returns only that field article. Comma-separated field queries (e.g. `sendMessage.text,parse_mode`, `User.id,first_name,username`) return one compact article/table with only the requested fields.
 - Individual parameter/field articles must not repeat their description as a separate introductory paragraph when it already appears in the table. Multi-field article titles list the actual selected field names. Include row-count captions on all documentation tables. After a divider, place one dynamic official-documentation link in a minimal source footer, without bot branding. Avoid duplicate documentation links and search instructions inside documentation articles.
 - Do not arbitrarily truncate parameter/field lists. Empty inline queries show a help result and all method articles, paginated in pages of up to 50. Use scoped child articles and Telegram inline pagination to make every entry accessible.
-- Keep personal caching. Do not add a database migration unless it is deliberately designed and the deployment workflow is updated to apply it safely.
+- Inline usage analytics live in `schema.js` and `lib/usage-stats.js`: keep aggregate query counters and distinct-user tracking only, without storing raw query text. Schema deployment and database migration are separate explicit steps; never deploy or migrate automatically.
 - Bot API documentation and `E`-prefixed error search are separate features. Do not merge the error catalogue into the OpenAPI schema index.
 
 ## Validation
