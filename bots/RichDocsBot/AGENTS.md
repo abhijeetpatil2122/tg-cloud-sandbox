@@ -12,6 +12,17 @@
 - Cache fetched API JSON in module scope as a best-effort warm-isolate cache. Never assume an isolate remains alive; handle fetch/JSON errors and return a graceful inline result.
 - Never commit bot tokens or .tgcloud/ state. GitHub Actions uses a per-bot secret; never print or expose it.
 
+## Module boundaries
+- `lib/config.js` owns shared URLs, cache/pagination constants, and schema type labels.
+- `lib/schema-client.js` owns Bot API OpenAPI retrieval, response validation, and warm-isolate caching.
+- `lib/indexer.js` converts the OpenAPI document into method/type search records.
+- `lib/schema-utils.js` resolves references, unions, aliases, and readable schema types.
+- `lib/search.js` and `lib/search-children.js` own query ranking, filtering, and child article creation.
+- `lib/rich-text.js` owns text cleanup, URL normalization, and shared Rich Message text helpers.
+- `lib/render.js` owns table construction and Rich Message article rendering.
+- `lib/docs.js` is the stable public entry point imported by handlers; keep it as a small re-export facade.
+- Keep data retrieval, indexing, search, and presentation independent. A future errors endpoint should have its own configuration and retrieval/indexing path, then integrate with search deliberately; do not mix it into `schema-client.js` by default.
+
 ## Source and search design
 - Treat the live OpenAPI JSON as the source of truth. Index operations from paths, request parameter schemas from requestBody, and objects from components.schemas.
 - Search should find methods (sendMessage), parameters (chat_id), types/objects (ChatMember), and related descriptions. Prefer direct name matches, then prefixes, then description/token matches.
