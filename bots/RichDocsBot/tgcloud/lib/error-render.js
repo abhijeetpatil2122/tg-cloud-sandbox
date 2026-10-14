@@ -1,5 +1,5 @@
 import { API_DOCS_URL, API_ERRORS_URL, API_ARTICLE_THUMBNAIL_URL, NO_RESULTS_THUMBNAIL_URL } from './config.js';
-import { heading, paragraph, richTextLink } from './rich-text.js';
+import { heading, paragraph, richTextLink, richTextFromDescription } from './rich-text.js';
 
 function listItems(values) {
   return values.map((value) => ({ blocks: [{ type: 'paragraph', text: value }] }));
@@ -106,7 +106,7 @@ export function toErrorInlineResult(item, index, version) {
 
   if (item.mtprotoDescriptions.length) {
     blocks.push(heading('MTProto descriptions', 4));
-    for (const description of item.mtprotoDescriptions.slice(0, 5)) blocks.push(paragraph(description));
+    for (const description of item.mtprotoDescriptions.slice(0, 5)) blocks.push(paragraph(richTextFromDescription(description)));
   }
 
   blocks.push({ type: 'divider' });
