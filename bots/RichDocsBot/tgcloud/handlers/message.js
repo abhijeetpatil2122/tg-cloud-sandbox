@@ -98,6 +98,17 @@ const HOW_TO_USE = [
       { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'chat_id' }, ' — find a parameter across methods'] }] },
     ],
   },
+  { type: 'heading', size: 4, text: 'Errors' },
+  { type: 'paragraph', text: ['Use ', { type: 'code', text: '@RichDocsBot E' }, ' followed by a method, error phrase, or status code.'] },
+  {
+    type: 'list',
+    items: [
+      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'E sendMessage' }, ' — errors associated with a method'] }] },
+      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'E BUTTON_URL_INVALID' }, ' — search by error identifier'] }] },
+      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'E message is not modified' }, ' — search error text'] }] },
+      { blocks: [{ type: 'paragraph', text: [{ type: 'code', text: 'E 429' }, ' — browse errors by status code'] }] },
+    ],
+  },
 ];
 
 const ABOUT = [
