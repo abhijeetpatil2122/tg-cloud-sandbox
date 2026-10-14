@@ -164,7 +164,7 @@ export default async function (message) {
   const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
 
   if (command === '/stats') {
-    if (message.from?.id !== STATS_ADMIN_ID) return;
+    if (message.from?.id !== STATS_ADMIN_ID || message.chat?.type !== 'private') return;
 
     let blocks;
     try {
