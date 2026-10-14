@@ -151,12 +151,27 @@ const ABOUT = [
 
 const COMMANDS = {
   '/start': getWelcomeBlocks,
-  '/help': () => HELP,
+  '/help': getHelpBlocks,
   '/howtouse': () => HOW_TO_USE,
   '/about': () => ABOUT,
 };
 
 const STATS_ADMIN_ID = 1314643983;
+
+function getHelpBlocks(message) {
+  const blocks = HELP.map((block) => (
+    block.type === 'list' ? { ...block, items: [...block.items] } : block
+  ));
+
+  if (message.from?.id === STATS_ADMIN_ID && message.chat?.type === 'private') {
+    const commandList = blocks.find((block) => block.type === 'list');
+    commandList.items.push({
+      blocks: [{ type: 'paragraph', text: '/stats — Private usage statistics (admin only)' }],
+    });
+  }
+
+  return blocks;
+}
 
 export default async function (message) {
   const text = String(message.text || '').trim();
@@ -185,7 +200,6 @@ export default async function (message) {
           is_striped: true,
           is_compact: true,
         },
-        { type: 'paragraph', text: 'Counts track inline-query requests received by the bot, not selected or sent results.' },
       ];
     } catch (error) {
       console.error('RichDocsBot /stats failed:', error && error.message ? error.message : error);
