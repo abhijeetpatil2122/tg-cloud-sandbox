@@ -1,6 +1,6 @@
 import { API_DOCS_URL, TYPE_LABELS } from './config.js';
 import { cleanText, richTextFromDescription, normalizeDocUrl } from './rich-text.js';
-import { isPrimitiveAlias, propertyType, resolveSchema, typeRichText, refName } from './schema-utils.js';
+import { isPrimitiveAlias, propertyType, resolveSchema, responseType, typeRichText, refName } from './schema-utils.js';
 
 function operationParams(operation, schemas) {
   const content = operation?.requestBody?.content || {};
