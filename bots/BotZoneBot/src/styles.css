@@ -79,3 +79,5 @@ dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-size: 12px; fon
   .card { padding: 17px; }
   .footer { flex-direction: column; gap: 5px; }
 }
+
+/* Keep this file as the styling entry point for the Serverless Mini App demo. */
