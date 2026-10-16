@@ -46,7 +46,7 @@
 - Run node --check on every deployable .js module.
 - Test query parsing/ranking, schema resolution, and Rich Message construction against representative queries.
 - Validate package.json and tgcloud.jsonc, and validate workflow shell blocks when editing the shared workflow.
-- Do not deploy automatically unless the user explicitly asks or confirms the tested implementation is ready.
+- Do not manually deploy unless the user explicitly asks or confirms the tested implementation is ready. The repository's opt-in RichDocsBot auto-deployment on commits to `main` is the documented exception; it only deploys after the shared workflow's validation and token/app-ID checks.
 
 ## Official references
 - Serverless guide: https://core.telegram.org/bots/serverless
