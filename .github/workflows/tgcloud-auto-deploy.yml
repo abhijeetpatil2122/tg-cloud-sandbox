@@ -15,7 +15,7 @@ jobs:
     name: Detect deployable bot changes
     runs-on: ubuntu-latest
     outputs:
-      deploy_targets: ${{ steps.detect.outputs.deploy_targets }}
+      deploy_matrix: ${{ steps.detect.outputs.deploy_matrix }}
     steps:
       - name: Check out full history
         uses: actions/checkout@v4
@@ -96,13 +96,13 @@ jobs:
   auto-deploy:
     name: Auto deploy ${{ matrix.bot_path }}
     needs: detect
-    if: needs.detect.outputs.deploy_targets != '[]'
+    if: needs.detect.outputs.deploy_matrix != '{"include":[]}'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.detect.outputs.deploy_targets) }}
+      matrix: ${{ fromJSON(needs.detect.outputs.deploy_matrix) }}
 
     concurrency:
       group: tgcloud-auto-${{ matrix.bot_path }}-${{ github.ref }}
