@@ -156,8 +156,8 @@ jobs:
             auto_deploy: true
             secret_key: TGCLOUD_TOKEN_RICHDOCSBOT
           - bot_path: bots/BotZoneBot
-            app_id: ""
-            auto_deploy: false
+            app_id: "8747772496"
+            auto_deploy: true
             secret_key: TGCLOUD_TOKEN
 
     concurrency:
