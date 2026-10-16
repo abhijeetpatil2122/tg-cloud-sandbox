@@ -32,6 +32,7 @@ jobs:
           python - <<'PY'
           import json
           import os
+          import re
           import subprocess
 
           before = os.environ["BEFORE_SHA"]
@@ -46,20 +47,41 @@ jobs:
               ).splitlines()
 
           changed_bots = set()
-          for path in changed_files:
-              parts = path.split("/")
-              if len(parts) < 3 or parts[0] != "bots":
-                  continue
-              bot_root = f"bots/{parts[1]}"
-              if (
-                  path.startswith(f"{bot_root}/tgcloud/")
-                  or path in {
-                      f"{bot_root}/package.json",
-                      f"{bot_root}/package-lock.json",
-                      f"{bot_root}/tgcloud.jsonc",
-                  }
-              ):
-                  changed_bots.add(bot_root)
+          bot_names = {
+              parts[1]
+              for path in changed_files
+              for parts in [path.split("/")]
+              if len(parts) >= 3 and parts[0] == "bots"
+          }
+          deployable_root_files = {"package.json", "package-lock.json", "tgcloud.jsonc"}
+          documentation_files = {"README.md", "AGENTS.md", ".gitignore"}
+
+          for bot_name in bot_names:
+              bot_root = f"bots/{bot_name}"
+              try:
+                  config = subprocess.check_output(
+                      ["git", "show", f"{after}:{bot_root}/tgcloud.jsonc"],
+                      text=True, stderr=subprocess.DEVNULL
+                  )
+              except subprocess.CalledProcessError:
+                  config = ""
+              has_static_frontend = re.search(r'"static"\\s*:', config) is not None
+
+              for path in changed_files:
+                  if not path.startswith(f"{bot_root}/"):
+                      continue
+                  relative = path[len(bot_root) + 1:]
+                  if (
+                      relative.startswith("tgcloud/")
+                      or relative in deployable_root_files
+                      or (
+                          has_static_frontend
+                          and relative not in documentation_files
+                          and not relative.startswith("docs/")
+                      )
+                  ):
+                      changed_bots.add(bot_root)
+                      break
 
           result = json.dumps(sorted(changed_bots), separators=(",", ":"))
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
@@ -67,9 +89,59 @@ jobs:
           print(f"Deployable bot directories changed: {result}")
           PY
 
+  validate:
+    name: Validate changed bot projects
+    needs: detect
+    if: needs.detect.outputs.changed_bots != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        bot_path: ${{ fromJSON(needs.detect.outputs.changed_bots) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out workspace
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install project dependencies
+        env:
+          BOT_PATH: ${{ matrix.bot_path }}
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          npm install --no-audit --no-fund
+
+      - name: Validate Serverless JavaScript modules
+        env:
+          BOT_PATH: ${{ matrix.bot_path }}
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          while IFS= read -r module; do
+            echo "Checking $module"
+            node --check "$module"
+          done < <(find tgcloud -type f -name '*.js' | grep -E '^tgcloud/(schema\\.js|lib/|handlers/|endpoints/)' | sort)
+
+      - name: Build Mini App frontend when configured
+        env:
+          BOT_PATH: ${{ matrix.bot_path }}
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
+            npm run build
+          fi
   auto-deploy:
     name: Auto deploy ${{ matrix.bot_path }}
-    needs: detect
+    needs: [detect, validate]
     if: needs.detect.outputs.changed_bots != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -182,17 +254,23 @@ jobs:
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
-          mapfile -t modules < <(
-            find tgcloud -type f -name '*.js' \
-              \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
-              -print | sort
-          )
-          if (( ${#modules[@]} == 0 )); then
-            echo "::error::No deployable JavaScript modules were found."
-            exit 1
+          if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
+            # Full push atomically deploys static assets and modules. It mirrors
+            # local modules to the cloud, including deletions.
+            npm run build
+            printf 'Auto-deploying Mini App and modules to app ID %s\n' "$EXPECTED_APP_ID"
+            npx tgcloud push
+          else
+            mapfile -t modules < <(
+              find tgcloud -type f -name '*.js' \
+                \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+                -print | sort
+            )
+            if (( ${#modules[@]} == 0 )); then
+              echo "::error::No deployable JavaScript modules were found."
+              exit 1
+            fi
+            printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
+            npx tgcloud push "${modules[@]}"
           fi
-          printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
-          # Targeted push only updates the selected bot's local modules.
-          # Database migrations and static Mini App assets are not automatic here.
-          npx tgcloud push "${modules[@]}"
           npx tgcloud status
