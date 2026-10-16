@@ -41,7 +41,7 @@ The manual workflow checks the project layout, installs the CLI, runs `node --ch
 Automatic deployment is handled separately by `.github/workflows/tgcloud-auto-deploy.yml`.
 
 - It runs on pushes to `main` when paths under `bots/**` are changed.
-- It further filters the commit diff so bot documentation-only changes do not deploy. Changes under a bot's `tgcloud/` directory or to that bot's `package.json`, `package-lock.json`, or `tgcloud.jsonc` are treated as deployable changes.
+- It further filters the commit diff so bot documentation-only changes do not deploy. Changes under a bot's `tgcloud/` directory or to that bot's `package.json`, `package-lock.json`, or `tgcloud.jsonc` are deployable; when `tgcloud.jsonc` configures static hosting, frontend/build files outside documentation are also treated as deployable.
 - The workflow uses an explicit bot registry (path, app ID, secret mapping, and `auto_deploy` flag). A bot is not auto-deployed unless its registry entry explicitly enables it.
 - **Current rollout:** `bots/RichDocsBot` is enabled for auto-deploy with app ID `8626465761` and Actions secret `TGCLOUD_TOKEN_RICHDOCSBOT`. `bots/BotZoneBot` remains manual-only.
 - The workflow validates changed projects (including a frontend build when `tgcloud.jsonc` configures static hosting), validates JavaScript syntax and token/app ID matching, fetches remote state, checks status, and deploys the selected project. For a static Mini App project, it builds the frontend and uses a full `tgcloud push` to publish static assets and modules together. That full push mirrors the local module set to the cloud, including deletions. Non-static bots continue using a targeted module push.
@@ -50,6 +50,19 @@ Automatic deployment is handled separately by `.github/workflows/tgcloud-auto-de
 - Automatic deployment does **not** run database migrations. Schema migrations remain a separate, deliberate, reviewed operation. Static Mini App assets are built and deployed with the bot only for projects whose `tgcloud.jsonc` configures a `static` source.
 
 When modifying either workflow, preserve token secrecy, exact app ID validation, per-bot isolation, JavaScript syntax validation, and concurrency protection. Never echo a token or place it in a file/commit. Never make auto-deploy depend on a token or app ID supplied by an untrusted pull request.
+
+## Mini App frontend and backend
+
+Telegram Serverless added native Mini App hosting and authenticated endpoints in CLI 0.2.0. A Mini App can live in the same bot project as its handlers and backend; Vercel is not required for this architecture.
+
+- Frontend source stays at the bot project root (for example, Vite's `src/` and `index.html`) and builds to `dist/`.
+- `tgcloud.jsonc` must declare `"static": { "source": "dist", "spa": true }` for a Vite single-page app.
+- Backend endpoint modules live in `tgcloud/endpoints/`; `tgcloud/endpoints/getProfile.js` is called as `POST /api/getProfile`.
+- The frontend uses the official Telegram Web App script and `Telegram.WebApp.Serverless.call('getProfile', input, callback)`. The platform validates Mini App init data before running endpoints; use `ctx.initData.user` as the trusted identity and never trust browser-supplied user IDs or `initDataUnsafe` for authorization.
+- A full `npx tgcloud push` deploys both modules and the configured static build output. It mirrors local modules to the cloud, including deletions; inspect `status`/diff before deploying. Build first (`npm run build`); `push` does not run the frontend build.
+- The hosted URL is printed by the CLI as `https://app<app_id>.tgcloud.ai/`. Configure that URL in BotFather's Menu Button or Main Mini App settings.
+- SQLite schema changes are deployed as module definitions but are not applied to the database until a separate, reviewed `npx tgcloud migrate` operation. Never run migrations automatically in CI.
+- Serverless runtime modules can import only the built-in `sdk` modules and project-relative `.js` modules; React/Vite dependencies are build-time frontend tools, not runtime imports.
 
 ## One-time setup for a new bot
 
