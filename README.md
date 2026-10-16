@@ -37,7 +37,7 @@ The manual workflow validates the project, checks JavaScript syntax, verifies th
 The separate **Telegram Serverless Auto Deploy** workflow watches pushes to `main` under `bots/**`. It validates changed projects and deploys only explicitly enabled bots whose runtime/configuration files changed. For a bot with native Mini App hosting configured, frontend/build changes also trigger validation and are eligible for deployment.
 
 - RichDocsBot is the first enabled bot (app ID `8626465761`).
-- BotZoneBot remains manual-only.
+- BotZoneBot is enabled for automatic deployment with app ID `8747772496`, using the `TGCLOUD_TOKEN` Actions secret; the workflow validates that the secret matches the app ID before pushing.
 - Documentation-only changes do not trigger a deploy.
 - Every automatic run validates changed projects and JavaScript syntax. If a project configures static hosting in `tgcloud.jsonc`, CI builds its Mini App and a full `tgcloud push` deploys the frontend and backend modules together. That full push mirrors local modules to the cloud, including deletions. Non-static bots keep using targeted module pushes.
 - Root documentation/workflow-only commits do not deploy a bot.
