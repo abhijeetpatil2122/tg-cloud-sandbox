@@ -102,17 +102,17 @@ jobs:
 
     steps:
       - name: Check out workspace
-        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+        if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         uses: actions/checkout@v4
 
       - name: Set up Node.js
-        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+        if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Validate project and install CLI
-        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+        if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         run: |
           set -euo pipefail
           if [[ ! "$BOT_PATH" =~ ^bots/[A-Za-z0-9._-]+$ ]]; then
@@ -127,7 +127,7 @@ jobs:
           npm install --no-audit --no-fund
 
       - name: Validate JavaScript module syntax
-        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+        if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -146,7 +146,7 @@ jobs:
           done
 
       - name: Validate CLI token matches the configured app
-        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+        if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
           TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
@@ -166,7 +166,7 @@ jobs:
           fi
 
       - name: Fetch cloud state and show status
-        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+        if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
           TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
@@ -176,7 +176,7 @@ jobs:
           npx tgcloud status
 
       - name: Deploy selected bot modules
-        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+        if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
           TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
