@@ -127,7 +127,6 @@ jobs:
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             # Full push deploys static build output and Serverless modules together.
             # It mirrors the local module set to the cloud, including deletions.
-            npm run build
             npx tgcloud push
           else
             mapfile -t modules < <(
