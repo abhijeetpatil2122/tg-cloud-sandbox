@@ -65,7 +65,7 @@ jobs:
                   )
               except subprocess.CalledProcessError:
                   config = ""
-              has_static_frontend = re.search(r'"static"\\s*:', config) is not None
+              has_static_frontend = re.search(r'"static"\s*:', config) is not None
 
               for path in changed_files:
                   if not path.startswith(f"{bot_root}/"):
@@ -128,7 +128,7 @@ jobs:
           while IFS= read -r module; do
             echo "Checking $module"
             node --check "$module"
-          done < <(find tgcloud -type f -name '*.js' | grep -E '^tgcloud/(schema\\.js|lib/|handlers/|endpoints/)' | sort)
+          done < <(find tgcloud -type f -name '*.js' | sort)
 
       - name: Build Mini App frontend when configured
         env:
