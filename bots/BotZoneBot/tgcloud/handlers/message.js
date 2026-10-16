@@ -18,8 +18,16 @@ export default async function (message) {
       chat_id: chatId,
       text:
         'Welcome to the Telegram Mini App Demo 👋\n\n' +
-        'This project demonstrates a hosted Mini App, authenticated backend endpoints, and persistent notes using Telegram Serverless.\n\n' +
-        'Open the bot menu app after its URL is configured in BotFather. Use /help for setup details.',
+        'Explore a hosted Mini App, authenticated backend endpoints, and persistent notes — all powered by Telegram Serverless.\n\n' +
+        'Tap below to open the demo. Use /help for setup details.',
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: 'Open Mini App',
+            web_app: { url: 'https://app8747772496.tgcloud.ai/' },
+          },
+        ]],
+      },
     });
   }
 
