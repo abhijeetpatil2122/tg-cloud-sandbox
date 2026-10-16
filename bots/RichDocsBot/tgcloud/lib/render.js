@@ -42,6 +42,7 @@ export function renderDocBlocks(item, version = 'unknown') {
   if (item.kind === 'method') {
     titleBlock.text = [item.title, ' ', {
       type: 'button',
+      // Keep error-search actions visually distinct from documentation links.
       button: {
         text: 'Errors',
         switch_inline_query_current_chat: 'E ' + item.name,
