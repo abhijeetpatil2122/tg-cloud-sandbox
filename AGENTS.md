@@ -20,7 +20,7 @@ Before changing code, read this file, the root `README.md`, the selected bot's `
 - `bots/NAME/`: one self-contained Telegram Serverless CLI project.
 - `bots/NAME/tgcloud/`: runtime modules, handlers, libraries, endpoints and schema.
 - `bots/NAME/package.json`: project scripts and CLI dependency.
-- `bots/NAME/tgcloud.jsonc`: Telegram Serverless configuration, including optional static Mini App hosting.
+- `bots/NAME/tgcloud.jsonc`: Telegram Serverless configuration, including optional native static Mini App hosting from a build folder such as `dist/`. The same host serves backend endpoints under `/api/`.
 - `bots/NAME/AGENTS.md`: bot-specific rules and feature architecture.
 - `.github/workflows/tgcloud.yml`: manual status/deployment workflow.
 - `.github/workflows/tgcloud-auto-deploy.yml`: push-triggered automatic deployment workflow.
@@ -44,10 +44,10 @@ Automatic deployment is handled separately by `.github/workflows/tgcloud-auto-de
 - It further filters the commit diff so bot documentation-only changes do not deploy. Changes under a bot's `tgcloud/` directory or to that bot's `package.json`, `package-lock.json`, or `tgcloud.jsonc` are treated as deployable changes.
 - The workflow uses an explicit bot registry (path, app ID, secret mapping, and `auto_deploy` flag). A bot is not auto-deployed unless its registry entry explicitly enables it.
 - **Current rollout:** `bots/RichDocsBot` is enabled for auto-deploy with app ID `8626465761` and Actions secret `TGCLOUD_TOKEN_RICHDOCSBOT`. `bots/BotZoneBot` remains manual-only.
-- Automatic deployment validates JavaScript syntax and token/app ID matching, fetches remote state, checks status, and performs a targeted `tgcloud push` of JavaScript modules.
+- The workflow validates changed projects (including a frontend build when `tgcloud.jsonc` configures static hosting), validates JavaScript syntax and token/app ID matching, fetches remote state, checks status, and deploys the selected project. For a static Mini App project, it builds the frontend and uses a full `tgcloud push` to publish static assets and modules together. That full push mirrors the local module set to the cloud, including deletions. Non-static bots continue using a targeted module push.
 - Changes to root docs or workflow files alone do not trigger bot deployment. Only commits to `main` trigger the push workflow; edits in chat or uncommitted local changes never deploy.
 - A bot added in the future remains manual-only until it is explicitly registered in the automatic workflow and its app ID and dedicated secret are verified.
-- Automatic deployment does **not** run database migrations and does **not** currently publish static Mini App build assets. Treat schema migrations and static hosting as separate, deliberate workflows until explicitly implemented and tested.
+- Automatic deployment does **not** run database migrations. Schema migrations remain a separate, deliberate, reviewed operation. Static Mini App assets are built and deployed with the bot only for projects whose `tgcloud.jsonc` configures a `static` source.
 
 When modifying either workflow, preserve token secrecy, exact app ID validation, per-bot isolation, JavaScript syntax validation, and concurrency protection. Never echo a token or place it in a file/commit. Never make auto-deploy depend on a token or app ID supplied by an untrusted pull request.
 
@@ -60,7 +60,7 @@ When modifying either workflow, preserve token secrecy, exact app ID validation,
 5. Add the bot path and exact numeric app ID to the manual workflow's explicit secret mapping.
 6. Run the manual workflow in `status` mode first; verify the app ID and remote state before the first deployment.
 7. Leave automatic deployment disabled by default. Enable it only after the bot is tested, the secret is confirmed, and its registry entry is added to `tgcloud-auto-deploy.yml`.
-8. If the bot includes a Mini App, verify how its static output is built and deployed. The current targeted JavaScript push does not publish static assets automatically.
+8. If the bot includes a Mini App, configure `tgcloud.jsonc` with its static build folder (for example `dist`) and ensure `package.json` has a working `build` script. The workflow builds and full-pushes static projects; review carefully because a full push mirrors deletions. Database migrations remain manual.
 
 ## Safe development workflow
 
