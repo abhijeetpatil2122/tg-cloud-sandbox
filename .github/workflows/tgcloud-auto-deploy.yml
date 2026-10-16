@@ -87,10 +87,10 @@ jobs:
               elif not registry[path]["auto_deploy"]:
                   print(f"Manual-only: automatic deployment is disabled for {path}.")
 
-          result = json.dumps(targets, separators=(",", ":"))
+          result = json.dumps({"include": targets}, separators=(",", ":"))
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"deploy_targets={result}\n")
-          print(f"Enabled auto-deploy targets: {result}")
+          print(f"Enabled auto-deploy matrix: {result}")
           PY
 
   auto-deploy:
@@ -101,7 +101,6 @@ jobs:
     timeout-minutes: 10
     strategy:
       fail-fast: false
-      matrix:
       matrix: ${{ fromJSON(needs.detect.outputs.deploy_matrix) }}
 
     concurrency:
