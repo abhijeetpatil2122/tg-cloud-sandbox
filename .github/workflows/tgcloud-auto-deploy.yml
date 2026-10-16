@@ -89,7 +89,7 @@ jobs:
 
           result = json.dumps({"include": targets}, separators=(",", ":"))
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"deploy_targets={result}\n")
+              output.write(f"deploy_matrix={result}\n")
           print(f"Enabled auto-deploy matrix: {result}")
           PY
 
