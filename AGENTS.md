@@ -13,7 +13,7 @@ Before making changes:
 4. Check current GitHub Actions runs and the current branch state when deployment status matters.
 5. Confirm the requested scope. Do not change unrelated bots or their deployed behavior.
 
-The authoritative technical reference is the official Telegram Serverless documentation: https://core.telegram.org/bots/serverless. Re-check it when using new platform or CLI capabilities; do not rely on outdated examples from earlier CLI versions.
+The authoritative platform reference is the official Telegram Serverless documentation. Prefer its AI-readable Markdown source at [serverless.md](https://core.telegram.org/bots/serverless.md); the human-readable page is [Telegram Serverless](https://core.telegram.org/bots/serverless). Consult the Mini Apps, Bot API, and changelog references in Section 12 when the task touches those APIs. Re-check current documentation when using new platform or CLI capabilities; do not rely on outdated examples from earlier CLI versions.
 
 ## 2. Platform model: Telegram Serverless
 
@@ -185,9 +185,14 @@ For all work in this repository:
 
 ## 12. Official references
 
-- Telegram Serverless: https://core.telegram.org/bots/serverless
-- Telegram Bot API: https://core.telegram.org/bots/api
-- Telegram Mini Apps: https://core.telegram.org/bots/webapps
+- **Telegram Serverless (Markdown for AI/tools):** https://core.telegram.org/bots/serverless.md
+- Telegram Serverless (human-readable page): https://core.telegram.org/bots/serverless
+- **Telegram Mini Apps / WebApp (Markdown):** https://core.telegram.org/bots/webapp.md
+- Telegram Mini Apps / WebApp (human-readable page): https://core.telegram.org/bots/webapps
+- **Telegram Bot API documentation (Markdown):** https://core.telegram.org/bots/api.md
+- Telegram Bot API (human-readable page): https://core.telegram.org/bots/api
+- **Telegram Bot API schema/data (Markdown):** https://core.telegram.org/bots/api.json.md
+- Telegram Bot API changelog (Markdown): https://core.telegram.org/bots/api-changelog.md
 - GitHub Actions workflow syntax: https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions
 
 When a technical detail may have changed since this plan was written, consult the official documentation before applying it. Keep this root file generic and repository-wide; place project-specific details in that project's own `AGENTS.md` and `README.md`.
