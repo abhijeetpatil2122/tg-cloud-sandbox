@@ -14,7 +14,7 @@ export default async function (message) {
   if (!chatId) return;
 
   const text = (message.text || '').trim();
-  const command = (text.split(/\\s+/, 1)[0] || '').split('@')[0].toLowerCase();
+  const command = (text.split(/\s+/, 1)[0] || '').split('@')[0].toLowerCase();
 
   if (command === '/start') {
     return api.sendMessage({
@@ -45,7 +45,6 @@ export default async function (message) {
 
     const notes = await db.select({
       note: demoNotes.note,
-      createdAt: demoNotes.createdAt,
     })
       .from(demoNotes)
       .where(eq(demoNotes.userId, userId))
@@ -71,7 +70,7 @@ export default async function (message) {
     const noteList = notes.map((item, index) => `${index + 1}. ${item.note}`).join('\n\n');
     return api.sendMessage({
       chat_id: chatId,
-      text: `Your 10 most recent saved notes (\u0024{notes.length} total shown):\n\n`.replace('\u0024{notes.length}', String(notes.length)) + noteList,
+      text: 'Your ' + notes.length + ' most recent saved notes:\n\n' + noteList,
     });
   }
 
