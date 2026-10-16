@@ -34,7 +34,7 @@ The frontend calls these using `Telegram.WebApp.Serverless.call()`. The platform
 
 ## Deploy
 
-The manual GitHub Actions workflow is the safe first deployment path. Select `bots/BotZoneBot`, enter the numeric app ID matching its `TGCLOUD_TOKEN` secret, and run `status` first. Choose `deploy` only when ready. A Mini App project builds its frontend and uses a full `tgcloud push` so the configured static output and modules are published together.
+The GitHub Actions auto-deploy workflow is enabled for BotZoneBot with app ID `8747772496`. It validates the `TGCLOUD_TOKEN` secret against that app ID before deploying. The `/start` message includes an **Open Mini App** button pointing to `https://app8747772496.tgcloud.ai/`. The manual workflow remains available for a status-first check or deliberate deployment. A Mini App project builds its frontend and uses a full `tgcloud push` so the configured static output and modules are published together.
 
 A full push mirrors the local project to the cloud and removes cloud modules missing locally. Review status/diff before deploying.
 
