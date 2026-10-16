@@ -1,78 +1,92 @@
 # Telegram Cloud Sandbox
 
-A reusable workspace for building multiple Telegram BotFather Serverless bots with Telegram's official `tgcloud` CLI.
+A multi-project workspace for building and operating Telegram BotFather Serverless bots and, where needed, native Mini Apps with backend endpoints. Each bot is an independent project under `bots/`; the repository workflows provide manual status/deploy operations and opt-in automatic deployment.
 
 ## Start here
 
-- **[AGENTS.md](./AGENTS.md)** — repository-wide instructions for AI coding agents, Serverless runtime constraints, deployment safety, and how to add bots.
-- `bots/NAME/` — one self-contained CLI project per bot.
-- `.github/workflows/tgcloud.yml` — manual status check or deployment for a selected bot.
-- `.github/workflows/tgcloud-auto-deploy.yml` — automatic deployment for explicitly enabled bots after deployable code/config changes are committed to `main`.
+- **[AGENTS.md](./AGENTS.md)** — repository-wide operating plan for AI agents. It is intentionally generic and explains project layout, Serverless constraints, secrets, both workflows, deployment safety, and the new-bot checklist.
+- `bots/<BotProject>/` — isolated bot project, with its own `package.json`, `tgcloud.jsonc`, `tgcloud/` runtime modules, and project-specific documentation.
+- [Manual workflow](./.github/workflows/tgcloud.yml) — run a status check or intentionally deploy one selected project.
+- [Auto-deploy workflow](./.github/workflows/tgcloud-auto-deploy.yml) — validate and deploy eligible changes on `main` for projects explicitly registered for auto-deploy.
+- Each project may also have its own `AGENTS.md` and `README.md`; read those before changing that project.
 
-Each bot has its own `package.json`, `tgcloud.jsonc`, and `tgcloud/` modules. Do not copy a bot's `.tgcloud/` local state or credentials into Git.
+Do not copy a project's `.tgcloud/` local state, CLI credentials, `node_modules/`, or secrets into Git. Keep each bot's code, dependencies, configuration, database schema, and product behavior isolated.
 
-## One-time setup
+## Current projects
 
-Add a separate repository Actions secret for each bot:
+| Project | Purpose | Serverless app ID | Actions secret | Auto-deploy |
+|---|---|---:|---|---|
+| `bots/BotZoneBot` | React/Vite Mini App demo with Serverless endpoints and per-user notes | `8747772496` | `TGCLOUD_TOKEN` | Enabled on `main` |
+| `bots/RichDocsBot` | Inline search for Bot API methods/types and related error documentation, rendered as native Rich Messages | `8626465761` | `TGCLOUD_TOKEN_RICHDOCSBOT` | Enabled on `main` |
 
-| Bot path | Actions secret | Auto-deploy |
-|---|---|---|
-| `bots/BotZoneBot` | `TGCLOUD_TOKEN` | Disabled (manual only) |
-| `bots/RichDocsBot` | `TGCLOUD_TOKEN_RICHDOCSBOT` | Enabled on `main` |
+These entries describe the current workflow configuration, not defaults for future projects. A newly added project must remain manual-only until its token/app ID, project validation, and first intentional deployment have been checked and its auto-deploy registry entry is deliberately enabled.
 
-Get each token from BotFather → that bot → Serverless → CLI Access. This is the Serverless CLI token, not the ordinary Bot API token. Never commit a token or send it in chat. The workflows validate that the token's `app<id>:` prefix matches the configured numeric app ID.
+## One-time setup and secrets
 
-## Manual status and deployment
+For each bot, get a **Serverless CLI access token** from BotFather → the bot → Serverless → CLI Access. The token has the form `app<id>:<secret>`; it is not the ordinary Bot API token. Keep it in GitHub repository **Settings → Secrets and variables → Actions → Repository secrets**. Never commit tokens, paste them into chat/issues, print them in logs, or put them in frontend code.
 
-1. Open Actions → **Telegram Serverless CLI** → Run workflow.
-2. Select branch `main`.
-3. Set the bot path, for example `bots/BotZoneBot` or `bots/RichDocsBot`.
-4. Enter the bot's numeric Serverless app ID.
-5. Run `status` first to inspect the selected bot. Choose `deploy` only when you intend to publish the code.
+For new projects, use the secret naming convention `TGCLOUD_TOKEN_<BOT_DIRECTORY_UPPERCASE>`, replacing non-alphanumeric characters in the directory name with underscores. Example: `bots/ExampleBot` → `TGCLOUD_TOKEN_EXAMPLEBOT`.
 
-The manual workflow validates the project, checks JavaScript syntax, verifies the selected bot's CLI token, fetches remote state and runs the CLI from that bot directory. Deployment uses a targeted `tgcloud push` of JavaScript modules instead of a full-project mirror operation that could delete unrelated cloud modules.
+**Adding a secret alone is not enough.** Both workflows use explicit secret-selection expressions. Add the new path-to-secret mapping to `.github/workflows/tgcloud.yml`; if and when automatic deployment is approved, also add the project path, exact app ID, secret mapping, and `auto_deploy: true` to the registry in `.github/workflows/tgcloud-auto-deploy.yml`, and update every token-selection expression there. Preserve existing live secret names unless a deliberate, verified migration is planned. The workflows check that the token's embedded app ID matches the configured numeric app ID before deploying.
+
+## Manual status check and deployment
+
+1. Open GitHub → **Actions → Telegram Serverless CLI → Run workflow**.
+2. Select branch `main` (or the intended reviewed branch).
+3. Enter the exact project path directly under `bots/` and its numeric Serverless app ID.
+4. Choose `status` first to inspect the selected project's remote state.
+5. Choose `deploy` only when you intentionally want to publish that project.
+
+The manual workflow validates the project layout, installs the CLI in the GitHub Actions Node.js runner, checks deployable JavaScript syntax, builds the frontend when `tgcloud.jsonc` configures static hosting, validates the token/app-ID pair, fetches cloud state, and reports status. A successful `status` run does **not** deploy anything.
+
+For projects without static hosting, deployment uses a targeted push of JavaScript modules. For projects with static hosting, it builds the frontend and uses a full `npx tgcloud push` to publish static assets and runtime modules together. A full push mirrors the project's module set to the cloud and can delete remote modules absent locally; review the selected project and CLI status/diff before deploying.
 
 ## Automatic deployment
 
-The separate **Telegram Serverless Auto Deploy** workflow watches pushes to `main` under `bots/**`. It validates changed projects and deploys only explicitly enabled bots whose runtime/configuration files changed. For a bot with native Mini App hosting configured, frontend/build changes also trigger validation and are eligible for deployment.
+The **Telegram Serverless Auto Deploy** workflow is triggered by pushes to `main` that touch `bots/**`. It detects projects with deployable changes, validates each detected project, checks JavaScript syntax, and builds a configured Mini App frontend. Only projects present in its explicit registry with `auto_deploy: true` are eligible for deployment.
 
-- RichDocsBot is the first enabled bot (app ID `8626465761`).
-- BotZoneBot is enabled for automatic deployment with app ID `8747772496`, using the `TGCLOUD_TOKEN` Actions secret; the workflow validates that the secret matches the app ID before pushing.
-- Documentation-only changes do not trigger a deploy.
-- Every automatic run validates changed projects and JavaScript syntax. If a project configures static hosting in `tgcloud.jsonc`, CI builds its Mini App and a full `tgcloud push` deploys the frontend and backend modules together. That full push mirrors local modules to the cloud, including deletions. Non-static bots keep using targeted module pushes.
-- Root documentation/workflow-only commits do not deploy a bot.
-- Automatic deployment never runs database migrations. Static Mini App builds are deployed with their bot when `tgcloud.jsonc` configures a static source; database changes still require a separate, reviewed migration.
+- Both currently listed projects are enabled for automatic deployment; their app IDs and secret names are shown in the table above.
+- Documentation-only edits are filtered out. Root-only changes do not match the workflow's `bots/**` trigger.
+- Non-static projects use targeted module pushes. Static Mini App projects build their frontend and use a full push, which can delete remote modules absent from the local project.
+- Automatic deployment never runs database migrations.
+- A push to `main` is not by itself proof that a deployment happened. Check the run's detection output, validation job, project-specific deployment job, final CLI status, and conclusion.
 
-When adding a bot, leave automatic deployment disabled until its app ID and dedicated secret are confirmed and its registry entry is deliberately enabled in `.github/workflows/tgcloud-auto-deploy.yml`.
+## Native Mini Apps and backend endpoints
 
-## Native Mini App hosting and backend APIs
+A bot may optionally host its compiled Mini App and backend endpoints directly on Telegram Serverless. Configure `tgcloud.jsonc` with a `static.source` matching the real build output (commonly `dist/` for Vite), and make sure `package.json` defines the production build command. The deployed app URL follows `https://app<app_id>.tgcloud.ai/`; use the exact URL reported by the CLI and configure the desired launch surface in BotFather.
 
-Telegram Serverless now hosts a bot's built Mini App and backend endpoints alongside its handlers. For a Vite app, configure `tgcloud.jsonc` to serve `dist/`; `tgcloud push` deploys the build and modules together. The app URL is printed by the CLI as `https://app<app_id>.tgcloud.ai/` and can be set in BotFather's Menu Button or Main Mini App settings.
+Backend endpoints live in `tgcloud/endpoints/` and use the documented `(input, ctx)` signature. The Mini App calls them with `Telegram.WebApp.Serverless.call(name, input, callback)`. Use the platform-verified identity in `ctx.initData` for authorization and ownership checks; never trust a client-supplied user ID or `initDataUnsafe` for authorization. Validate all input on the backend.
 
-Place endpoint functions in `bots/NAME/tgcloud/endpoints/`. The frontend calls them through `Telegram.WebApp.Serverless.call(name, input, callback)`; Telegram Serverless validates the Mini App session and provides trusted identity in `ctx.initData`. Use the built-in `sdk` for endpoint logic and the bot's SQLite-backed database. Schema migrations remain a separate, reviewed step and are never run automatically by CI.
+## Database and runtime safety
 
-The demo implementation lives in `bots/BotZoneBot/`. It is intentionally **manual-deploy only** while we confirm its app ID and initial cloud state.
+- Serverless backend modules run in Telegram's V8-isolate runtime, not as a persistent Node.js server or Vercel Function. Node.js on a developer machine or CI runner is for CLI/build tooling and does not imply Node built-ins or arbitrary npm packages are available in the Telegram runtime.
+- Use supported Serverless SDK imports and APIs. Do not assume persistent processes, a writable persistent filesystem, timers/background workers, or arbitrary runtime packages.
+- Each bot has its own SQLite-backed Serverless database and schema. Deploying `tgcloud/schema.js` does not apply database migrations.
+- Migrations are separate, reviewed operations. Never run `npx tgcloud migrate` automatically in either workflow; obtain explicit authorization and review proposed changes first.
+- Never commit `.tgcloud/`, `node_modules/`, `.env`, credentials, tokens, or other sensitive/local state.
 
-## Bots
+## Adding a new bot
 
-- **BotZoneBot** — end-to-end Mini App demo with a React + Vite frontend, authenticated Serverless endpoints, and persistent per-user notes.
-- **RichDocsBot** — inline search over the official Telegram Bot API schema and separate error catalogue, returning documentation as native Rich Messages.
+1. Read the root [AGENTS.md](./AGENTS.md) and current official documentation.
+2. Scaffold using the current official CLI (typically `npm create @tgcloud/bot <project-name>`) and place the project under `bots/<BotProject>/`.
+3. Keep its `package.json`, lockfile where applicable, `tgcloud.jsonc`, `tgcloud/`, frontend source/build config if needed, and project-specific README/AGENTS files together.
+4. Exclude `.tgcloud/`, `node_modules/`, credentials, and secrets from commits.
+5. Add the new project's Serverless CLI token as a repository Actions secret using the naming convention above.
+6. Add the explicit token mapping to the manual workflow and validate the project using its `status` mode.
+7. Review the intended push scope and perform the first deployment deliberately. Handle any database migration separately with explicit authorization.
+8. Test the bot and Mini App in Telegram; a successful build or deployment is not the same as a live functional test.
+9. Only after the project is stable, add its app ID, secret mapping, and deliberate `auto_deploy: true` registry entry to the auto-deploy workflow. Verify the first automatic run.
 
-## Adding another bot
+See [AGENTS.md](./AGENTS.md) for the full operational checklist and rules.
 
-1. Create a new directory under `bots/` using the official scaffold, then copy its project files into that folder.
-2. Keep its package and `tgcloud/` modules, but omit `.tgcloud/` and `node_modules/`.
-3. Add a dedicated GitHub Actions secret for its Serverless CLI token.
-4. Add an explicit bot-path-to-secret mapping in `.github/workflows/tgcloud.yml`.
-5. Run the manual workflow in `status` mode and verify the app ID before deploying.
-6. Only after the bot is tested, add its app ID, secret mapping and auto-deploy flag to `.github/workflows/tgcloud-auto-deploy.yml`.
+## Official documentation references
 
-## Runtime and security notes
+Prefer these Markdown endpoints when feeding documentation to AI tools; use the human-readable pages for ordinary browsing.
 
-- Telegram Serverless handlers run in Telegram's V8-isolate runtime, not as a persistent Node.js server and not as Vercel Functions. The GitHub Actions runner uses Node.js to install and run the deployment CLI; this does not change the bot runtime.
-- Use the official `sdk` imports and supported Telegram Serverless APIs in runtime code. Do not assume Node built-ins, arbitrary npm packages, a persistent filesystem or long-running background processes are available.
-- Never commit CLI tokens, Bot API tokens, `.tgcloud/` credentials, `.env` files or other sensitive data. The repository is public.
-- Schema deployment and database migration are separate operations. Never migrate automatically.
-- See [AGENTS.md](./AGENTS.md) and each bot's own `AGENTS.md` for the full workflow and development rules.
+- **Telegram Serverless (Markdown):** [serverless.md](https://core.telegram.org/bots/serverless.md) · [human-readable page](https://core.telegram.org/bots/serverless)
+- **Telegram Mini Apps / WebApp (Markdown):** [webapp.md](https://core.telegram.org/bots/webapp.md) · [human-readable page](https://core.telegram.org/bots/webapps)
+- **Telegram Bot API documentation (Markdown):** [api.md](https://core.telegram.org/bots/api.md) · [human-readable page](https://core.telegram.org/bots/api)
+- **Telegram Bot API schema/data (Markdown):** [api.json.md](https://core.telegram.org/bots/api.json.md)
+- **Telegram Bot API changelog (Markdown):** [api-changelog.md](https://core.telegram.org/bots/api-changelog.md)
 
-Official docs: https://core.telegram.org/bots/serverless
+For the detailed instructions and repository-specific safety rules, start with [AGENTS.md](./AGENTS.md).
