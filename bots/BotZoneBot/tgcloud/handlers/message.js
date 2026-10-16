@@ -11,7 +11,7 @@ export default async function (message) {
   if (!chatId) return;
 
   const text = (message.text || '').trim();
-  const command = (text.split(/\\s+/, 1)[0] || '').split('@')[0].toLowerCase();
+  const command = (text.split(/\s+/, 1)[0] || '').split('@')[0].toLowerCase();
 
   if (command === '/start') {
     return api.sendMessage({
