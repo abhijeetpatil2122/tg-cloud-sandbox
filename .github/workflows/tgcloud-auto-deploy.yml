@@ -15,14 +15,14 @@ jobs:
     name: Detect deployable bot changes
     runs-on: ubuntu-latest
     outputs:
-      deploy_matrix: ${{ steps.detect.outputs.deploy_matrix }}
+      changed_bots: ${{ steps.detect.outputs.changed_bots }}
     steps:
       - name: Check out full history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Find enabled bots with deployable changes
+      - name: Find bot directories with deployable changes
         id: detect
         env:
           BEFORE_SHA: ${{ github.event.before }}
@@ -33,20 +33,6 @@ jobs:
           import json
           import os
           import subprocess
-
-          # Keep this registry explicit. Auto-deployment is opt-in per bot.
-          registry = {
-              "bots/RichDocsBot": {
-                  "bot_path": "bots/RichDocsBot",
-                  "app_id": "8626465761",
-                  "auto_deploy": True,
-              },
-              "bots/BotZoneBot": {
-                  "bot_path": "bots/BotZoneBot",
-                  "app_id": "",
-                  "auto_deploy": False,
-              },
-          }
 
           before = os.environ["BEFORE_SHA"]
           after = os.environ["AFTER_SHA"]
@@ -65,43 +51,42 @@ jobs:
               if len(parts) < 3 or parts[0] != "bots":
                   continue
               bot_root = f"bots/{parts[1]}"
-              is_deployable_change = (
+              if (
                   path.startswith(f"{bot_root}/tgcloud/")
                   or path in {
                       f"{bot_root}/package.json",
                       f"{bot_root}/package-lock.json",
                       f"{bot_root}/tgcloud.jsonc",
                   }
-              )
-              if is_deployable_change:
+              ):
                   changed_bots.add(bot_root)
 
-          targets = [
-              registry[path]
-              for path in sorted(changed_bots)
-              if path in registry and registry[path]["auto_deploy"]
-          ]
-          for path in sorted(changed_bots):
-              if path not in registry:
-                  print(f"Manual-only: {path} has no registry entry.")
-              elif not registry[path]["auto_deploy"]:
-                  print(f"Manual-only: automatic deployment is disabled for {path}.")
-
-          result = json.dumps({"include": targets}, separators=(",", ":"))
+          result = json.dumps(sorted(changed_bots), separators=(",", ":"))
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"deploy_matrix={result}\n")
-          print(f"Enabled auto-deploy matrix: {result}")
+              output.write(f"changed_bots={result}\\n")
+          print(f"Deployable bot directories changed: {result}")
           PY
 
   auto-deploy:
     name: Auto deploy ${{ matrix.bot_path }}
     needs: detect
-    if: needs.detect.outputs.deploy_matrix != '{"include":[]}'
+    if: needs.detect.outputs.changed_bots != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.detect.outputs.deploy_matrix) }}
+      matrix:
+        include:
+          # RichDocsBot is the only enabled bot in the initial rollout.
+          # Keep other bots manual-only until their app IDs and secrets are verified.
+          - bot_path: bots/RichDocsBot
+            app_id: "8626465761"
+            auto_deploy: true
+            secret_key: TGCLOUD_TOKEN_RICHDOCSBOT
+          - bot_path: bots/BotZoneBot
+            app_id: ""
+            auto_deploy: false
+            secret_key: TGCLOUD_TOKEN
 
     concurrency:
       group: tgcloud-auto-${{ matrix.bot_path }}-${{ github.ref }}
@@ -117,14 +102,17 @@ jobs:
 
     steps:
       - name: Check out workspace
+        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
         uses: actions/checkout@v4
 
       - name: Set up Node.js
+        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Validate project and install CLI
+        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
         run: |
           set -euo pipefail
           if [[ ! "$BOT_PATH" =~ ^bots/[A-Za-z0-9._-]+$ ]]; then
@@ -139,6 +127,7 @@ jobs:
           npm install --no-audit --no-fund
 
       - name: Validate JavaScript module syntax
+        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -157,6 +146,7 @@ jobs:
           done
 
       - name: Validate CLI token matches the configured app
+        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
         env:
           TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
@@ -176,6 +166,7 @@ jobs:
           fi
 
       - name: Fetch cloud state and show status
+        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
         env:
           TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
@@ -185,6 +176,7 @@ jobs:
           npx tgcloud status
 
       - name: Deploy selected bot modules
+        if: matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
         env:
           TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
@@ -199,7 +191,7 @@ jobs:
             echo "::error::No deployable JavaScript modules were found."
             exit 1
           fi
-          printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
+          printf 'Auto-deploying %s module(s) to app ID %s\\n' "${#modules[@]}" "$EXPECTED_APP_ID"
           # Targeted push only updates the selected bot's local modules.
           # Database migrations and static Mini App assets are not automatic here.
           npx tgcloud push "${modules[@]}"
