@@ -63,7 +63,7 @@ jobs:
 
           result = json.dumps(sorted(changed_bots), separators=(",", ":"))
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"changed_bots={result}\\n")
+              output.write(f"changed_bots={result}\n")
           print(f"Deployable bot directories changed: {result}")
           PY
 
@@ -191,7 +191,7 @@ jobs:
             echo "::error::No deployable JavaScript modules were found."
             exit 1
           fi
-          printf 'Auto-deploying %s module(s) to app ID %s\\n' "${#modules[@]}" "$EXPECTED_APP_ID"
+          printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
           # Targeted push only updates the selected bot's local modules.
           # Database migrations and static Mini App assets are not automatic here.
           npx tgcloud push "${modules[@]}"
