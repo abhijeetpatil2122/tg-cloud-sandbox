@@ -1,0 +1,191 @@
+name: Telegram Serverless Auto Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "bots/**"
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Detect deployable bot changes
+    runs-on: ubuntu-latest
+    outputs:
+      changed_bots: ${{ steps.detect.outputs.changed_bots }}
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find bots with deployable changes
+        id: detect
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          before = os.environ["BEFORE_SHA"]
+          after = os.environ["AFTER_SHA"]
+          if not before or set(before) == {"0"}:
+              changed_files = subprocess.check_output(
+                  ["git", "ls-tree", "-r", "--name-only", after], text=True
+              ).splitlines()
+          else:
+              changed_files = subprocess.check_output(
+                  ["git", "diff", "--name-only", before, after], text=True
+              ).splitlines()
+
+          changed_bots = set()
+          for path in changed_files:
+              parts = path.split("/")
+              if len(parts) < 3 or parts[0] != "bots":
+                  continue
+              bot_name = parts[1]
+              bot_root = f"bots/{bot_name}"
+              is_deployable_change = (
+                  path.startswith(f"{bot_root}/tgcloud/")
+                  or path in {
+                      f"{bot_root}/package.json",
+                      f"{bot_root}/package-lock.json",
+                      f"{bot_root}/tgcloud.jsonc",
+                  }
+              )
+              if is_deployable_change:
+                  changed_bots.add(bot_root)
+
+          result = json.dumps(sorted(changed_bots), separators=(",", ":"))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"changed_bots={result}\n")
+          print(f"Deployable bot directories changed: {result}")
+          PY
+
+  auto-deploy:
+    name: Auto deploy ${{ matrix.bot_path }}
+    needs: detect
+    if: needs.detect.outputs.changed_bots != '[]' && matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Enable auto-deploy for RichDocsBot first. Keep other bots manual
+          # until their app IDs, secrets, and readiness have been reviewed.
+          - bot_path: bots/RichDocsBot
+            app_id: "8626465761"
+            auto_deploy: true
+          - bot_path: bots/BotZoneBot
+            app_id: ""
+            auto_deploy: false
+
+    concurrency:
+      group: tgcloud-auto-${{ matrix.bot_path }}-${{ github.ref }}
+      cancel-in-progress: false
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      BOT_PATH: ${{ matrix.bot_path }}
+      EXPECTED_APP_ID: ${{ matrix.app_id }}
+
+    steps:
+      - name: Check out workspace
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate project and install CLI
+        run: |
+          set -euo pipefail
+          if [[ ! "$BOT_PATH" =~ ^bots/[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::bot_path must point to a single directory directly under bots/."
+            exit 1
+          fi
+          if [[ ! -f "$BOT_PATH/package.json" || ! -f "$BOT_PATH/tgcloud.jsonc" || ! -d "$BOT_PATH/tgcloud" ]]; then
+            echo "::error::The selected folder is not a tgcloud project: $BOT_PATH"
+            exit 1
+          fi
+          cd "$BOT_PATH"
+          npm install --no-audit --no-fund
+
+      - name: Validate JavaScript module syntax
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          mapfile -t modules < <(
+            find tgcloud -type f -name '*.js' \
+              \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+              -print | sort
+          )
+          if (( ${#modules[@]} == 0 )); then
+            echo "::error::No deployable JavaScript modules were found."
+            exit 1
+          fi
+          for module in "${modules[@]}"; do
+            echo "Checking $module"
+            node --check "$module"
+          done
+
+      - name: Validate CLI token matches the configured app
+        env:
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
+            echo "::error::The required Actions secret for $BOT_PATH is missing."
+            exit 1
+          fi
+          if [[ ! "$TGCLOUD_TOKEN" =~ ^app([0-9]+):.+$ ]]; then
+            echo "::error::The configured secret is not a valid-looking Telegram Serverless CLI token."
+            exit 1
+          fi
+          token_app_id="${BASH_REMATCH[1]}"
+          if [[ ! "$EXPECTED_APP_ID" =~ ^[0-9]+$ || "$token_app_id" != "$EXPECTED_APP_ID" ]]; then
+            echo "::error::The token app ID does not match the configured app ID. No deploy was attempted."
+            exit 1
+          fi
+
+      - name: Fetch cloud state and show status
+        env:
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          npx tgcloud fetch
+          npx tgcloud status
+
+      - name: Deploy selected bot modules
+        env:
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          mapfile -t modules < <(
+            find tgcloud -type f -name '*.js' \
+              \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+              -print | sort
+          )
+          if (( ${#modules[@]} == 0 )); then
+            echo "::error::No deployable JavaScript modules were found."
+            exit 1
+          fi
+          printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
+          # Targeted push only updates the selected bot's local modules.
+          # Database migrations and static Mini App assets are not automatic here.
+          npx tgcloud push "${modules[@]}"
+          npx tgcloud status
