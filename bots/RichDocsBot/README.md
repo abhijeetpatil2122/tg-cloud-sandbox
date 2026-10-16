@@ -16,7 +16,7 @@ RichDocsBot is an inline Telegram Bot API documentation search bot running on Te
 - `@RichDocsBot E BUTTON_URL_INVALID` — search errors by message or identifier.
 - `@RichDocsBot E 429` — browse errors by status code.
 
-Error search uses the separate `https://corefork.telegram.org/bots/errors.json` dataset. The `E` prefix has its own help, search ranking, no-results article, and Rich Message renderer. Method documentation articles include a **View errors** Rich Message button that switches inline mode to `E <methodName>`.
+Error search uses the separate `https://corefork.telegram.org/bots/errors.json` dataset. The `E` prefix has its own help, search ranking, no-results article, and Rich Message renderer. Method documentation articles include an **Errors** Rich Message button styled `danger` that switches inline mode to `E <methodName>`.
 
 A trailing dot lists children; an explicit field after the dot filters to that field; comma-separated field names create one article containing only the requested rows. Method and type searches do not automatically mix in child articles; matching method/type names can appear as related results.
 
@@ -50,7 +50,7 @@ The implementation is split by responsibility so new data sources can be added w
 - `tgcloud/handlers/message.js` — `/start`, `/help`, `/howtouse`, and `/about` commands.
 - `AGENTS.md` — project-specific coding and deployment rules.
 
-Keep external data access, schema indexing, search behavior, and presentation separate. A future errors endpoint should get its own config entry and data-access/indexing module rather than being embedded into the existing Bot API schema client.
+Keep external data access, schema indexing, search behavior, and presentation separate. Keep the error catalogue separate from the OpenAPI schema client and index.
 
 ## Deployment
-Deploy through the shared tg-cloud-sandbox GitHub Actions workflow using bot_path=bots/RichDocsBot, this bot's numeric Serverless app ID, and mode=deploy. The workflow selects TGCLOUD_TOKEN_RICHDOCSBOT for this folder. Never commit .tgcloud/ state or any token.
+The manual deployment workflow is available under Actions → Telegram Serverless CLI. Select `bots/RichDocsBot`, app ID `8626465761`, and mode `status` first; select `deploy` when you intend to publish. RichDocsBot is also enabled for automatic deployment when deployable files are committed to `main`. The auto workflow validates JavaScript syntax and the CLI token's app ID, fetches cloud state, and pushes only this bot's JavaScript modules. Documentation-only changes do not deploy. Database migrations and static Mini App assets are not automatic. The required Actions secret is `TGCLOUD_TOKEN_RICHDOCSBOT`. Never commit `.tgcloud/` state or any token.
