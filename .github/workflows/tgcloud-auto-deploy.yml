@@ -15,14 +15,14 @@ jobs:
     name: Detect deployable bot changes
     runs-on: ubuntu-latest
     outputs:
-      changed_bots: ${{ steps.detect.outputs.changed_bots }}
+      deploy_targets: ${{ steps.detect.outputs.deploy_targets }}
     steps:
       - name: Check out full history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Find bots with deployable changes
+      - name: Find enabled bots with deployable changes
         id: detect
         env:
           BEFORE_SHA: ${{ github.event.before }}
@@ -33,6 +33,20 @@ jobs:
           import json
           import os
           import subprocess
+
+          # Keep this registry explicit. Auto-deployment is opt-in per bot.
+          registry = {
+              "bots/RichDocsBot": {
+                  "bot_path": "bots/RichDocsBot",
+                  "app_id": "8626465761",
+                  "auto_deploy": True,
+              },
+              "bots/BotZoneBot": {
+                  "bot_path": "bots/BotZoneBot",
+                  "app_id": "",
+                  "auto_deploy": False,
+              },
+          }
 
           before = os.environ["BEFORE_SHA"]
           after = os.environ["AFTER_SHA"]
@@ -50,8 +64,7 @@ jobs:
               parts = path.split("/")
               if len(parts) < 3 or parts[0] != "bots":
                   continue
-              bot_name = parts[1]
-              bot_root = f"bots/{bot_name}"
+              bot_root = f"bots/{parts[1]}"
               is_deployable_change = (
                   path.startswith(f"{bot_root}/tgcloud/")
                   or path in {
@@ -63,30 +76,33 @@ jobs:
               if is_deployable_change:
                   changed_bots.add(bot_root)
 
-          result = json.dumps(sorted(changed_bots), separators=(",", ":"))
+          targets = [
+              registry[path]
+              for path in sorted(changed_bots)
+              if path in registry and registry[path]["auto_deploy"]
+          ]
+          for path in sorted(changed_bots):
+              if path not in registry:
+                  print(f"Manual-only: {path} has no registry entry.")
+              elif not registry[path]["auto_deploy"]:
+                  print(f"Manual-only: automatic deployment is disabled for {path}.")
+
+          result = json.dumps(targets, separators=(",", ":"))
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"changed_bots={result}\n")
-          print(f"Deployable bot directories changed: {result}")
+              output.write(f"deploy_targets={result}\n")
+          print(f"Enabled auto-deploy targets: {result}")
           PY
 
   auto-deploy:
     name: Auto deploy ${{ matrix.bot_path }}
     needs: detect
-    if: needs.detect.outputs.changed_bots != '[]' && matrix.auto_deploy && contains(needs.detect.outputs.changed_bots, matrix.bot_path)
+    if: needs.detect.outputs.deploy_targets != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Enable auto-deploy for RichDocsBot first. Keep other bots manual
-          # until their app IDs, secrets, and readiness have been reviewed.
-          - bot_path: bots/RichDocsBot
-            app_id: "8626465761"
-            auto_deploy: true
-          - bot_path: bots/BotZoneBot
-            app_id: ""
-            auto_deploy: false
+        include: ${{ fromJSON(needs.detect.outputs.deploy_targets) }}
 
     concurrency:
       group: tgcloud-auto-${{ matrix.bot_path }}-${{ github.ref }}
