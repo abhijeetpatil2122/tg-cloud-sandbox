@@ -39,15 +39,15 @@ The separate **Telegram Serverless Auto Deploy** workflow watches pushes to `mai
 - RichDocsBot is the first enabled bot (app ID `8626465761`).
 - BotZoneBot remains manual-only.
 - Documentation-only changes do not trigger a deploy.
-- Every automatic run validates JavaScript syntax and token/app ID matching, fetches cloud state, checks status, and pushes only the selected bot's JavaScript modules.
+- Every automatic run validates changed projects and JavaScript syntax. If a project configures static hosting in `tgcloud.jsonc`, CI builds its Mini App and a full `tgcloud push` deploys the frontend and backend modules together. That full push mirrors local modules to the cloud, including deletions. Non-static bots keep using targeted module pushes.
 - Root documentation/workflow-only commits do not deploy a bot.
-- Automatic deployment does not run database migrations or publish static Mini App build assets. Those require a separate, explicitly designed and tested process.
+- Automatic deployment never runs database migrations. Static Mini App builds are deployed with their bot when `tgcloud.jsonc` configures a static source; database changes still require a separate, reviewed migration.
 
 When adding a bot, leave automatic deployment disabled until its app ID and dedicated secret are confirmed and its registry entry is deliberately enabled in `.github/workflows/tgcloud-auto-deploy.yml`.
 
 ## Bots
 
-- **BotZoneBot** — Rich Message feature showcase and test bot.
+- **BotZoneBot** — end-to-end Mini App demo with a React + Vite frontend, authenticated Serverless endpoints, and persistent per-user notes.
 - **RichDocsBot** — inline search over the official Telegram Bot API schema and separate error catalogue, returning documentation as native Rich Messages.
 
 ## Adding another bot
