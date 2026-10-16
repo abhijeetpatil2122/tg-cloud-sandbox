@@ -6,8 +6,8 @@ const telegram = window.Telegram?.WebApp;
 
 function callEndpoint(name, input) {
   return new Promise((resolve, reject) => {
-    const call = window.Telegram?.WebApp?.Serverless?.call;
-    if (typeof call !== 'function') {
+    const serverless = window.Telegram?.WebApp?.Serverless;
+    if (typeof serverless?.call !== 'function') {
       reject(new Error('Telegram Serverless Mini App API is unavailable. Open this app inside Telegram after deploying it with the current tgcloud CLI.'));
       return;
     }
@@ -21,8 +21,8 @@ function callEndpoint(name, input) {
       resolve(result);
     };
 
-    if (input === undefined) call(name, callback);
-    else call(name, input, callback);
+    if (input === undefined) serverless.call(name, callback);
+    else serverless.call(name, input, callback);
   });
 }
 
