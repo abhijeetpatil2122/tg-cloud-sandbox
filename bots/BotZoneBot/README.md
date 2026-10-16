@@ -22,6 +22,16 @@ npm run build
 npx tgcloud status
 ```
 
+## Backend endpoints
+
+| Module | Endpoint | Purpose |
+|---|---|---|
+| `tgcloud/endpoints/getDemoStatus.js` | `POST /api/getDemoStatus` | Returns server time and Telegram identity verified by Serverless |
+| `tgcloud/endpoints/listDemoNotes.js` | `POST /api/listDemoNotes` | Lists the current user's 10 most recent notes |
+| `tgcloud/endpoints/saveDemoNote.js` | `POST /api/saveDemoNote` | Validates and saves a note for the verified user |
+
+The frontend calls these using `Telegram.WebApp.Serverless.call()`. The platform authenticates the Mini App request and supplies `ctx.initData` to each endpoint. The frontend does not send a user ID for authorization.
+
 ## Deploy
 
 The manual GitHub Actions workflow is the safe first deployment path. Select `bots/BotZoneBot`, enter the numeric app ID matching its `TGCLOUD_TOKEN` secret, and run `status` first. Choose `deploy` only when ready. A Mini App project builds its frontend and uses a full `tgcloud push` so the configured static output and modules are published together.
