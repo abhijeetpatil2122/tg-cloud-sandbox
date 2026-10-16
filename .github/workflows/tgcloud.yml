@@ -81,6 +81,14 @@ jobs:
             node --check "$module"
           done
 
+      - name: Build Mini App frontend when configured
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
+            npm run build
+          fi
+
       - name: Validate CLI token matches selected app
         env:
           TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || '' }}
@@ -109,24 +117,30 @@ jobs:
           npx tgcloud fetch
           npx tgcloud status
 
-      - name: Deploy selected bot modules
+      - name: Deploy selected bot project
         if: inputs.mode == 'deploy'
         env:
           TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
-          mapfile -t modules < <(
-            find tgcloud -type f -name '*.js' \
-              \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
-              -print | sort
-          )
-          if (( ${#modules[@]} == 0 )); then
-            echo "::error::No deployable JavaScript modules were found."
-            exit 1
+          if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
+            # Full push deploys static build output and Serverless modules together.
+            # It mirrors the local module set to the cloud, including deletions.
+            npm run build
+            npx tgcloud push
+          else
+            mapfile -t modules < <(
+              find tgcloud -type f -name '*.js' \
+                \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+                -print | sort
+            )
+            if (( ${#modules[@]} == 0 )); then
+              echo "::error::No deployable JavaScript modules were found."
+              exit 1
+            fi
+            printf 'Deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
+            # Targeted push updates only these modules and avoids deleting unrelated cloud modules.
+            npx tgcloud push "${modules[@]}"
           fi
-          printf 'Deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
-          # Targeted push updates only the modules in this folder and cannot
-          # delete unrelated cloud modules that are not represented locally.
-          npx tgcloud push "${modules[@]}"
           npx tgcloud status
