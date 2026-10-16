@@ -10,5 +10,6 @@
 - Runtime modules may import only the built-in `sdk` modules and project-relative modules ending in `.js`. Do not use Node built-ins or arbitrary npm dependencies in runtime code.
 - Database changes must be reviewed and migrated separately. Never add automatic migrations to CI.
 - A full `npx tgcloud push` mirrors local modules and static files to the cloud, including deletions. Inspect `npx tgcloud status`/diff before deploying.
+- Automatic deployment is enabled for this bot with app ID `8747772496`; the workflow checks that `TGCLOUD_TOKEN` matches the ID before deploying. Static projects use a full push, so missing remote modules are deleted intentionally.
 - The shared GitHub Actions secret is `TGCLOUD_TOKEN`; never print, hardcode, or commit it.
 - Validate runtime JavaScript with `node --check`; validate the frontend with `npm run build`.
