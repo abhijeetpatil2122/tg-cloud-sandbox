@@ -34,7 +34,7 @@ The manual workflow validates the project, checks JavaScript syntax, verifies th
 
 ## Automatic deployment
 
-The separate **Telegram Serverless Auto Deploy** workflow watches pushes to `main` under `bots/**`. It filters the commit diff and deploys only explicitly enabled bots whose runtime/configuration files changed.
+The separate **Telegram Serverless Auto Deploy** workflow watches pushes to `main` under `bots/**`. It validates changed projects and deploys only explicitly enabled bots whose runtime/configuration files changed. For a bot with native Mini App hosting configured, frontend/build changes also trigger validation and are eligible for deployment.
 
 - RichDocsBot is the first enabled bot (app ID `8626465761`).
 - BotZoneBot remains manual-only.
@@ -44,6 +44,14 @@ The separate **Telegram Serverless Auto Deploy** workflow watches pushes to `mai
 - Automatic deployment never runs database migrations. Static Mini App builds are deployed with their bot when `tgcloud.jsonc` configures a static source; database changes still require a separate, reviewed migration.
 
 When adding a bot, leave automatic deployment disabled until its app ID and dedicated secret are confirmed and its registry entry is deliberately enabled in `.github/workflows/tgcloud-auto-deploy.yml`.
+
+## Native Mini App hosting and backend APIs
+
+Telegram Serverless now hosts a bot's built Mini App and backend endpoints alongside its handlers. For a Vite app, configure `tgcloud.jsonc` to serve `dist/`; `tgcloud push` deploys the build and modules together. The app URL is printed by the CLI as `https://app<app_id>.tgcloud.ai/` and can be set in BotFather's Menu Button or Main Mini App settings.
+
+Place endpoint functions in `bots/NAME/tgcloud/endpoints/`. The frontend calls them through `Telegram.WebApp.Serverless.call(name, input, callback)`; Telegram Serverless validates the Mini App session and provides trusted identity in `ctx.initData`. Use the built-in `sdk` for endpoint logic and the bot's SQLite-backed database. Schema migrations remain a separate, reviewed step and are never run automatically by CI.
+
+The demo implementation lives in `bots/BotZoneBot/`. It is intentionally **manual-deploy only** while we confirm its app ID and initial cloud state.
 
 ## Bots
 
