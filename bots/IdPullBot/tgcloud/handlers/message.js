@@ -229,3 +229,5 @@ export default async function (message, ctx) {
 
   return inspectPrivate(message, ctx);
 }
+
+// Keep this handler as the private-chat entry point; guest requests use guest_message.js.
