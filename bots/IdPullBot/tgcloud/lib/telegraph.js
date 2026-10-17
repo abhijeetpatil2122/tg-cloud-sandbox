@@ -1,6 +1,4 @@
-import { fetch, db } from 'sdk';
-import { eq } from 'sdk/db';
-import { settings } from '../schema.js';
+import { fetch } from 'sdk';
 import {
   TELEGRAPH_ACCESS_TOKEN,
   TELEGRAPH_SHORT_NAME,
@@ -8,86 +6,75 @@ import {
   TELEGRAPH_AUTHOR_URL,
 } from './config.js';
 
-const TOKEN_KEY = 'telegraph_token';
 const PART_SIZE = 8500;
 
+/**
+ * Telegraph's documented POST API accepts form-encoded parameters.
+ * The content parameter must be a JSON string containing an array of Node
+ * objects. Sending an application/json object with content as an array is
+ * not equivalent and can be rejected by Telegraph's API.
+ */
 async function call(method, data) {
+  const form = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(data || {})) {
+    if (value === undefined || value === null) continue;
+    form.set(
+      key,
+      Array.isArray(value) || (typeof value === 'object')
+        ? JSON.stringify(value)
+        : String(value),
+    );
+  }
+
   const response = await fetch('https://api.telegra.ph/' + method, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString(),
   });
 
   let payload;
   try {
     payload = await response.json();
   } catch {
-    throw new Error('Telegraph ' + method + ' returned an unreadable response (HTTP ' + response.status + ').');
+    throw new Error(
+      'Telegraph ' + method + ' returned a non-JSON response (HTTP ' + response.status + ').',
+    );
   }
 
-  if (!response.ok || !payload?.ok) {
+  if (!response.ok || payload?.ok !== true) {
+    const apiError = String(payload?.error || 'UNKNOWN_TELEGRAPH_ERROR');
+    console.error(
+      'IdPullBot Telegraph API failure: method=' + method +
+      ', http=' + response.status +
+      ', api_error=' + apiError,
+    );
     throw new Error(
-      'Telegraph ' + method + ' failed (HTTP ' + response.status + '): ' +
-      String(payload?.error || 'unknown Telegraph API error'),
+      'TELEGRAPH_API_ERROR:' + apiError + ':HTTP_' + response.status,
     );
   }
 
   return payload.result;
 }
 
-async function storeToken(accessToken) {
-  await db.insert(settings)
-    .values({ key: TOKEN_KEY, value: accessToken })
-    .onConflictDoUpdate({ target: settings.key, set: { value: accessToken } })
-    .run();
+function configuredToken() {
+  const value = String(TELEGRAPH_ACCESS_TOKEN || '').trim();
+  if (!value) throw new Error('TELEGRAPH_TOKEN_NOT_CONFIGURED');
+  return value;
 }
 
-export async function saveTelegraphToken(accessToken) {
-  const token = String(accessToken || '').trim();
-  if (!token || /\s/.test(token)) throw new Error('Invalid Telegraph access token.');
-
-  try {
-    await call('getAccountInfo', {
-      access_token: token,
-      fields: ['short_name', 'author_name', 'author_url'],
-    });
-  } catch (error) {
-    console.error('IdPullBot Telegraph token validation failed: ' + String(error?.message || error));
-    throw new Error('Telegraph token validation failed.');
-  }
-
-  try {
-    await storeToken(token);
-  } catch (error) {
-    console.error('IdPullBot Telegraph settings database write failed: ' + String(error?.message || error));
-    throw new Error('Telegraph settings could not be saved.');
-  }
-}
-
-async function token() {
-  const configured = String(TELEGRAPH_ACCESS_TOKEN || '').trim();
-  if (configured) return configured;
-
-  try {
-    const saved = await db.select().from(settings).where(eq(settings.key, TOKEN_KEY)).get();
-    if (saved?.value) return saved.value;
-  } catch (error) {
-    console.error('IdPullBot Telegraph settings lookup failed: ' + String(error?.message || error));
-  }
-
-  const account = await call('createAccount', {
-    short_name: TELEGRAPH_SHORT_NAME,
+async function createPage(accessToken, title, content) {
+  const page = await call('createPage', {
+    access_token: accessToken,
+    title: String(title || 'Message Debug').slice(0, 256),
     author_name: TELEGRAPH_AUTHOR_NAME,
     author_url: TELEGRAPH_AUTHOR_URL,
+    content,
+    return_content: false,
   });
-  if (!account?.access_token) throw new Error('Telegraph did not return an access token.');
 
-  try {
-    await storeToken(account.access_token);
-  } catch (error) {
-    console.error('IdPullBot could not persist its generated Telegraph credential: ' + String(error?.message || error));
-  }
-  return account.access_token;
+  if (!page?.url) throw new Error('TELEGRAPH_PAGE_URL_MISSING');
+  return page.url;
 }
 
 function splitCompleteReport(report) {
@@ -99,24 +86,8 @@ function splitCompleteReport(report) {
   return parts.length ? parts : [''];
 }
 
-async function createPage(accessToken, title, content) {
-  // Telegraph expects content to be an Array of Node objects. The request
-  // body is JSON, so pass the array directly instead of JSON-encoding it twice.
-  const page = await call('createPage', {
-    access_token: accessToken,
-    title: String(title || 'Message Debug').slice(0, 256),
-    author_name: TELEGRAPH_AUTHOR_NAME,
-    author_url: TELEGRAPH_AUTHOR_URL,
-    content,
-    return_content: false,
-  });
-
-  if (!page?.url) throw new Error('Telegraph did not return an article URL.');
-  return page.url;
-}
-
 export async function createArticle(title, report) {
-  const accessToken = await token();
+  const accessToken = configuredToken();
   const parts = splitCompleteReport(report);
 
   if (parts.length === 1) {
@@ -140,7 +111,11 @@ export async function createArticle(title, report) {
 
   const links = partUrls.map((url, index) => ({
     tag: 'li',
-    children: [{ tag: 'a', attrs: { href: url }, children: ['Part ' + (index + 1) + ' of ' + partUrls.length] }],
+    children: [{
+      tag: 'a',
+      attrs: { href: url },
+      children: ['Part ' + (index + 1) + ' of ' + partUrls.length],
+    }],
   }));
 
   return createPage(accessToken, title, [
@@ -148,4 +123,28 @@ export async function createArticle(title, report) {
     { tag: 'p', children: ['The complete report is split into linked parts to preserve every field.'] },
     { tag: 'ul', children: links },
   ]);
+}
+
+/**
+ * Live diagnostic used by /testtelegraph. It checks the configured token and
+ * performs an actual createPage call, so it tests both authentication and the
+ * request encoding used for publishing.
+ */
+export async function testTelegraph() {
+  const accessToken = configuredToken();
+  const account = await call('getAccountInfo', {
+    access_token: accessToken,
+    fields: ['short_name', 'author_name', 'author_url', 'page_count'],
+  });
+
+  const url = await createPage(accessToken, 'IdPullBot Telegraph Connection Test', [
+    { tag: 'h3', children: ['IdPullBot Telegraph Connection Test'] },
+    { tag: 'p', children: ['This page confirms that IdPullBot can authenticate and publish articles.'] },
+  ]);
+
+  return {
+    url,
+    shortName: account?.short_name || TELEGRAPH_SHORT_NAME,
+    pageCount: account?.page_count,
+  };
 }
