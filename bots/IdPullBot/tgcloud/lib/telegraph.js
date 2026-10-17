@@ -13,6 +13,7 @@ const PART_SIZE = 8500;
  * The content parameter must be a JSON string containing an array of Node
  * objects. Sending an application/json object with content as an array is
  * not equivalent and can be rejected by Telegraph's API.
+ * This module intentionally uses form encoding for both account checks and page publishing.
  */
 async function call(method, data) {
   const form = new URLSearchParams();
