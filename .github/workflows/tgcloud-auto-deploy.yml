@@ -149,8 +149,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # RichDocsBot is the only enabled bot in the initial rollout.
-          # Keep other bots manual-only until their app IDs and secrets are verified.
+          # These bots have verified app IDs and repository secrets.
+          - bot_path: bots/IdPullBot
+            app_id: "8288436618"
+            auto_deploy: true
+            secret_key: TGCLOUD_TOKEN_IDPULLBOT
           - bot_path: bots/RichDocsBot
             app_id: "8626465761"
             auto_deploy: true
@@ -220,7 +223,7 @@ jobs:
       - name: Validate CLI token matches the configured app
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
           set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
@@ -240,7 +243,7 @@ jobs:
       - name: Fetch cloud state and show status
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -250,7 +253,7 @@ jobs:
       - name: Deploy selected bot modules
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
