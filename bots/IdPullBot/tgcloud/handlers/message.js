@@ -28,7 +28,11 @@ async function privateInspect(m,ctx){
 }
 async function sharedUsers(m){
  const s=m.users_shared,users=Array.isArray(s.users)?s.users:[],ids=users.map(u=>u.user_id);
- await api.sendMessage({chat_id:m.chat.id,text:'<b>Shared users</b>\nRequest ID: <code>'+s.request_id+'</code>\nIDs: '+(ids.length?ids.map(id=>'<code>'+id+'</code>').join(', '):'No IDs returned'),parse_mode:'HTML',reply_markup:ids.length?{inline_keyboard:ids.map(id=>[{text:'Copy '+id,copy_text:{text:String(id)}}])}:undefined});
+ const details=users.map(u=>{
+  const name=[u.first_name,u.last_name].filter(Boolean).join(' ')||'Name not provided';
+  return '• '+escapeHtml(name)+(u.username?' (@'+escapeHtml(u.username)+')':'')+' — <code>'+u.user_id+'</code>';
+ });
+ await api.sendMessage({chat_id:m.chat.id,text:'<b>Shared users</b>\nRequest ID: <code>'+s.request_id+'</code>\n'+(details.length?details.join('\n'):'No user IDs returned')+'\n\nTelegram only returns the user details available in the share event.',parse_mode:'HTML',reply_markup:ids.length?{inline_keyboard:ids.map(id=>[{text:'Copy '+id,copy_text:{text:String(id)}}])}:undefined});
 }
 async function sharedChat(m){
  const s=m.chat_shared,id=s.chat_id;
