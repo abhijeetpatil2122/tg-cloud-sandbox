@@ -47,11 +47,9 @@ async function start(message) {
     '• ' + customEmoji('5474371208176737086', '✉️') + ' Send any message/media in chats to extract detailed info (user, message, chat, media IDs)\n' +
     '• ' + customEmoji('5039649904264217620', '🔍') + ' Mention <code>@idpullbot</code> in supported groups or supergroups to inspect the replied-to message or the message containing the mention\n\n' +
     customEmoji('5429633836684157942', '⚡') + ' <b>Features</b>\n' +
-    '• ' + customEmoji('5879939498149679716', '🔎') + ' Complete message and media inspection\n' +
-    '• ' + customEmoji('5040036030414062506', '💬') + ' JavaScript-style debug output in private chat, split into chunks\n' +
-    '• Shareable Telegraph articles\n' +
-    '• User and chat sharing with copy-ID buttons\n\n' +
-    'Use the share menu below to instantly share users or chats.';
+    '• ' + customEmoji('5040036030414062506', '💬') + ' Works in chats and guest mode\n' +
+    '• ' + customEmoji('5039649904264217620', '🔍') + ' Extracts IDs for users, chats, messages, media & custom emojis\n\n' +
+    customEmoji('5429633836684157942', '⚡') + ' Use the share menu below to instantly share users or chats.';
 
   await api.sendMessage({
     chat_id: message.chat.id,
