@@ -167,10 +167,27 @@ export async function createArticle(title, report) {
  */
 export async function testTelegraph() {
   const accessToken = configuredToken();
-  const account = await call('getAccountInfo', {
-    access_token: accessToken,
-    fields: ['short_name', 'author_name', 'author_url', 'page_count'],
-  });
+  let account;
+
+  try {
+    account = await call('getAccountInfo', {
+      access_token: accessToken,
+      fields: ['short_name', 'author_name', 'author_url', 'page_count'],
+    });
+  } catch (error) {
+    if (String(error?.message || '').startsWith('TELEGRAPH_TRANSPORT_ERROR:')) {
+      let probe = 'unavailable';
+      try {
+        const response = await fetch('https://example.com/');
+        probe = 'reachable (HTTP ' + response.status + ')';
+      } catch {
+        probe = 'unavailable';
+      }
+      console.error('IdPullBot outbound HTTPS diagnostic: example.com=' + probe);
+      throw new Error('TELEGRAPH_TRANSPORT_ERROR:getAccountInfo; external HTTPS probe=' + probe);
+    }
+    throw error;
+  }
 
   const url = await createPage(accessToken, 'IdPullBot Telegraph Connection Test', [
     { tag: 'h3', children: ['IdPullBot Telegraph Connection Test'] },
