@@ -91,11 +91,11 @@ jobs:
 
       - name: Validate CLI token matches selected app
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
         run: |
           set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
-            echo "::error::Add the Actions secret mapped to the selected bot_path (TGCLOUD_TOKEN for BotZoneBot; TGCLOUD_TOKEN_RICHDOCSBOT for RichDocsBot)."
+            echo "::error::Add the Actions secret mapped to the selected bot_path (TGCLOUD_TOKEN for BotZoneBot; TGCLOUD_TOKEN_RICHDOCSBOT for RichDocsBot; TGCLOUD_TOKEN_IDPULLBOT for IdPullBot)."
             exit 1
           fi
           if [[ ! "$TGCLOUD_TOKEN" =~ ^app([0-9]+):.+$ ]]; then
@@ -110,7 +110,7 @@ jobs:
 
       - name: Fetch cloud state and show status
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -120,7 +120,7 @@ jobs:
       - name: Deploy selected bot project
         if: inputs.mode == 'deploy'
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"

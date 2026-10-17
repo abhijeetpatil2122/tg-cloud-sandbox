@@ -18,6 +18,9 @@ Do not copy a project's `.tgcloud/` local state, CLI credentials, `node_modules/
 |---|---|---:|---|---|
 | `bots/BotZoneBot` | React/Vite Mini App demo with Serverless endpoints and per-user notes | `8747772496` | `TGCLOUD_TOKEN` | Enabled on `main` |
 | `bots/RichDocsBot` | Inline search for Bot API methods/types and related error documentation, rendered as native Rich Messages | `8626465761` | `TGCLOUD_TOKEN_RICHDOCSBOT` | Enabled on `main` |
+| `bots/IdPullBot` | Telegram message inspector with private chunked reports, guest-mode Telegraph links, share keyboard, and aggregate stats | `8288436618` | `TGCLOUD_TOKEN_IDPULLBOT` | Manual-only during initial verification |
+
+IdPullBot remains manual-only until its first deployment and live Telegram behavior are verified.
 
 These entries describe the current workflow configuration, not defaults for future projects. A newly added project must remain manual-only until its token/app ID, project validation, and first intentional deployment have been checked and its auto-deploy registry entry is deliberately enabled.
 
