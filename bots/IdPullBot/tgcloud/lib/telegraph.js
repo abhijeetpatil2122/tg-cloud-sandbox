@@ -14,6 +14,7 @@ const PART_SIZE = 8500;
  * objects. Sending an application/json object with content as an array is
  * not equivalent and can be rejected by Telegraph's API.
  * This module intentionally uses form encoding for both account checks and page publishing.
+ * Keep this publisher independently deployable from the message handler for validation.
  */
 async function call(method, data) {
   const form = Object.entries(data || {})
