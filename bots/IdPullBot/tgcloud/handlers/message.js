@@ -127,10 +127,10 @@ async function testTelegraphCommand(message) {
 
   try {
     const result = await testTelegraph();
-    const count = Number.isFinite(result.pageCount) ? '\\nPages before test: ' + result.pageCount : '';
+    const count = Number.isFinite(result.pageCount) ? '\nPages before test: ' + result.pageCount : '';
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'Telegraph API test succeeded.\\nAccount: ' + escapeHtml(result.shortName) + count + '\\nTest article: ' + result.url,
+      text: 'Telegraph API test succeeded.\nAccount: ' + escapeHtml(result.shortName) + count + '\nTest article: ' + result.url,
       disable_web_page_preview: true,
       reply_markup: {
         inline_keyboard: [[{ text: 'Open Test Article', url: result.url }]],
@@ -138,7 +138,7 @@ async function testTelegraphCommand(message) {
     });
   } catch (error) {
     const raw = errorMessage(error);
-    const match = raw.match(/TELEGRAPH_API_ERROR:([^:]+):HTTP_(\\d+)/);
+    const match = raw.match(/TELEGRAPH_API_ERROR:([^:]+):HTTP_(\d+)/);
     const detail = match ? match[1] + ' (HTTP ' + match[2] + ')' : raw;
     console.error('IdPullBot Telegraph live test failed: ' + detail);
     await api.sendMessage({
