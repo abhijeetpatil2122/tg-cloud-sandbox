@@ -6,28 +6,18 @@ export function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
-// Keep the entire Telegram Message and complete raw Update. Do not project
-// these objects into a selected list of fields: Telegram adds fields over time.
+// The report is the actual Telegram Update, unchanged. The Serverless handler
+// unwraps Update into its payload, so ctx.update is the authoritative raw object.
+// Never add inspector metadata or duplicate Message fields to the debug JSON.
 export function reportFor(message, update, mode) {
-  const target = message?.reply_to_message || message?.external_reply || message;
-  const targetSelection = message?.reply_to_message
-    ? 'replied-to message'
-    : message?.external_reply
-      ? 'external replied-to message'
-      : 'invoking message';
-
-  return {
-    inspector: 'IdPullBot',
-    mode,
-    target_selection: targetSelection,
-    target_message: target,
-    current_message: message,
-    raw_update: update || { message },
-  };
+  if (update && typeof update === 'object') return update;
+  // This fallback is only for local/manual handler runs where ctx.update was
+  // not supplied. Real Telegram invocations include ctx.update.
+  return mode === 'guest' ? { guest_message: message } : { message };
 }
 
-export function stringifyReport(report) {
-  return JSON.stringify(report, null, 2);
+export function stringifyReport(update) {
+  return JSON.stringify(update, null, 2);
 }
 
 function chunks(text) {
@@ -57,7 +47,7 @@ export async function sendReport(api, chatId, reportText, replyToMessageId) {
     const params = {
       chat_id: chatId,
       text:
-        '<b>Message debug — part ' + (index + 1) + '/' + parts.length + '</b>\n' +
+        '<b>Message debug — part ' + (index + 1) + '/' + parts.length + '</b>\\n' +
         '<pre><code class="language-js">' + escapeHtml(parts[index]) + '</code></pre>',
       parse_mode: 'HTML',
     };
@@ -113,9 +103,8 @@ function chatButton(text, requestId, emojiId, style, options = {}) {
 }
 
 export function shareKeyboard() {
-  // Match the original BB keyboard exactly: four rows (3, 3, 2, 2),
-  // original button order, request options, styles and custom emoji IDs.
-  // Do not set input_field_placeholder; the original keyboard did not set one.
+  // Preserve the original BB keyboard: four rows (3, 3, 2, 2), same order,
+  // request options, button styles and custom emoji IDs.
   return {
     keyboard: [
       [
