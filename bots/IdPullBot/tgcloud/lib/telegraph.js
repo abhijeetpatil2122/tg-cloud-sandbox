@@ -1,9 +1,14 @@
 import { fetch, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { settings } from '../schema.js';
+import {
+  TELEGRAPH_ACCESS_TOKEN,
+  TELEGRAPH_SHORT_NAME,
+  TELEGRAPH_AUTHOR_NAME,
+  TELEGRAPH_AUTHOR_URL,
+} from './config.js';
 
 const TOKEN_KEY = 'telegraph_token';
-const LEGACY_TOKEN_KEY = '39290dea4e906e932a0ed05dba7d03c73c2a02e5d856b34b1c1455adb3e6';
 const PART_SIZE = 8500;
 
 async function call(method, data) {
@@ -43,9 +48,9 @@ async function storeToken(accessToken) {
 
 export async function saveTelegraphToken(accessToken) {
   const token = String(accessToken || '').trim();
-  if (!token || /\s/.test(token)) throw new Error('Invalid Telegraph access token.');
+  if (!token || /\\s/.test(token)) throw new Error('Invalid Telegraph access token.');
 
-  // Validate the supplied token before persisting it.
+  // Validate against Telegraph before writing the credential to this bot's DB.
   await call('getAccountInfo', {
     access_token: token,
     fields: JSON.stringify(['short_name', 'author_name', 'author_url']),
@@ -54,9 +59,12 @@ export async function saveTelegraphToken(accessToken) {
 }
 
 async function token() {
-  // Prefer the current setting, then migrate the legacy database entry.
-  // Database failures are logged internally and do not prevent trying a
-  // configured Telegraph credential or creating a fresh account.
+  // Explicit configuration wins. This supports private deployments that
+  // choose to configure a token in config.js instead of using /settelegraph.
+  const configured = String(TELEGRAPH_ACCESS_TOKEN || '').trim();
+  if (configured) return configured;
+
+  // Prefer the token saved by /settelegraph.
   try {
     const saved = await db.select().from(settings).where(eq(settings.key, TOKEN_KEY)).get();
     if (saved?.value) return saved.value;
@@ -64,53 +72,19 @@ async function token() {
     console.error('IdPullBot Telegraph settings lookup failed: ' + String(error?.message || error));
   }
 
-  try {
-    const legacy = await db.select().from(settings).where(eq(settings.key, LEGACY_TOKEN_KEY)).get();
-    if (legacy?.value) {
-      try {
-        await storeToken(legacy.value);
-      } catch (error) {
-        console.error('IdPullBot could not migrate its Telegraph setting: ' + String(error?.message || error));
-      }
-      return legacy.value;
-    }
-  } catch (error) {
-    console.error('IdPullBot legacy Telegraph lookup failed: ' + String(error?.message || error));
-  }
-
-  // Earlier versions placed the configured value in this constant. Validate
-  // it as an actual Telegraph access token before using it; do not assume a
-  // database key is necessarily a valid credential.
-  try {
-    await call('getAccountInfo', {
-      access_token: LEGACY_TOKEN_KEY,
-      fields: JSON.stringify(['short_name', 'author_name', 'author_url']),
-    });
-    try {
-      await storeToken(LEGACY_TOKEN_KEY);
-    } catch (error) {
-      console.error('IdPullBot could not persist the configured Telegraph credential: ' + String(error?.message || error));
-    }
-    return LEGACY_TOKEN_KEY;
-  } catch (error) {
-    // The constant may be a legacy storage key rather than a credential.
-    console.info('IdPullBot legacy Telegraph credential was not accepted.');
-  }
-
-  // Account creation lets article publishing continue even if the settings
-  // table cannot be read or written. Persistence is best-effort; the article
-  // still uses the returned token for this invocation.
+  // Create an account only when no configured or saved token is available.
+  // If persistence fails, this invocation can still publish using the token.
   const account = await call('createAccount', {
-    short_name: 'IdPullBot',
-    author_name: 'IdPullBot',
-    author_url: 'https://t.me/idpullbot',
+    short_name: TELEGRAPH_SHORT_NAME,
+    author_name: TELEGRAPH_AUTHOR_NAME,
+    author_url: TELEGRAPH_AUTHOR_URL,
   });
   if (!account?.access_token) throw new Error('Telegraph did not return an access token.');
 
   try {
     await storeToken(account.access_token);
   } catch (error) {
-    console.error('IdPullBot could not persist a generated Telegraph credential: ' + String(error?.message || error));
+    console.error('IdPullBot could not persist its generated Telegraph credential: ' + String(error?.message || error));
   }
   return account.access_token;
 }
@@ -128,8 +102,8 @@ async function createPage(accessToken, title, content) {
   const page = await call('createPage', {
     access_token: accessToken,
     title: String(title || 'Message Debug').slice(0, 256),
-    author_name: 'IdPullBot',
-    author_url: 'https://t.me/idpullbot',
+    author_name: TELEGRAPH_AUTHOR_NAME,
+    author_url: TELEGRAPH_AUTHOR_URL,
     content: JSON.stringify(content),
     return_content: false,
   });
@@ -149,8 +123,8 @@ export async function createArticle(title, report) {
     ]);
   }
 
-  // Telegraph pages have size limits. Publish all report segments and return
-  // an index page linking to every segment; never truncate the report.
+  // Telegraph limits each article's content size. Publish every report
+  // segment and return an index page linking to all segments.
   const partUrls = [];
   for (let index = 0; index < parts.length; index += 1) {
     partUrls.push(await createPage(
