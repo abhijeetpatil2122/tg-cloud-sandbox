@@ -123,6 +123,7 @@ async function me(message) {
 }
 
 async function testTelegraphCommand(message) {
+  // Keep the admin diagnostic concise; never expose raw transport internals in chat.
   if (message.chat?.type !== 'private' || message.from?.id !== ADMIN_ID) return;
 
   try {
