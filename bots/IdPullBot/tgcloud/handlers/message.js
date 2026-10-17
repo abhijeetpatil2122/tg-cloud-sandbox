@@ -145,16 +145,16 @@ async function setTelegraph(message) {
     }
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'Telegraph access token saved and validated.',
+      text: 'Telegraph is ready.',
     });
   } catch (error) {
     try {
       await api.deleteMessage({ chat_id: message.chat.id, message_id: message.message_id });
     } catch {}
-    console.error('IdPullBot could not save the Telegraph token: ' + errorMessage(error));
+    console.error('IdPullBot Telegraph setup failed: ' + errorMessage(error));
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'Could not save the Telegraph token. Check that the IdPullBot database schema has been migrated, then try again.',
+      text: 'Telegraph setup could not be completed. Please try again.',
     });
   }
 }
@@ -217,6 +217,28 @@ async function sharedChat(message) {
   });
 }
 
+
+async function guestStatus(message) {
+  if (message.chat?.type !== 'private' || message.from?.id !== ADMIN_ID) return;
+
+  try {
+    const bot = await api.getMe();
+    const enabled = bot?.supports_guest_queries === true;
+    await api.sendMessage({
+      chat_id: message.chat.id,
+      text: enabled
+        ? 'Guest mode is enabled for @idpullbot.'
+        : 'Guest mode is not enabled for @idpullbot. Enable Guest Mode in BotFather, then test again.',
+    });
+  } catch (error) {
+    console.error('IdPullBot guest-mode status check failed: ' + errorMessage(error));
+    await api.sendMessage({
+      chat_id: message.chat.id,
+      text: 'Guest-mode status could not be checked right now.',
+    });
+  }
+}
+
 async function showStats(message) {
   if (message.chat?.type !== 'private' || message.from?.id !== ADMIN_ID) return;
 
@@ -230,19 +252,31 @@ async function showStats(message) {
       ['Tracked users', String(stats.uniqueUsers)],
       ['New users', String(stats.newUsers)],
     ];
-    const width = Math.max(...rows.map((row) => row[0].length)) + 2;
-    const table = rows.map((row) => row[0].padEnd(width, ' ') + row[1]).join('\n');
 
-    await api.sendMessage({
+    await api.sendRichMessage({
       chat_id: message.chat.id,
-      text: '<b>IdPullBot statistics</b>\n<pre><code>' + table + '</code></pre>',
-      parse_mode: 'HTML',
+      rich_message: {
+        blocks: [
+          { type: 'heading', text: 'IdPullBot statistics', size: 3 },
+          {
+            type: 'table',
+            cells: rows.map((row, rowIndex) => row.map((value) => ({
+              text: value,
+              ...(rowIndex === 0 ? { is_header: true } : {}),
+              align: rowIndex === 0 ? 'left' : 'right',
+            }))),
+            is_bordered: false,
+            is_striped: false,
+            is_compact: false,
+          },
+        ],
+      },
     });
   } catch (error) {
     console.error('IdPullBot statistics retrieval failed: ' + errorMessage(error));
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'Statistics are unavailable until the Serverless database migration is applied.',
+      text: 'Statistics are unavailable right now. Please try again shortly.',
     });
   }
 }
@@ -278,7 +312,7 @@ async function inspectPrivate(message, ctx) {
     console.error('IdPullBot Telegraph article creation failed: ' + errorMessage(error));
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'The debug chunks were sent, but the Telegraph article could not be created. Use /settelegraph to configure a valid access token.',
+      text: 'The debug report was sent, but the shareable article could not be created right now.',
     });
   }
 }
@@ -292,6 +326,7 @@ export default async function (message, ctx) {
   if (command === '/help' || command === '/about') return help(message);
   if (command === '/me') return me(message);
   if (command === '/settelegraph') return setTelegraph(message);
+  if (command === '/gueststatus') return guestStatus(message);
   if (command === '/stats') return showStats(message);
 
   return inspectPrivate(message, ctx);

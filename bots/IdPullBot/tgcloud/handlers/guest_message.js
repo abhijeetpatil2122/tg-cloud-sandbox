@@ -7,25 +7,18 @@ function errorMessage(error) {
   return String(error?.description || error?.message || error || 'unknown error').slice(0, 300);
 }
 
-async function notifyAdmin(text) {
-  try {
-    await api.sendMessage({ chat_id: 1314643983, text: 'IdPullBot guest-mode diagnostic: ' + text });
-  } catch {
-    // The admin may not have started the bot; diagnostics remain in runtime logs.
-  }
-}
+export default async function (payload, ctx) {
+  // Serverless normally unwraps guest_message to a Message, while ctx.update
+  // retains the original Update. Accept either shape to avoid dropping a query.
+  const message = payload?.guest_message || payload;
+  const update = ctx?.update || (payload?.guest_message ? payload : { guest_message: message });
+  const guestQueryId = message?.guest_query_id || update?.guest_message?.guest_query_id;
 
-export default async function (message, ctx) {
-  const guestQueryId = message?.guest_query_id;
   if (!guestQueryId) {
-    console.error('IdPullBot received guest_message without guest_query_id.');
+    console.error('IdPullBot guest handler received no guest query ID.');
     return;
   }
 
-  // The handler receives the Message payload; ctx.update retains the complete
-  // Telegram Update. Keep both in the report, including any reply context
-  // actually present in the update.
-  const update = ctx?.update || { guest_message: message };
   const report = stringifyReport(reportFor(message, update, 'guest'));
 
   try {
@@ -57,16 +50,14 @@ export default async function (message, ctx) {
       },
     };
   } catch (error) {
-    const reason = errorMessage(error);
-    console.error('IdPullBot Telegraph creation failed in guest mode: ' + reason);
-    await notifyAdmin(reason);
+    console.error('IdPullBot Telegraph article creation failed in guest mode: ' + errorMessage(error));
     result = {
       type: 'article',
       id: 'idpull-unavailable-' + String(message.message_id || 'report').slice(0, 40),
-      title: 'Debug report unavailable',
-      description: 'The Telegraph report could not be published.',
+      title: 'Message report unavailable',
+      description: 'The report could not be prepared right now.',
       input_message_content: {
-        message_text: 'The debug report is temporarily unavailable.',
+        message_text: 'The report could not be prepared right now.',
       },
     };
   }
@@ -77,9 +68,7 @@ export default async function (message, ctx) {
       result,
     });
   } catch (error) {
-    const reason = errorMessage(error);
-    console.error('IdPullBot answerGuestQuery failed: ' + reason);
-    await notifyAdmin(reason);
+    console.error('IdPullBot answerGuestQuery failed: ' + errorMessage(error));
     throw error;
   }
 }
