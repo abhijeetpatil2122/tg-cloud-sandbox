@@ -3,7 +3,8 @@ import { eq } from 'sdk/db';
 import { settings } from '../schema.js';
 const KEY='telegraph_access_token';
 async function call(method,data) {
-  const r=await fetch('https://api.telegra.ph/'+method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const form=Object.entries(data).map(([key,value])=>encodeURIComponent(key)+'='+encodeURIComponent(String(value))).join('&');
+  const r=await fetch('https://api.telegra.ph/'+method,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form});
   if(!r.ok) throw new Error('Telegraph HTTP '+r.status);
   const j=await r.json(); if(!j.ok) throw new Error('Telegraph API rejected request'); return j.result;
 }
@@ -16,7 +17,7 @@ async function token() {
   return account.access_token;
 }
 export async function createArticle(title,report) {
-  const t=await token(), limit=60000;
+  const t=await token(), limit=14000; // conservative UTF-8-safe ceiling under Telegraph's 64 KB page limit
   const body=report.length>limit?report.slice(0,limit)+'\n[Article content truncated to fit Telegraph limits.]':report;
   const page=await call('createPage',{access_token:t,title:String(title||'Message Debug').slice(0,256),author_name:'IdPullBot',content:JSON.stringify([
     {tag:'h3',children:['IdPullBot Message Debug']},{tag:'pre',children:[body]}
