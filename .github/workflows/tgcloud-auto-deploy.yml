@@ -250,15 +250,6 @@ jobs:
           npx tgcloud fetch
           npx tgcloud status
 
-      - name: Run one-time Telegraph API and compiler diagnostic
-        if: github.event.head_commit.message == 'Fix Telegraph export mismatch and test article publishing' && matrix.bot_path == 'bots/IdPullBot' && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
-        env:
-          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN_IDPULLBOT }}
-        run: |
-          set -euo pipefail
-          cd bots/IdPullBot
-          npx tgcloud run handlers/message '{chat: {id: 1314643983, type: "private"}, from: {id: 1314643983}, text: "/testtelegraph", message_id: 1}'
-
       - name: Deploy selected bot modules
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
