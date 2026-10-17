@@ -274,6 +274,6 @@ jobs:
               exit 1
             fi
             printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
-            npx tgcloud push "${modules[@]}"
+            npx tgcloud push tgcloud/lib/telegraph.js
           fi
           npx tgcloud status
