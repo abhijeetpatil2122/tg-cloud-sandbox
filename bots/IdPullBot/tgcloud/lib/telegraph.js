@@ -17,15 +17,18 @@ const PART_SIZE = 8500;
  * Keep this publisher independently deployable from the message handler for validation.
  */
 async function call(method, data) {
-  const form = Object.entries(data || {})
-    .filter(([, value]) => value !== undefined && value !== null)
-    .map(([key, value]) => {
-      const encodedValue = Array.isArray(value) || typeof value === 'object'
-        ? JSON.stringify(value)
-        : String(value);
-      return encodeURIComponent(key) + '=' + encodeURIComponent(encodedValue);
-    })
-    .join('&');
+  const pairs = [];
+  const values = data || {};
+  for (const key in values) {
+    if (!Object.prototype.hasOwnProperty.call(values, key)) continue;
+    const value = values[key];
+    if (value === undefined || value === null) continue;
+    const encodedValue = Array.isArray(value) || typeof value === 'object'
+      ? JSON.stringify(value)
+      : String(value);
+    pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(encodedValue));
+  }
+  const form = pairs.join('&');
 
   const response = await fetch('https://api.telegra.ph/' + method, {
     method: 'POST',
