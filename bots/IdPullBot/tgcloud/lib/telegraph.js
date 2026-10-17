@@ -1,7 +1,7 @@
 import { fetch, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { settings } from '../schema.js';
-const KEY='telegraph_access_token';
+const KEY='39290dea4e906e932a0ed05dba7d03c73c2a02e5d856b34b1c1455adb3e6';
 async function call(method,data) {
   const form=Object.entries(data).map(([key,value])=>encodeURIComponent(key)+'='+encodeURIComponent(String(value))).join('&');
   const r=await fetch('https://api.telegra.ph/'+method,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form});
