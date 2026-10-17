@@ -1,6 +1,7 @@
 export function escapeHtml(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 export function reportFor(message,update,mode) {
-  const target=message?.reply_to_message||message?.external_reply||message;\n  return {inspector:'IdPullBot',mode,target_selection:message?.reply_to_message?'replied-to message':message?.external_reply?'external replied-to message':'invoking message',target_message:target,current_message:message,raw_update:update||null};
+  const target=message?.reply_to_message||message?.external_reply||message;
+  return {inspector:'IdPullBot',mode,target_selection:message?.reply_to_message?'replied-to message':message?.external_reply?'external replied-to message':'invoking message',target_message:target,current_message:message,raw_update:update||null};
 }
 export function stringifyReport(report){return JSON.stringify(report,null,2);}
 function chunks(s){
