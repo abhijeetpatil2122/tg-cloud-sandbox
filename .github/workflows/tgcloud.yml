@@ -132,9 +132,9 @@ jobs:
             fi
             # Inject the secret into the deploy workspace only. Never write it
             # back to the checked-out source or print it in workflow logs.
-            node --input-type=module - "$BOT_PATH/tgcloud/lib/config.js" <<'NODE'
+            node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs';
-          const path = process.argv[2];
+          const path = process.env.BOT_PATH + '/tgcloud/lib/config.js';
           const source = readFileSync(path, 'utf8');
           const placeholder = "export const TELEGRAPH_ACCESS_TOKEN = '';";
           if (!source.includes(placeholder)) {
