@@ -18,6 +18,7 @@ const PART_SIZE = 8500;
  * The deployment workflow prints server compiler parameters when a publish attempt fails.
  * This revision triggers the isolated compiler-diagnostics deploy.
  * This run uses the corrected one-line compiler diagnostic patch.
+ * The one-time live test verifies account access and article creation before deployment.
  */
 async function call(method, data) {
   const pairs = [];
