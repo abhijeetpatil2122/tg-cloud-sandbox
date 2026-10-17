@@ -121,31 +121,9 @@ jobs:
         if: inputs.mode == 'deploy'
         env:
           TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
-          TELEGRAPH_ACCESS_TOKEN: ${{ inputs.bot_path == 'bots/IdPullBot' && secrets.TELEGRAPH_ACCESS_TOKEN_IDPULLBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
-          if [[ "$BOT_PATH" == "bots/IdPullBot" ]]; then
-            if [[ -z "${TELEGRAPH_ACCESS_TOKEN:-}" ]]; then
-              echo "::error::Add the TELEGRAPH_ACCESS_TOKEN_IDPULLBOT Actions secret before deploying IdPullBot."
-              exit 1
-            fi
-            # Inject the secret into the deploy workspace only. Never write it
-            # back to the checked-out source or print it in workflow logs.
-            node --input-type=module <<'NODE'
-          import { readFileSync, writeFileSync } from 'node:fs';
-          const path = process.env.BOT_PATH + '/tgcloud/lib/config.js';
-          const source = readFileSync(path, 'utf8');
-          const placeholder = "export const TELEGRAPH_ACCESS_TOKEN = '';";
-          if (!source.includes(placeholder)) {
-            throw new Error('The Telegraph token placeholder in config.js was not found.');
-          }
-          const replacement = 'export const TELEGRAPH_ACCESS_TOKEN = ' +
-            JSON.stringify(process.env.TELEGRAPH_ACCESS_TOKEN) + ';';
-          writeFileSync(path, source.replace(placeholder, replacement), 'utf8');
-          NODE
-            node --check tgcloud/lib/config.js
-          fi
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             # Full push deploys static build output and Serverless modules together.
             # It mirrors the local module set to the cloud, including deletions.
