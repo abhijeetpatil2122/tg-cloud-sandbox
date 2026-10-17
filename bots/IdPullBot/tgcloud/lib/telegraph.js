@@ -44,7 +44,7 @@ async function storeToken(accessToken) {
 
 export async function saveTelegraphToken(accessToken) {
   const token = String(accessToken || '').trim();
-  if (!token || /\\s/.test(token)) throw new Error('Invalid Telegraph access token.');
+  if (!token || /\s/.test(token)) throw new Error('Invalid Telegraph access token.');
 
   try {
     await call('getAccountInfo', {
@@ -100,8 +100,8 @@ function splitCompleteReport(report) {
 }
 
 async function createPage(accessToken, title, content) {
-  // Telegraph expects content to be an Array of Node objects. Do not
-  // stringify this property here: the outer request body is already JSON.
+  // Telegraph expects content to be an Array of Node objects. The request
+  // body is JSON, so pass the array directly instead of JSON-encoding it twice.
   const page = await call('createPage', {
     access_token: accessToken,
     title: String(title || 'Message Debug').slice(0, 256),
