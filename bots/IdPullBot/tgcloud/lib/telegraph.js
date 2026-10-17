@@ -16,6 +16,7 @@ const PART_SIZE = 8500;
  * This module intentionally uses form encoding for both account checks and page publishing.
  * Keep this publisher independently deployable from the message handler for validation.
  * The deployment workflow prints server compiler parameters when a publish attempt fails.
+ * This revision triggers the isolated compiler-diagnostics deploy.
  */
 async function call(method, data) {
   const pairs = [];
