@@ -2,6 +2,7 @@ import { api } from 'sdk';
 import { getStats, recordInspection, registerStart } from '../lib/stats.js';
 import { reportFor, stringifyReport, sendReport, shareKeyboard, escapeHtml } from '../lib/inspect.js';
 import { createArticle, saveTelegraphToken } from '../lib/telegraph.js';
+import { TELEGRAPH_ACCESS_TOKEN } from '../lib/config.js';
 
 const ADMIN_ID = 1314643983;
 const commandName = (text) => String(text || '').trim().split(/\s+/)[0].split('@')[0].toLowerCase();
@@ -123,6 +124,17 @@ async function me(message) {
 
 async function setTelegraph(message) {
   if (message.chat?.type !== 'private' || message.from?.id !== ADMIN_ID) return;
+
+  if (TELEGRAPH_ACCESS_TOKEN) {
+    try {
+      await api.deleteMessage({ chat_id: message.chat.id, message_id: message.message_id });
+    } catch {}
+    await api.sendMessage({
+      chat_id: message.chat.id,
+      text: 'Telegraph is already configured.',
+    });
+    return;
+  }
 
   const token = String(message.text || '').trim().split(/\s+/).slice(1).join('').trim();
   if (!token) {
