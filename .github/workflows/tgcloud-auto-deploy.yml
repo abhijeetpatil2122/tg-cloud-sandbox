@@ -271,7 +271,7 @@ jobs:
               sys.exit(0)
           source = client.read_text()
           needle = "let msg = err?.description || err?.message || 'Server error';"
-          addition = needle + "\\n  if (err?.parameters && Object.keys(err.parameters).length) msg += ' [server parameters: ' + JSON.stringify(err.parameters) + ']';"
+          addition = needle + " if (err?.parameters && Object.keys(err.parameters).length) msg += ' [server parameters: ' + JSON.stringify(err.parameters) + ']';"
           if needle in source and "server parameters:" not in source:
               client.write_text(source.replace(needle, addition))
               print("Enabled safe compiler-parameter diagnostics.")
