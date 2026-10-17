@@ -22,6 +22,7 @@ const PART_SIZE = 8500;
  * The message handler imports only exports defined by this module.
  */
 async function call(method, data) {
+  // Account validation uses GET; article publication remains form-encoded POST.
   let response;
 
   try {
