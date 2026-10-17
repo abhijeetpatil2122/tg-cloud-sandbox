@@ -12,14 +12,12 @@ const TOKEN_KEY = 'telegraph_token';
 const PART_SIZE = 8500;
 
 async function call(method, data) {
-  const form = Object.entries(data)
-    .map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(String(value)))
-    .join('&');
-
+  // Match the working BotBuilder implementation: Telegraph accepts POST
+  // requests with a JSON body. This also keeps nested Node content intact.
   const response = await fetch('https://api.telegra.ph/' + method, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
   });
 
   let payload;
@@ -48,7 +46,7 @@ async function storeToken(accessToken) {
 
 export async function saveTelegraphToken(accessToken) {
   const token = String(accessToken || '').trim();
-  if (!token || /\\s/.test(token)) throw new Error('Invalid Telegraph access token.');
+  if (!token || /\s/.test(token)) throw new Error('Invalid Telegraph access token.');
 
   // Keep the API validation and database write as distinct stages. A failed
   // account check is not a database/schema error.
