@@ -144,6 +144,7 @@ jobs:
             JSON.stringify(process.env.TELEGRAPH_ACCESS_TOKEN) + ';';
           writeFileSync(path, source.replace(placeholder, replacement), 'utf8');
           NODE
+            node --check tgcloud/lib/config.js
           fi
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             # Full push deploys static build output and Serverless modules together.
