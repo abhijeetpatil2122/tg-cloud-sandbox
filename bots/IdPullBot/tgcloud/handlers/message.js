@@ -139,11 +139,16 @@ async function testTelegraphCommand(message) {
   } catch (error) {
     const raw = errorMessage(error);
     const match = raw.match(/TELEGRAPH_API_ERROR:([^:]+):HTTP_(\d+)/);
-    const detail = match ? match[1] + ' (HTTP ' + match[2] + ')' : raw;
+    let detail = 'Telegraph check could not be completed. Please try again later.';
+    if (match) {
+      detail = 'Telegraph rejected the request: ' + match[1] + ' (HTTP ' + match[2] + ').';
+    } else if (raw.startsWith('TELEGRAPH_TRANSPORT_ERROR:')) {
+      detail = 'The bot could not reach Telegraph, and no API response was received. The token could not be validated.';
+    }
     console.error('IdPullBot Telegraph live test failed: ' + detail);
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'Telegraph API test failed: ' + escapeHtml(detail),
+      text: detail,
     });
   }
 }
