@@ -12,8 +12,6 @@ const TOKEN_KEY = 'telegraph_token';
 const PART_SIZE = 8500;
 
 async function call(method, data) {
-  // Match the working BotBuilder implementation: Telegraph accepts POST
-  // requests with a JSON body. This also keeps nested Node content intact.
   const response = await fetch('https://api.telegra.ph/' + method, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -46,22 +44,18 @@ async function storeToken(accessToken) {
 
 export async function saveTelegraphToken(accessToken) {
   const token = String(accessToken || '').trim();
-  if (!token || /\s/.test(token)) throw new Error('Invalid Telegraph access token.');
+  if (!token || /\\s/.test(token)) throw new Error('Invalid Telegraph access token.');
 
-  // Keep the API validation and database write as distinct stages. A failed
-  // account check is not a database/schema error.
   try {
     await call('getAccountInfo', {
       access_token: token,
-      fields: JSON.stringify(['short_name', 'author_name', 'author_url']),
+      fields: ['short_name', 'author_name', 'author_url'],
     });
   } catch (error) {
     console.error('IdPullBot Telegraph token validation failed: ' + String(error?.message || error));
     throw new Error('Telegraph token validation failed.');
   }
 
-  // The settings table is declared in schema.js; database operations are
-  // asynchronous and use the documented insert/upsert/run API.
   try {
     await storeToken(token);
   } catch (error) {
@@ -71,12 +65,9 @@ export async function saveTelegraphToken(accessToken) {
 }
 
 async function token() {
-  // Explicit configuration wins. This supports private deployments that
-  // choose to configure a token in config.js instead of using /settelegraph.
   const configured = String(TELEGRAPH_ACCESS_TOKEN || '').trim();
   if (configured) return configured;
 
-  // Prefer the token saved by /settelegraph.
   try {
     const saved = await db.select().from(settings).where(eq(settings.key, TOKEN_KEY)).get();
     if (saved?.value) return saved.value;
@@ -84,8 +75,6 @@ async function token() {
     console.error('IdPullBot Telegraph settings lookup failed: ' + String(error?.message || error));
   }
 
-  // Create an account only when no configured or saved token is available.
-  // If persistence fails, this invocation can still publish using the token.
   const account = await call('createAccount', {
     short_name: TELEGRAPH_SHORT_NAME,
     author_name: TELEGRAPH_AUTHOR_NAME,
@@ -111,12 +100,14 @@ function splitCompleteReport(report) {
 }
 
 async function createPage(accessToken, title, content) {
+  // Telegraph expects content to be an Array of Node objects. Do not
+  // stringify this property here: the outer request body is already JSON.
   const page = await call('createPage', {
     access_token: accessToken,
     title: String(title || 'Message Debug').slice(0, 256),
     author_name: TELEGRAPH_AUTHOR_NAME,
     author_url: TELEGRAPH_AUTHOR_URL,
-    content: JSON.stringify(content),
+    content,
     return_content: false,
   });
 
@@ -135,8 +126,6 @@ export async function createArticle(title, report) {
     ]);
   }
 
-  // Telegraph limits each article's content size. Publish every report
-  // segment and return an index page linking to all segments.
   const partUrls = [];
   for (let index = 0; index < parts.length; index += 1) {
     partUrls.push(await createPage(
