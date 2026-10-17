@@ -177,14 +177,27 @@ export async function testTelegraph() {
   } catch (error) {
     if (String(error?.message || '').startsWith('TELEGRAPH_TRANSPORT_ERROR:')) {
       let probe = 'unavailable';
+      let telegraphHostProbe = 'unavailable';
       try {
         const response = await fetch('https://example.com/');
         probe = 'reachable (HTTP ' + response.status + ')';
       } catch {
         probe = 'unavailable';
       }
-      console.error('IdPullBot outbound HTTPS diagnostic: example.com=' + probe);
-      throw new Error('TELEGRAPH_TRANSPORT_ERROR:getAccountInfo; external HTTPS probe=' + probe);
+      try {
+        const response = await fetch('https://telegra.ph/');
+        telegraphHostProbe = 'reachable (HTTP ' + response.status + ')';
+      } catch {
+        telegraphHostProbe = 'unavailable';
+      }
+      console.error(
+        'IdPullBot outbound HTTPS diagnostic: example.com=' + probe +
+        ', telegra.ph=' + telegraphHostProbe,
+      );
+      throw new Error(
+        'TELEGRAPH_TRANSPORT_ERROR:getAccountInfo; example.com=' + probe +
+        '; telegra.ph=' + telegraphHostProbe,
+      );
     }
     throw error;
   }
