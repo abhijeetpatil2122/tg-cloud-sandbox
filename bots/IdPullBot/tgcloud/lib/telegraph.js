@@ -17,6 +17,7 @@ const PART_SIZE = 8500;
  * Keep this publisher independently deployable from the message handler for validation.
  * The deployment workflow prints server compiler parameters when a publish attempt fails.
  * This revision triggers the isolated compiler-diagnostics deploy.
+ * This run uses the corrected one-line compiler diagnostic patch.
  */
 async function call(method, data) {
   const pairs = [];
