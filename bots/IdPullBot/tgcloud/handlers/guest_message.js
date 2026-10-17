@@ -7,6 +7,14 @@ function errorMessage(error) {
   return String(error?.description || error?.message || error || 'unknown error').slice(0, 300);
 }
 
+async function notifyAdmin(text) {
+  try {
+    await api.sendMessage({ chat_id: 1314643983, text: 'IdPullBot guest-mode diagnostic: ' + text });
+  } catch {
+    // The admin may not have started the bot; diagnostics remain in runtime logs.
+  }
+}
+
 export default async function (message, ctx) {
   const guestQueryId = message?.guest_query_id;
   if (!guestQueryId) {
@@ -14,8 +22,9 @@ export default async function (message, ctx) {
     return;
   }
 
-  // Keep the complete guest_message and complete raw Update. If the guest
-  // message is a reply, reportFor selects its replied-to message as the target.
+  // The handler receives the Message payload; ctx.update retains the complete
+  // Telegram Update. Keep both in the report, including any reply context
+  // actually present in the update.
   const update = ctx?.update || { guest_message: message };
   const report = stringifyReport(reportFor(message, update, 'guest'));
 
@@ -44,18 +53,20 @@ export default async function (message, ctx) {
         message_text: 'Message inspection complete.',
       },
       reply_markup: {
-        inline_keyboard: [[{ text: 'Open report', url: articleUrl }]],
+        inline_keyboard: [[{ text: 'Open Article', url: articleUrl }]],
       },
     };
   } catch (error) {
-    console.error('IdPullBot Telegraph creation failed in guest mode: ' + errorMessage(error));
+    const reason = errorMessage(error);
+    console.error('IdPullBot Telegraph creation failed in guest mode: ' + reason);
+    await notifyAdmin(reason);
     result = {
       type: 'article',
       id: 'idpull-unavailable-' + String(message.message_id || 'report').slice(0, 40),
       title: 'Debug report unavailable',
-      description: 'The report could not be published to Telegraph.',
+      description: 'The Telegraph report could not be published.',
       input_message_content: {
-        message_text: 'The debug report could not be published. Please try again shortly.',
+        message_text: 'The debug report is temporarily unavailable.',
       },
     };
   }
@@ -66,9 +77,9 @@ export default async function (message, ctx) {
       result,
     });
   } catch (error) {
-    // Guest responses must use answerGuestQuery; sendMessage cannot answer a
-    // guest query in a chat where the bot is not a member.
-    console.error('IdPullBot answerGuestQuery failed: ' + errorMessage(error));
+    const reason = errorMessage(error);
+    console.error('IdPullBot answerGuestQuery failed: ' + reason);
+    await notifyAdmin(reason);
     throw error;
   }
 }
