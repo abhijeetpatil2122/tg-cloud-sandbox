@@ -18,27 +18,37 @@ const PART_SIZE = 8500;
  */
 async function call(method, data) {
   const pairs = [];
-  const values = data || {};
-  for (const key in values) {
-    if (!Object.prototype.hasOwnProperty.call(values, key)) continue;
-    const value = values[key];
+  const keys = Object.keys(data || {});
+
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index];
+    const value = data[key];
     if (value === undefined || value === null) continue;
-    const encodedValue = Array.isArray(value) || typeof value === 'object'
-      ? JSON.stringify(value)
-      : String(value);
+
+    let encodedValue = String(value);
+    if (Array.isArray(value) || typeof value === 'object') {
+      encodedValue = JSON.stringify(value);
+    }
+
     pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(encodedValue));
   }
-  const form = pairs.join('&');
 
   const response = await fetch('https://api.telegra.ph/' + method, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form,
+    body: pairs.join('&'),
   });
+
+  let rawText = '';
+  try {
+    rawText = await response.text();
+  } catch {
+    throw new Error('Telegraph ' + method + ' response could not be read.');
+  }
 
   let payload;
   try {
-    payload = await response.json();
+    payload = JSON.parse(rawText);
   } catch {
     throw new Error(
       'Telegraph ' + method + ' returned a non-JSON response (HTTP ' + response.status + ').',
@@ -52,9 +62,7 @@ async function call(method, data) {
       ', http=' + response.status +
       ', api_error=' + apiError,
     );
-    throw new Error(
-      'TELEGRAPH_API_ERROR:' + apiError + ':HTTP_' + response.status,
-    );
+    throw new Error('TELEGRAPH_API_ERROR:' + apiError + ':HTTP_' + response.status);
   }
 
   return payload.result;
