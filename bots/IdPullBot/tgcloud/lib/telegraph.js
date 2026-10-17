@@ -16,22 +16,20 @@ const PART_SIZE = 8500;
  * This module intentionally uses form encoding for both account checks and page publishing.
  */
 async function call(method, data) {
-  const form = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(data || {})) {
-    if (value === undefined || value === null) continue;
-    form.set(
-      key,
-      Array.isArray(value) || (typeof value === 'object')
+  const form = Object.entries(data || {})
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => {
+      const encodedValue = Array.isArray(value) || typeof value === 'object'
         ? JSON.stringify(value)
-        : String(value),
-    );
-  }
+        : String(value);
+      return encodeURIComponent(key) + '=' + encodeURIComponent(encodedValue);
+    })
+    .join('&');
 
   const response = await fetch('https://api.telegra.ph/' + method, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form.toString(),
+    body: form,
   });
 
   let payload;
