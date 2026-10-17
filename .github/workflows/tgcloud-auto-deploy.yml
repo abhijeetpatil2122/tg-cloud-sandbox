@@ -250,6 +250,15 @@ jobs:
           npx tgcloud fetch
           npx tgcloud status
 
+      - name: Run one-time Telegraph API and compiler diagnostic
+        if: github.event.head_commit.message == 'Run isolated Telegraph live API test and deploy' && matrix.bot_path == 'bots/IdPullBot' && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
+        env:
+          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN_IDPULLBOT }}
+        run: |
+          set -euo pipefail
+          cd bots/IdPullBot
+          npx tgcloud run handlers/message '{chat: {id: 1314643983, type: "private"}, from: {id: 1314643983}, text: "/testtelegraph", message_id: 1}'
+
       - name: Deploy selected bot modules
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
@@ -257,27 +266,6 @@ jobs:
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
-          # Temporary diagnostic: expose only server compiler parameters, never request bodies or tokens.
-          python - <<'PY'
-          from pathlib import Path
-          import sys
-          candidates = [
-              Path("node_modules/@tgcloud/cli/src/api/client.js"),
-              Path("node_modules/@tgcloud/cli/dist/api/client.js"),
-          ]
-          client = next((p for p in candidates if p.exists()), None)
-          if client is None:
-              print("Compiler diagnostic patch skipped: CLI client source not found.")
-              sys.exit(0)
-          source = client.read_text()
-          needle = "let msg = err?.description || err?.message || 'Server error';"
-          addition = needle + " if (err?.parameters && Object.keys(err.parameters).length) msg += ' [server parameters: ' + JSON.stringify(err.parameters) + ']';"
-          if needle in source and "server parameters:" not in source:
-              client.write_text(source.replace(needle, addition))
-              print("Enabled safe compiler-parameter diagnostics.")
-          else:
-              print("Compiler diagnostic patch not needed.")
-          PY
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             # Full push atomically deploys static assets and modules. It mirrors
             # local modules to the cloud, including deletions.
@@ -295,6 +283,6 @@ jobs:
               exit 1
             fi
             printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
-            npx tgcloud push tgcloud/lib/telegraph.js
+            npx tgcloud push "${modules[@]}"
           fi
           npx tgcloud status
