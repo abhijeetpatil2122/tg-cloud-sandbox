@@ -1,30 +1,146 @@
-export function escapeHtml(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-export function reportFor(message,update,mode) {
-  const target=message?.reply_to_message||message?.external_reply||message;
-  return {inspector:'IdPullBot',mode,target_selection:message?.reply_to_message?'replied-to message':message?.external_reply?'external replied-to message':'invoking message',target_message:target,current_message:message,raw_update:update||null};
+export function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
-export function stringifyReport(report){return JSON.stringify(report,null,2);}
-function chunks(s){
-  const out=[];let cur='',n=0;
-  for(const c of String(s)){const e=escapeHtml(c);if(cur&&n+e.length>3400){out.push(cur);cur='';n=0;}cur+=c;n+=e.length;}
-  if(cur||!out.length)out.push(cur);return out;
+
+// Preserve the entire Telegram Message and raw Update. target_message is only
+// an additional pointer to the inspected message; neither source object is
+// projected into a smaller, hand-picked field list.
+export function reportFor(message, update, mode) {
+  const target = message?.reply_to_message || message?.external_reply || message;
+  const targetSelection = message?.reply_to_message
+    ? 'replied-to message'
+    : message?.external_reply
+      ? 'external replied-to message'
+      : 'invoking message';
+
+  return {
+    inspector: 'IdPullBot',
+    mode,
+    target_selection: targetSelection,
+    target_message: target,
+    current_message: message,
+    raw_update: update || { message },
+  };
 }
-export async function sendReport(api,chatId,text,replyId){
-  const parts=chunks(text);
-  for(let i=0;i<parts.length;i++){
-    const p={chat_id:chatId,text:'<pre><code class="language-js">'+escapeHtml(parts[i])+'</code></pre>',parse_mode:'HTML'};
-    if(i===0&&Number.isSafeInteger(replyId)&&replyId>0)p.reply_parameters={message_id:replyId,allow_sending_without_reply:true};
-    await api.sendMessage(p);
+
+export function stringifyReport(report) {
+  return JSON.stringify(report, null, 2);
+}
+
+function chunks(text) {
+  const result = [];
+  let current = '';
+  let escapedLength = 0;
+
+  for (const character of String(text)) {
+    const escaped = escapeHtml(character);
+    if (current && escapedLength + escaped.length > 3400) {
+      result.push(current);
+      current = '';
+      escapedLength = 0;
+    }
+    current += character;
+    escapedLength += escaped.length;
+  }
+
+  if (current || result.length === 0) result.push(current);
+  return result;
+}
+
+export async function sendReport(api, chatId, reportText, replyToMessageId) {
+  const parts = chunks(reportText);
+
+  for (let index = 0; index < parts.length; index += 1) {
+    const params = {
+      chat_id: chatId,
+      text:
+        '<b>Message debug — part ' + (index + 1) + '/' + parts.length + '</b>\n' +
+        '<pre><code class="language-js">' + escapeHtml(parts[index]) + '</code></pre>',
+      parse_mode: 'HTML',
+    };
+
+    if (index === 0 && Number.isSafeInteger(replyToMessageId) && replyToMessageId > 0) {
+      params.reply_parameters = {
+        message_id: replyToMessageId,
+        allow_sending_without_reply: true,
+      };
+    }
+
+    await api.sendMessage(params);
   }
 }
-export function shareKeyboard(){
-  const user=(text,id,extra={})=>({text,request_users:{request_id:id,user_is_bot:extra.bot,user_is_premium:extra.premium,max_quantity:extra.max||1,request_name:true,request_username:true,request_photo:true}});
-  const chat=(text,id,extra={})=>({text,request_chat:{request_id:id,chat_is_channel:!!extra.channel,chat_is_forum:extra.forum,chat_is_created:extra.created,user_administrator_rights:extra.admin,request_title:true,request_username:true,request_photo:true}});
-  return {keyboard:[
-    [user('User',1),chat('Channel',2,{channel:true})],
-    [chat('Group',3),chat('Forum',4,{forum:true})],
-    [user('Bot',5,{bot:true,max:10}),user('Premium',6,{premium:true})],
-    [chat('Owner Group',7,{created:true}),chat('Owner Channel',8,{channel:true,created:true})],
-    [chat('Admin Group',9,{admin:{can_manage_chat:true}}),chat('Admin Channel',10,{channel:true,admin:{can_manage_chat:true}})]
-  ],resize_keyboard:true,is_persistent:true,input_field_placeholder:'Share a user or chat'};
+
+function userButton(text, requestId, emojiId, style, options = {}) {
+  const requestUsers = {
+    request_id: requestId,
+    user_is_bot: options.bot === true,
+    request_name: true,
+    request_username: true,
+    request_photo: true,
+  };
+  if (options.premium === true) requestUsers.user_is_premium = true;
+  if (options.maxQuantity) requestUsers.max_quantity = options.maxQuantity;
+
+  const button = {
+    text,
+    icon_custom_emoji_id: emojiId,
+    request_users: requestUsers,
+  };
+  if (style) button.style = style;
+  return button;
+}
+
+function chatButton(text, requestId, emojiId, style, options = {}) {
+  const requestChat = {
+    request_id: requestId,
+    chat_is_channel: options.channel === true,
+    request_title: true,
+    request_username: true,
+    request_photo: true,
+  };
+  if (options.forum === true) requestChat.chat_is_forum = true;
+  if (options.created === true) requestChat.chat_is_created = true;
+  if (options.adminRights) requestChat.user_administrator_rights = options.adminRights;
+
+  const button = {
+    text,
+    icon_custom_emoji_id: emojiId,
+    request_chat: requestChat,
+  };
+  if (style) button.style = style;
+  return button;
+}
+
+export function shareKeyboard() {
+  // Preserve the original two-row layout, button order, styles and custom
+  // emoji IDs. The BB keyboard did not set input_field_placeholder.
+  return {
+    keyboard: [
+      [
+        userButton('User', 1, '5771887475421090729', 'primary'),
+        chatButton('Channel', 2, '5886436057091673541', 'success', { channel: true }),
+        chatButton('Group', 3, '5877530150345641603', 'primary'),
+        chatButton('Forum', 4, '5883997877172179131'),
+        userButton('Bot', 5, '5931614414351372818', undefined, { bot: true, maxQuantity: 10 }),
+      ],
+      [
+        userButton('Premium', 6, '5956148757899776734', undefined, { premium: true }),
+        chatButton('Owner Group', 7, '5890741826230423364', 'success', { created: true }),
+        chatButton('Owner Channel', 8, '5891169510483823323', 'success', { channel: true, created: true }),
+        chatButton('Admin Group', 9, '5994297722574737553', 'primary', {
+          adminRights: { can_manage_chat: true },
+        }),
+        chatButton('Admin Channel', 10, '5891243564309942507', 'primary', {
+          channel: true,
+          adminRights: { can_manage_chat: true },
+        }),
+      ],
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
 }

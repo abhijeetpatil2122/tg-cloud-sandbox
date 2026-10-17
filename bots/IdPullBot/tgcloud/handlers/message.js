@@ -5,28 +5,72 @@ import { createArticle } from '../lib/telegraph.js';
 
 const ADMIN_ID = 1314643983;
 const commandName = (text) => String(text || '').trim().split(/\s+/)[0].split('@')[0].toLowerCase();
+const customEmoji = (id, emoji) => '<tg-emoji emoji-id="' + id + '">' + emoji + '</tg-emoji>';
+
+function errorMessage(error) {
+  return String(error?.description || error?.message || error || 'unknown error').slice(0, 300);
+}
+
+async function sendMe(chatId, userId) {
+  await api.sendMessage({
+    chat_id: chatId,
+    text: '<b>Your Telegram ID</b>\n<code>' + userId + '</code>',
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [[{
+        text: 'Copy',
+        copy_text: { text: String(userId) },
+      }]],
+    },
+  });
+}
 
 async function start(message) {
   const user = message.from || {};
-  const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'there';
+  const firstName = escapeHtml(user.first_name || 'User');
   let isNew = false;
 
   try {
     isNew = await registerStart(user.id);
-  } catch {
-    console.error('IdPullBot start stats unavailable; apply the reviewed database migration.');
+  } catch (error) {
+    console.error('IdPullBot start statistics update failed: ' + errorMessage(error));
   }
+
+  // Preserve the original BB welcome sections and instructions; only the
+  // inline-mode line is replaced with the guest-mode equivalent.
+  const welcome =
+    '👋 Welcome, <b>' + firstName + '</b>! ' + customEmoji('5040016479722931047', '✨') + '\n\n' +
+    '<i>Use this bot to get IDs for Telegram entities:</i>\n' +
+    '• ' + customEmoji('6024112973226709843', '📣') + ' Forward channel/user messages for channel or user IDs\n' +
+    '• ' + customEmoji('5359441070201513074', '🎭') + ' Send stickers to get their file_id\n' +
+    '• ' + customEmoji('5258513401784573443', '👥') + ' Add bot to groups to get group and migration IDs\n' +
+    '• ' + customEmoji('5474371208176737086', '✉️') + ' Send any message/media in chats to extract detailed info (user, message, chat, media IDs)\n' +
+    '• ' + customEmoji('5039649904264217620', '🔍') + ' Mention <code>@idpullbot</code> in supported groups or supergroups to inspect the replied-to message or the message containing the mention\n\n' +
+    customEmoji('5429633836684157942', '⚡') + ' <b>Features</b>\n' +
+    '• ' + customEmoji('5879939498149679716', '🔎') + ' Complete message and media inspection\n' +
+    '• ' + customEmoji('5040036030414062506', '💬') + ' JavaScript-style debug output in private chat, split into chunks\n' +
+    '• Shareable Telegraph articles\n' +
+    '• User and chat sharing with copy-ID buttons\n\n' +
+    'Use the share menu below to instantly share users or chats.';
 
   await api.sendMessage({
     chat_id: message.chat.id,
-    text: 'Welcome ' + escapeHtml(name) + ' to IdPullBot.\n\nSend any message here to inspect its complete Telegram message data and raw update, or reply to a message with /id. Reports are sent in JavaScript-style code blocks, followed by a shareable Telegraph article link.',
+    text: welcome,
     parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [[{
+        text: 'Get my info',
+        style: 'primary',
+        callback_data: 'idpull_me',
+      }]],
+    },
   });
 
   if (message.chat?.type === 'private') {
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'Share a user or chat to inspect its available ID and details.',
+      text: '<b> 📌 Click a button below to share: </b>',
+      parse_mode: 'HTML',
       reply_markup: shareKeyboard(),
     });
   }
@@ -35,11 +79,12 @@ async function start(message) {
     try {
       await api.sendMessage({
         chat_id: ADMIN_ID,
-        text: 'New IdPullBot user: ' + name + '\nID: ' + String(user.id || 'unknown') +
+        text: 'New IdPullBot user: ' + (user.first_name || 'User') +
+          '\nID: ' + String(user.id || 'unknown') +
           (user.username ? '\nUsername: @' + user.username : ''),
       });
-    } catch {
-      // A notification failure must not break /start.
+    } catch (error) {
+      console.error('IdPullBot admin notification failed: ' + errorMessage(error));
     }
   }
 }
@@ -47,16 +92,31 @@ async function start(message) {
 async function help(message) {
   await api.sendMessage({
     chat_id: message.chat.id,
-    text: '<b>IdPullBot</b>\nSend any message here to inspect its full Telegram message and raw update. Reply to a message with /id to inspect the replied-to message. Reports are chunked into JavaScript-style code blocks, followed by a shareable Telegraph link.\n\nUse the private-chat keyboard to share users and chats. In supported groups, invoke @idpullbot by replying to a message for a minimal guest-mode report link.\n/stats — private aggregate statistics (admin only).',
+    text:
+      '<b>IdPullBot</b>\n' +
+      'Send any message here to inspect its complete Telegram Message and raw Update. Reply to a message with /id to inspect the replied-to message. Private reports are split into JavaScript-style HTML code blocks and followed by a shareable Telegraph link.\n\n' +
+      'In supported groups and supergroups, mention @idpullbot to get a minimal guest-mode response with the Telegraph report link.\n\n' +
+      '/me — get your own Telegram ID with a copy button.\n' +
+      '/stats — private aggregate statistics (admin only).',
     parse_mode: 'HTML',
     reply_markup: message.chat?.type === 'private' ? shareKeyboard() : undefined,
   });
 }
 
+async function me(message) {
+  if (message.chat?.type !== 'private') return;
+
+  const userId = message.from?.id;
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    await api.sendMessage({ chat_id: message.chat.id, text: 'Could not determine your Telegram ID.' });
+    return;
+  }
+  await sendMe(message.chat.id, userId);
+}
+
 async function sharedUsers(message) {
   const shared = message.users_shared;
   const users = Array.isArray(shared.users) ? shared.users : [];
-  const ids = users.map((user) => user.user_id);
   const details = users.map((user) => {
     const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Name not provided';
     return '• ' + escapeHtml(name) +
@@ -67,11 +127,10 @@ async function sharedUsers(message) {
   await api.sendMessage({
     chat_id: message.chat.id,
     text: '<b>Shared users</b>\nRequest ID: <code>' + shared.request_id + '</code>\n' +
-      (details.length ? details.join('\n') : 'No user IDs returned') +
-      '\n\nTelegram only returns the user details available in the share event.',
+      (details.length ? details.join('\n') : 'No user IDs returned'),
     parse_mode: 'HTML',
-    reply_markup: ids.length
-      ? { inline_keyboard: ids.map((id) => [{ text: 'Copy ' + id, copy_text: { text: String(id) } }]) }
+    reply_markup: users.length
+      ? { inline_keyboard: users.map((user) => [{ text: 'Copy', copy_text: { text: String(user.user_id) } }]) }
       : undefined,
   });
 }
@@ -86,8 +145,8 @@ async function sharedChat(message) {
     chatDetails = '\nType: <code>' + escapeHtml(chat.type || 'unknown') + '</code>' +
       (chat.title ? '\nTitle: ' + escapeHtml(chat.title) : '') +
       (chat.username ? '\nUsername: @' + escapeHtml(chat.username) : '');
-  } catch {
-    // Sharing a chat does not guarantee the bot can query its full details.
+  } catch (error) {
+    console.error('IdPullBot getChat for a shared chat failed: ' + errorMessage(error));
   }
 
   await api.sendMessage({
@@ -95,7 +154,9 @@ async function sharedChat(message) {
     text: '<b>Shared chat</b>\nRequest ID: <code>' + shared.request_id +
       '</code>\nChat ID: <code>' + chatId + '</code>' + chatDetails,
     parse_mode: 'HTML',
-    reply_markup: { inline_keyboard: [[{ text: 'Copy chat ID', copy_text: { text: String(chatId) } }]] },
+    reply_markup: {
+      inline_keyboard: [[{ text: 'Copy', copy_text: { text: String(chatId) } }]],
+    },
   });
 }
 
@@ -113,7 +174,8 @@ async function showStats(message) {
         '</code>\nNew users: <code>' + stats.newUsers + '</code>',
       parse_mode: 'HTML',
     });
-  } catch {
+  } catch (error) {
+    console.error('IdPullBot statistics retrieval failed: ' + errorMessage(error));
     await api.sendMessage({
       chat_id: message.chat.id,
       text: 'Statistics are unavailable until the Serverless database migration is applied.',
@@ -127,27 +189,30 @@ async function inspectPrivate(message, ctx) {
   const report = stringifyReport(reportFor(message, ctx?.update || { message }, 'private'));
   try {
     await recordInspection(message.from?.id, 'private');
-  } catch {
-    console.error('IdPullBot stats unavailable; inspection will continue.');
+  } catch (error) {
+    console.error('IdPullBot statistics update failed: ' + errorMessage(error));
   }
 
   await sendReport(api, message.chat.id, report, message.message_id);
 
   try {
-    const title = 'IdPullBot Debug — ' + (message.chat.username || message.chat.first_name || 'Private chat') +
+    const title = 'IdPullBot Debug — ' +
+      (message.chat.username || message.chat.first_name || 'Private chat') +
       ' — ' + String(message.message_id || 'unknown');
     const articleUrl = await createArticle(title, report);
     await api.sendMessage({
       chat_id: message.chat.id,
       text: 'Shareable report: ' + articleUrl,
-      reply_markup: { inline_keyboard: [[{ text: 'Open Telegraph article', url: articleUrl }]] },
+      reply_markup: {
+        inline_keyboard: [[{ text: 'Open Article', url: articleUrl }]],
+      },
       disable_web_page_preview: true,
     });
-  } catch {
-    console.error('IdPullBot Telegraph article creation failed.');
+  } catch (error) {
+    console.error('IdPullBot Telegraph article creation failed: ' + errorMessage(error));
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'The debug chunks were sent, but the Telegraph article could not be created. Ensure the Serverless database migration has been applied.',
+      text: 'The debug chunks were sent, but the Telegraph article could not be created. Check the saved Telegraph access token and Serverless database migration.',
     });
   }
 }
@@ -159,6 +224,7 @@ export default async function (message, ctx) {
   const command = commandName(message?.text);
   if (command === '/start') return start(message);
   if (command === '/help' || command === '/about') return help(message);
+  if (command === '/me') return me(message);
   if (command === '/stats') return showStats(message);
 
   return inspectPrivate(message, ctx);
