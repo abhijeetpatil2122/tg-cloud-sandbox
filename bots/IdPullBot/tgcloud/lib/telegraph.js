@@ -22,27 +22,45 @@ const PART_SIZE = 8500;
  * The message handler imports only exports defined by this module.
  */
 async function call(method, data) {
-  const pairs = [];
-  const keys = Object.keys(data || {});
+  let response;
 
-  for (let index = 0; index < keys.length; index += 1) {
-    const key = keys[index];
-    const value = data[key];
-    if (value === undefined || value === null) continue;
+  try {
+    if (method === 'getAccountInfo') {
+      const fields = encodeURIComponent(JSON.stringify(data.fields || [
+        'short_name', 'author_name', 'author_url',
+      ]));
+      const url = 'https://api.telegra.ph/getAccountInfo?access_token=' +
+        encodeURIComponent(String(data.access_token || '')) +
+        '&fields=' + fields;
+      response = await fetch(url);
+    } else {
+      const pairs = [];
+      const keys = Object.keys(data || {});
 
-    let encodedValue = String(value);
-    if (Array.isArray(value) || typeof value === 'object') {
-      encodedValue = JSON.stringify(value);
+      for (let index = 0; index < keys.length; index += 1) {
+        const key = keys[index];
+        const value = data[key];
+        if (value === undefined || value === null) continue;
+
+        let encodedValue = String(value);
+        if (Array.isArray(value) || typeof value === 'object') {
+          encodedValue = JSON.stringify(value);
+        }
+
+        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(encodedValue));
+      }
+
+      response = await fetch('https://api.telegra.ph/' + method, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: pairs.join('&'),
+      });
     }
-
-    pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(encodedValue));
+  } catch (error) {
+    const detail = String(error?.message || error || 'request failed');
+    console.error('IdPullBot Telegraph transport failure: method=' + method + ', error=' + detail);
+    throw new Error('TELEGRAPH_TRANSPORT_ERROR:' + method + ':' + detail);
   }
-
-  const response = await fetch('https://api.telegra.ph/' + method, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: pairs.join('&'),
-  });
 
   let rawText = '';
   try {
