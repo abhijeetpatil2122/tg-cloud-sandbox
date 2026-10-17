@@ -1,7 +1,7 @@
 import { api } from 'sdk';
 import { getStats, recordInspection, registerStart } from '../lib/stats.js';
 import { reportFor, stringifyReport, sendReport, shareKeyboard, escapeHtml } from '../lib/inspect.js';
-import { createArticle, saveTelegraphToken, testTelegraph } from '../lib/telegraph.js';
+import { createArticle, testTelegraph } from '../lib/telegraph.js';
 import { TELEGRAPH_ACCESS_TOKEN } from '../lib/config.js';
 
 const ADMIN_ID = 1314643983;
@@ -151,50 +151,16 @@ async function testTelegraphCommand(message) {
 async function setTelegraph(message) {
   if (message.chat?.type !== 'private' || message.from?.id !== ADMIN_ID) return;
 
-  if (TELEGRAPH_ACCESS_TOKEN) {
-    try {
-      await api.deleteMessage({ chat_id: message.chat.id, message_id: message.message_id });
-    } catch {}
-    await api.sendMessage({
-      chat_id: message.chat.id,
-      text: 'Telegraph is already configured.',
-    });
-    return;
-  }
-
-  const token = String(message.text || '').trim().split(/\s+/).slice(1).join('').trim();
-  if (!token) {
-    await api.sendMessage({
-      chat_id: message.chat.id,
-      text: 'Usage: <code>/settelegraph YOUR_TELEGRAPH_ACCESS_TOKEN</code>\nThe token is stored in this bot’s Serverless database.',
-      parse_mode: 'HTML',
-    });
-    return;
-  }
-
   try {
-    await saveTelegraphToken(token);
-    // Delete the command containing the token from the private chat when
-    // Telegram permits it. Never log or echo the token.
-    try {
-      await api.deleteMessage({ chat_id: message.chat.id, message_id: message.message_id });
-    } catch {
-      // Best effort only; the token is never included in a bot reply or log.
-    }
-    await api.sendMessage({
-      chat_id: message.chat.id,
-      text: 'Telegraph is ready.',
-    });
-  } catch (error) {
-    try {
-      await api.deleteMessage({ chat_id: message.chat.id, message_id: message.message_id });
-    } catch {}
-    console.error('IdPullBot Telegraph setup failed: ' + errorMessage(error));
-    await api.sendMessage({
-      chat_id: message.chat.id,
-      text: 'Telegraph setup could not be completed. Please try again.',
-    });
-  }
+    await api.deleteMessage({ chat_id: message.chat.id, message_id: message.message_id });
+  } catch {}
+
+  await api.sendMessage({
+    chat_id: message.chat.id,
+    text: TELEGRAPH_ACCESS_TOKEN
+      ? 'Telegraph is already configured.'
+      : 'Telegraph is not configured yet. Add the access token to the bot configuration and redeploy.',
+  });
 }
 
 async function sharedUsers(message) {
