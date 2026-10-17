@@ -48,14 +48,28 @@ async function storeToken(accessToken) {
 
 export async function saveTelegraphToken(accessToken) {
   const token = String(accessToken || '').trim();
-  if (!token || /\s/.test(token)) throw new Error('Invalid Telegraph access token.');
+  if (!token || /\\s/.test(token)) throw new Error('Invalid Telegraph access token.');
 
-  // Validate against Telegraph before writing the credential to this bot's DB.
-  await call('getAccountInfo', {
-    access_token: token,
-    fields: JSON.stringify(['short_name', 'author_name', 'author_url']),
-  });
-  await storeToken(token);
+  // Keep the API validation and database write as distinct stages. A failed
+  // account check is not a database/schema error.
+  try {
+    await call('getAccountInfo', {
+      access_token: token,
+      fields: JSON.stringify(['short_name', 'author_name', 'author_url']),
+    });
+  } catch (error) {
+    console.error('IdPullBot Telegraph token validation failed: ' + String(error?.message || error));
+    throw new Error('Telegraph token validation failed.');
+  }
+
+  // The settings table is declared in schema.js; database operations are
+  // asynchronous and use the documented insert/upsert/run API.
+  try {
+    await storeToken(token);
+  } catch (error) {
+    console.error('IdPullBot Telegraph settings database write failed: ' + String(error?.message || error));
+    throw new Error('Telegraph settings could not be saved.');
+  }
 }
 
 async function token() {
