@@ -48,7 +48,7 @@ async function storeToken(accessToken) {
 
 export async function saveTelegraphToken(accessToken) {
   const token = String(accessToken || '').trim();
-  if (!token || /\\s/.test(token)) throw new Error('Invalid Telegraph access token.');
+  if (!token || /\s/.test(token)) throw new Error('Invalid Telegraph access token.');
 
   // Validate against Telegraph before writing the credential to this bot's DB.
   await call('getAccountInfo', {
