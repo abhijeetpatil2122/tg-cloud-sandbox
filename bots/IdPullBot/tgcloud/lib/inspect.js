@@ -6,13 +6,12 @@ export function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
-// The report is the actual Telegram Update, unchanged. The Serverless handler
-// unwraps Update into its payload, so ctx.update is the authoritative raw object.
+// The report is the actual Telegram Update, unchanged. Serverless unwraps
+// Update into its handler payload; ctx.update is the authoritative raw object.
 // Never add inspector metadata or duplicate Message fields to the debug JSON.
 export function reportFor(message, update, mode) {
   if (update && typeof update === 'object') return update;
-  // This fallback is only for local/manual handler runs where ctx.update was
-  // not supplied. Real Telegram invocations include ctx.update.
+  // Fallback for local/manual handler runs without a supplied context.
   return mode === 'guest' ? { guest_message: message } : { message };
 }
 
@@ -47,7 +46,7 @@ export async function sendReport(api, chatId, reportText, replyToMessageId) {
     const params = {
       chat_id: chatId,
       text:
-        '<b>Message debug — part ' + (index + 1) + '/' + parts.length + '</b>\\n' +
+        '<b>Message debug — part ' + (index + 1) + '/' + parts.length + '</b>\n' +
         '<pre><code class="language-js">' + escapeHtml(parts[index]) + '</code></pre>',
       parse_mode: 'HTML',
     };
@@ -103,8 +102,6 @@ function chatButton(text, requestId, emojiId, style, options = {}) {
 }
 
 export function shareKeyboard() {
-  // Preserve the original BB keyboard: four rows (3, 3, 2, 2), same order,
-  // request options, button styles and custom emoji IDs.
   return {
     keyboard: [
       [
