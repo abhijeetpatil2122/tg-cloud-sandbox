@@ -19,6 +19,7 @@ const PART_SIZE = 8500;
  * This revision triggers the isolated compiler-diagnostics deploy.
  * This run uses the corrected one-line compiler diagnostic patch.
  * The one-time live test verifies account access and article creation before deployment.
+ * The message handler imports only exports defined by this module.
  */
 async function call(method, data) {
   const pairs = [];
