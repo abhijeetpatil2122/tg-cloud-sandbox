@@ -136,27 +136,6 @@ jobs:
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
-          # Temporary diagnostic: expose only server compiler parameters, never request bodies or tokens.
-          python - <<'PY'
-          from pathlib import Path
-          import sys
-          candidates = [
-              Path("node_modules/@tgcloud/cli/src/api/client.js"),
-              Path("node_modules/@tgcloud/cli/dist/api/client.js"),
-          ]
-          client = next((p for p in candidates if p.exists()), None)
-          if client is None:
-              print("Compiler diagnostic patch skipped: CLI client source not found.")
-              sys.exit(0)
-          source = client.read_text()
-          needle = "let msg = err?.description || err?.message || 'Server error';"
-          addition = needle + "\\n  if (err?.parameters && Object.keys(err.parameters).length) msg += ' [server parameters: ' + JSON.stringify(err.parameters) + ']';"
-          if needle in source and "server parameters:" not in source:
-              client.write_text(source.replace(needle, addition))
-              print("Enabled safe compiler-parameter diagnostics.")
-          else:
-              print("Compiler diagnostic patch not needed.")
-          PY
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             npm run build
           fi
@@ -278,6 +257,27 @@ jobs:
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
+          # Temporary diagnostic: expose only server compiler parameters, never request bodies or tokens.
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          candidates = [
+              Path("node_modules/@tgcloud/cli/src/api/client.js"),
+              Path("node_modules/@tgcloud/cli/dist/api/client.js"),
+          ]
+          client = next((p for p in candidates if p.exists()), None)
+          if client is None:
+              print("Compiler diagnostic patch skipped: CLI client source not found.")
+              sys.exit(0)
+          source = client.read_text()
+          needle = "let msg = err?.description || err?.message || 'Server error';"
+          addition = needle + "\\n  if (err?.parameters && Object.keys(err.parameters).length) msg += ' [server parameters: ' + JSON.stringify(err.parameters) + ']';"
+          if needle in source and "server parameters:" not in source:
+              client.write_text(source.replace(needle, addition))
+              print("Enabled safe compiler-parameter diagnostics.")
+          else:
+              print("Compiler diagnostic patch not needed.")
+          PY
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             # Full push atomically deploys static assets and modules. It mirrors
             # local modules to the cloud, including deletions.
