@@ -363,7 +363,8 @@ export default async function (message, ctx) {
   if (command === '/start') return start(message);
   if (command === '/help' || command === '/about') return help(message);
   if (command === '/me') return me(message);
-  if (command === '/testtelegraph') return testTelegraphCommand(message);\n  if (command === '/settelegraph') return setTelegraph(message);
+  if (command === '/testtelegraph') return testTelegraphCommand(message);
+  if (command === '/settelegraph') return setTelegraph(message);
   if (command === '/gueststatus') return guestStatus(message);
   if (command === '/stats') return showStats(message);
 
