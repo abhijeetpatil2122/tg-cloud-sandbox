@@ -2,9 +2,9 @@
  * IdPullBot runtime configuration.
  *
  * Keep this file free of credentials in a public repository.
- * TELEGRAPH_ACCESS_TOKEN is an optional manual override for private/local
- * deployments. The normal, safer configuration path is /settelegraph, which
- * validates the token and stores it in this bot's Serverless database.
+ * The manual GitHub Actions deployment injects TELEGRAPH_ACCESS_TOKEN_IDPULLBOT
+ * into this placeholder at deploy time. The token is never committed to this
+ * public source file. /settelegraph remains available as a database fallback.
  */
 export const TELEGRAPH_ACCESS_TOKEN = '';
 
