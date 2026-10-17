@@ -1,7 +1,7 @@
 import { api } from 'sdk';
 import { getStats, recordInspection, registerStart } from '../lib/stats.js';
 import { reportFor, stringifyReport, sendReport, shareKeyboard, escapeHtml } from '../lib/inspect.js';
-import { createArticle, saveTelegraphToken } from '../lib/telegraph.js';
+import { createArticle, saveTelegraphToken, testTelegraph } from '../lib/telegraph.js';
 import { TELEGRAPH_ACCESS_TOKEN } from '../lib/config.js';
 
 const ADMIN_ID = 1314643983;
@@ -122,6 +122,32 @@ async function me(message) {
   await sendMe(message.chat.id, userId);
 }
 
+async function testTelegraphCommand(message) {
+  if (message.chat?.type !== 'private' || message.from?.id !== ADMIN_ID) return;
+
+  try {
+    const result = await testTelegraph();
+    const count = Number.isFinite(result.pageCount) ? '\\nPages before test: ' + result.pageCount : '';
+    await api.sendMessage({
+      chat_id: message.chat.id,
+      text: 'Telegraph API test succeeded.\\nAccount: ' + escapeHtml(result.shortName) + count + '\\nTest article: ' + result.url,
+      disable_web_page_preview: true,
+      reply_markup: {
+        inline_keyboard: [[{ text: 'Open Test Article', url: result.url }]],
+      },
+    });
+  } catch (error) {
+    const raw = errorMessage(error);
+    const match = raw.match(/TELEGRAPH_API_ERROR:([^:]+):HTTP_(\\d+)/);
+    const detail = match ? match[1] + ' (HTTP ' + match[2] + ')' : raw;
+    console.error('IdPullBot Telegraph live test failed: ' + detail);
+    await api.sendMessage({
+      chat_id: message.chat.id,
+      text: 'Telegraph API test failed: ' + escapeHtml(detail),
+    });
+  }
+}
+
 async function setTelegraph(message) {
   if (message.chat?.type !== 'private' || message.from?.id !== ADMIN_ID) return;
 
@@ -186,7 +212,7 @@ async function sharedUsers(message) {
     text: '<b>Shared users</b>\n' + (details.length ? details.join('\n') : 'No user IDs returned'),
     parse_mode: 'HTML',
     reply_markup: users.length
-      ? { inline_keyboard: users.map((user) => [{ text: 'Copy ID', copy_text: { text: String(user.user_id) } }]) }
+      ? { inline_keyboard: Array.from({ length: Math.ceil(users.length / 2) }, (_, row) => users.slice(row * 2, row * 2 + 2).map((user) => ({ text: 'Copy ID', copy_text: { text: String(user.user_id) } }))) }
       : undefined,
   });
 }
@@ -337,7 +363,7 @@ export default async function (message, ctx) {
   if (command === '/start') return start(message);
   if (command === '/help' || command === '/about') return help(message);
   if (command === '/me') return me(message);
-  if (command === '/settelegraph') return setTelegraph(message);
+  if (command === '/testtelegraph') return testTelegraphCommand(message);\n  if (command === '/settelegraph') return setTelegraph(message);
   if (command === '/gueststatus') return guestStatus(message);
   if (command === '/stats') return showStats(message);
 
