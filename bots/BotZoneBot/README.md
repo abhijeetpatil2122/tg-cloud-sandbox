@@ -6,24 +6,28 @@ This is the RichEditor Mini App migrated from Vercel into Telegram BotFather Ser
 
 - Original React/Vite editor and formatting tools.
 - Serverless endpoints for Rich Message sending, chat verification, avatar previews, SQLite-backed saved chats, and chunked media uploads.
-- Saved channels and groups are stored per Telegram user in SQLite, replacing the old per-user Telegram CloudStorage records.
-- The old Vercel functions are not used by this app.
+- Saved channels and groups are stored in this bot's own SQLite database.
+- No legacy CloudStorage import is performed; this is a fresh BotZoneBot setup.
 
-## SQLite
+## SQLite database
 
-The schema lives in `tgcloud/schema.js`. The only permanent app data stored in SQLite is the user's saved chats. Temporary upload-session and chunk tables support chunked media upload; they are cleaned up after completion/cancellation and stale records are removed after 24 hours. Schema deployment records pending changes; it does not apply database migrations automatically. Review the create-table/index migrations with `npx tgcloud migrate` before using the SQLite-backed saved-chat endpoints.
+Telegram Serverless provides a separate SQLite-backed database for each bot. This app uses tgcloud/schema.js to declare three application tables:
 
-No old table is dropped. The previous demo table, if still present in the database, is left untouched.
+- saved_chats: the only permanent application data, saved per user.
+- media_upload_sessions: temporary upload metadata.
+- media_upload_chunks: temporary upload chunks, removed after success/cancellation and expired after 24 hours.
+
+The unused scaffold demo_notes table is marked deprecated for explicit removal by the reviewed database migration. After the migration drops that table, remove its temporary deprecation declaration from tgcloud/schema.js.
 
 ## Media uploads
 
-Files are sent to Serverless in 512 KiB chunks to avoid one oversized JSON/Base64 request. Chunks are temporarily stored in SQLite, reassembled as a `Uint8Array`, uploaded using `InputFile`, and deleted after a successful upload or cancellation. Stale chunks are cleaned up after 24 hours.
+Files are read with FileReader for compatibility with Telegram's embedded Android WebView, sent to Serverless in 512 KiB chunks, reassembled as a Uint8Array, and uploaded with the documented SDK InputFile API. The bot token is never exposed to the frontend.
 
-Telegram Bot API limits still apply: photo uploads are limited to 10 MB; other supported file types are limited to 20 MB for this Mini App because the file-preview/download API is capped at 20 MB.
+Telegram Bot API limits apply: photos are limited to 10 MB; other supported file types are limited to 20 MB in this Mini App.
 
 ## App
 
-- App ID: `8747772496`
-- Hosted URL: `https://app8747772496.tgcloud.ai/`
+- App ID: 8747772496
+- Hosted URL: https://app8747772496.tgcloud.ai/
 
-Build with `npm run build`; validate Serverless modules with `node --check`. Review `npx tgcloud status` before deployment because a full push mirrors module deletions as well as additions.
+Build with npm run build; validate Serverless modules with node --check. Review npx tgcloud status before deployment because a full push mirrors module deletions as well as additions.
