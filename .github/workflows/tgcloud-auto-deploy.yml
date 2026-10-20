@@ -305,5 +305,12 @@ jobs:
           if [[ "$BOT_PATH" == "bots/BotZoneBot" ]]; then
             echo "Applying safe BotZoneBot database migrations"
             npx tgcloud migrate --safe
+
+            # Exercise the exact session-start path against the deployed
+            # Serverless runtime. Use a unique test session and always remove it.
+            smoke_upload_id="ci_upload_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+            smoke_user_id=900000001
+            npx tgcloud run endpoints/beginMediaUpload "{ upload_id: '${smoke_upload_id}', kind: 'document', name: 'upload-smoke-test.txt', type: 'text/plain', size: 1, total_chunks: 1 }" --ctx "{ initData: { user: { id: ${smoke_user_id} } } }"
+            npx tgcloud run endpoints/cancelMediaUpload "{ upload_id: '${smoke_upload_id}' }" --ctx "{ initData: { user: { id: ${smoke_user_id} } } }"
           fi
           npx tgcloud status
