@@ -1,27 +1,28 @@
 import React, { useState } from 'react'
 import { api } from '../telegram/api.js'
-import { saveChannel } from '../telegram/channelStorage.js'
 import { haptic } from '../telegram/webApp.js'
 
 export default function ChannelForm({ onAdded }) {
   const [value, setValue] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   async function submit() {
     const id = value.trim()
     if (!id) return
     setBusy(true)
     setError('')
+    setNotice('')
     try {
-      const { channel } = await api.verifyChannel(id)
-      await saveChannel(channel)
+      await api.verifyChannel(id)
       haptic('success')
       setValue('')
-      onAdded()
+      setNotice('Chat verified and saved.')
+      await onAdded()
     } catch (err) {
       haptic('error')
-      setError(err.message || 'Could not verify that channel.')
+      setError(err.message || 'Could not verify that chat.')
     } finally {
       setBusy(false)
     }
@@ -36,11 +37,12 @@ export default function ChannelForm({ onAdded }) {
         onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
       {error && <div className="form-error">{error}</div>}
+      {notice && <div className="hint">{notice}</div>}
       <button className="add-btn" type="button" onClick={submit} disabled={busy || !value.trim()}>
-        {busy ? 'Verifying…' : 'Add'}
+        {busy ? 'Verifying…' : 'Verify and add'}
       </button>
       <div className="hint">
-        Channels: add the bot as admin with permission to post. Groups/supergroups: just add the bot as a member — then add it here to verify.
+        The bot must already have permission to post in that chat. Saved chats are stored for your Telegram account.
       </div>
     </div>
   )

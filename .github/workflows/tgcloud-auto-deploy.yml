@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "bots/**"
+  pull_request:
+    paths:
+      - "bots/**"
 
 permissions:
   contents: read
@@ -25,8 +28,8 @@ jobs:
       - name: Find bot directories with deployable changes
         id: detect
         env:
-          BEFORE_SHA: ${{ github.event.before }}
-          AFTER_SHA: ${{ github.sha }}
+          BEFORE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          AFTER_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -142,7 +145,7 @@ jobs:
   auto-deploy:
     name: Auto deploy ${{ matrix.bot_path }}
     needs: [detect, validate]
-    if: needs.detect.outputs.changed_bots != '[]'
+    if: github.event_name == 'push' && needs.detect.outputs.changed_bots != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:

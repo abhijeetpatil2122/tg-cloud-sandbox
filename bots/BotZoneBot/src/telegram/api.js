@@ -2,9 +2,7 @@ import { getWebApp } from './webApp.js'
 
 function call(name, input, { signal } = {}) {
   const serverless = getWebApp()?.Serverless
-  if (!serverless?.call) {
-    return Promise.reject(new Error('Open this Mini App from Telegram to use its backend.'))
-  }
+  if (!serverless?.call) return Promise.reject(new Error('Open this Mini App from Telegram to use its backend.'))
 
   return new Promise((resolve, reject) => {
     let settled = false
@@ -15,11 +13,7 @@ function call(name, input, { signal } = {}) {
       cleanup()
       reject(new DOMException('Request cancelled.', 'AbortError'))
     }
-
-    if (signal?.aborted) {
-      onAbort()
-      return
-    }
+    if (signal?.aborted) return onAbort()
     signal?.addEventListener('abort', onAbort, { once: true })
 
     try {
@@ -27,14 +21,8 @@ function call(name, input, { signal } = {}) {
         if (settled) return
         settled = true
         cleanup()
-        if (error) {
-          reject(new Error(error.message || 'Serverless request failed.'))
-          return
-        }
-        if (result?.ok === false) {
-          reject(new Error(result.error || result.message || 'Request failed.'))
-          return
-        }
+        if (error) return reject(new Error(error.message || 'Serverless request failed.'))
+        if (result?.ok === false) return reject(new Error(result.error || result.message || 'Request failed.'))
         resolve(result)
       })
     } catch (error) {
@@ -48,7 +36,12 @@ function call(name, input, { signal } = {}) {
 
 export const api = {
   verifyChannel: (channelId) => call('verifyChat', { chat_id: channelId }),
-  uploadMedia: (file, kind, signal) => call('uploadMedia', { file, kind }, { signal }),
+  listChannels: () => call('listChannels'),
+  removeChannel: (chatId) => call('removeChannel', { chat_id: chatId }),
+  beginMediaUpload: (metadata, signal) => call('beginMediaUpload', metadata, { signal }),
+  uploadMediaChunk: (chunk, signal) => call('uploadMediaChunk', chunk, { signal }),
+  finishMediaUpload: (uploadId, signal) => call('finishMediaUpload', { upload_id: uploadId }, { signal }),
+  cancelMediaUpload: (uploadId) => call('cancelMediaUpload', { upload_id: uploadId }),
   sendRichMessage: (blocks, target) => call('sendRichMessage', { blocks, target }),
   getMediaPreview: (fileId) => call('getMediaPreview', { file_id: fileId })
 }

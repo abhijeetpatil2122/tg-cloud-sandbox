@@ -1,54 +1,29 @@
 # Rich Message Editor — Telegram Serverless
 
-A Telegram Mini App for building Bot API Rich Messages and publishing them to your private chat or a saved channel/group. This is the RichEditor app migrated from Vercel into Telegram BotFather Serverless.
+This is the RichEditor Mini App migrated from Vercel into Telegram BotFather Serverless.
 
-## What is included
+## Features
 
-- The original React/Vite editor UI and its block editing, inline formatting, media, tables, buttons, undo/redo, settings, and Telegram theme integration.
-- Native Telegram Mini App hosting through `tgcloud.jsonc`.
-- Serverless endpoints for chat verification, Rich Message publishing, media uploads, and media previews.
-- A Serverless message handler for `/start`, `/help`, `/howtouse`, and `/about`.
-- Telegram CloudStorage for each user's saved channels/groups. The app has no application-owned database table, so no SQLite schema migration is required for this data.
+- Original React/Vite editor and formatting tools.
+- Serverless endpoints for Rich Message sending, chat verification, avatar previews, SQLite-backed saved chats, and chunked media uploads.
+- Saved channels and groups are stored per Telegram user in SQLite, replacing the old per-user Telegram CloudStorage records.
+- The old Vercel functions are not used by this app.
 
-## Serverless endpoints
+## SQLite
 
-| Endpoint module | Purpose |
-|---|---|
-| `tgcloud/endpoints/verifyChat.js` | Checks the target is a channel/group/supergroup and verifies the bot can post |
-| `tgcloud/endpoints/sendRichMessage.js` | Validates and publishes the Rich Message to the user's private chat or a verified target |
-| `tgcloud/endpoints/uploadMedia.js` | Uploads selected media to the user's private chat and returns its Telegram `file_id` |
-| `tgcloud/endpoints/getMediaPreview.js` | Returns a data URL for small chat-avatar/media previews without exposing the bot token |
+The schema lives in `tgcloud/schema.js`. The only permanent app data stored in SQLite is the user's saved chats. Temporary upload-session and chunk tables support chunked media upload; they are cleaned up after completion/cancellation and stale records are removed after 24 hours. Schema deployment records pending changes; it does not apply database migrations automatically. Review the create-table/index migrations with `npx tgcloud migrate` before using the SQLite-backed saved-chat endpoints.
 
-All endpoints use the identity validated by Telegram Serverless through `ctx.initData.user`. The frontend does not send its own user ID for authorization and never receives a bot token.
+No old table is dropped. The previous demo table, if still present in the database, is left untouched.
 
-## Development
+## Media uploads
 
-From this directory:
+Files are sent to Serverless in 512 KiB chunks to avoid one oversized JSON/Base64 request. Chunks are temporarily stored in SQLite, reassembled as a `Uint8Array`, uploaded using `InputFile`, and deleted after a successful upload or cancellation. Stale chunks are cleaned up after 24 hours.
 
-```sh
-npm install
-npm run dev
-npm run build
-npx tgcloud status
-```
+Telegram Bot API limits still apply: photo uploads are limited to 10 MB; other supported file types are limited to 20 MB for this Mini App because the file-preview/download API is capped at 20 MB.
 
-The local Vite server is useful for layout work, but Serverless calls and CloudStorage require a real Telegram Mini App launch.
+## App
 
-## Deploy
+- App ID: `8747772496`
+- Hosted URL: `https://app8747772496.tgcloud.ai/`
 
-The Serverless app ID is `8747772496`; its hosted URL is:
-
-```text
-https://app8747772496.tgcloud.ai/
-```
-
-The sandbox's existing manual workflow can run a status check for this project. The automatic deployment registry is unchanged; it deploys BotZoneBot only when eligible changes reach `main`. Review the CLI status/diff before any intentional full push because it mirrors local modules and static assets, including deletions.
-
-After deployment, configure this URL as the bot's Main Mini App or Menu Button URL in BotFather if it is not already configured.
-
-## Important implementation notes
-
-- Runtime modules use only the built-in `sdk` and project-relative imports ending in `.js`.
-- The existing Vercel API routes have been replaced with `tgcloud/endpoints/` and `tgcloud/handlers/message.js`; no Vercel functions, Node built-ins, or Vercel config are deployed.
-- Media uploads use the Serverless SDK's `InputFile`; media preview uses `api.getFileContent`.
-- Saved chat records remain in Telegram CloudStorage, per user and per bot. No app-specific database migration is needed.
+Build with `npm run build`; validate Serverless modules with `node --check`. Review `npx tgcloud status` before deployment because a full push mirrors module deletions as well as additions.
