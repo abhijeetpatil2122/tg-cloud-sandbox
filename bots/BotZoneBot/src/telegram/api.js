@@ -38,7 +38,6 @@ export const api = {
   verifyChannel: (channelId) => call('verifyChat', { chat_id: channelId }),
   listChannels: () => call('listChannels'),
   removeChannel: (chatId) => call('removeChannel', { chat_id: chatId }),
-  requestChatShare: () => call('requestChatShare'),
   beginMediaUpload: (metadata, signal) => call('beginMediaUpload', metadata, { signal }),
   uploadMediaChunk: (chunk, signal) => call('uploadMediaChunk', chunk, { signal }),
   finishMediaUpload: (uploadId, signal) => call('finishMediaUpload', { upload_id: uploadId }, { signal }),
