@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "bots/**"
+  pull_request:
+    paths:
+      - "bots/**"
 
 permissions:
   contents: read
@@ -142,7 +145,7 @@ jobs:
   auto-deploy:
     name: Auto deploy ${{ matrix.bot_path }}
     needs: [detect, validate]
-    if: needs.detect.outputs.changed_bots != '[]'
+    if: github.event_name == 'push' && needs.detect.outputs.changed_bots != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
