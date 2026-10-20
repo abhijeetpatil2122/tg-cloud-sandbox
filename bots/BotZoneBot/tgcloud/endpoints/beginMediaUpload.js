@@ -1,6 +1,6 @@
 import { db, EndpointError } from 'sdk';
 import { mediaUploadSessions } from '../schema.js';
-import { cleanupExpiredMediaUploads, trackEvent, upsertUser } from '../lib/storage.js';
+import { cleanupExpiredMediaUploads } from '../lib/storage.js';
 
 const MAX_BYTES = 20 * 1024 * 1024;
 const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
@@ -29,12 +29,10 @@ export default async function (input, ctx) {
   }
 
   await cleanupExpiredMediaUploads();
-  await upsertUser(user);
   await db.insert(mediaUploadSessions).values({
     uploadId, ownerTgId: user.id, kind, fileName: String(input?.name || kind).slice(0, 255),
     fileType: String(input?.type || 'application/octet-stream').slice(0, 120),
     fileSize: size, totalChunks
   }).run();
-  await trackEvent(user.id, 'media_upload_started', { metadata: { kind, size } });
   return { ok: true, chunk_bytes: CHUNK_BYTES, total_chunks: totalChunks };
 }
