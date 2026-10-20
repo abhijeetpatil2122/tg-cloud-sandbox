@@ -300,4 +300,10 @@ jobs:
             printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
             push_with_snapshot_workaround "${modules[@]}"
           fi
+          # Pushing schema.js only records pending changes. Apply additive
+          # tables/indexes for BotZoneBot while never auto-applying warnings.
+          if [[ "$BOT_PATH" == "bots/BotZoneBot" ]]; then
+            echo "Applying safe BotZoneBot database migrations"
+            npx tgcloud migrate --safe
+          fi
           npx tgcloud status
