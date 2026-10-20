@@ -11,13 +11,13 @@ This is the RichEditor Mini App migrated from Vercel into Telegram BotFather Ser
 
 ## SQLite database
 
-Telegram Serverless provides a separate SQLite-backed database for each bot. This app uses tgcloud/schema.js to declare three application tables:
+Telegram Serverless provides a separate SQLite-backed database for each bot. This app uses tgcloud/schema.js to declare three tables:
 
 - saved_chats: the only permanent application data, saved per user.
 - media_upload_sessions: temporary upload metadata.
 - media_upload_chunks: temporary upload chunks, removed after success/cancellation and expired after 24 hours.
 
-The unused scaffold demo_notes table is marked deprecated for explicit removal by the reviewed database migration. After the migration drops that table, remove its temporary deprecation declaration from tgcloud/schema.js.
+The unused demo_notes scaffold table has been dropped. No demo notes data remains in this bot database.
 
 ## Media uploads
 
