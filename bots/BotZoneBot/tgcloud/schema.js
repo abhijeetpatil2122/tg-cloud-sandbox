@@ -1,4 +1,4 @@
-import { table, integer, text, index, uniqueIndex, sql } from 'sdk/db';
+import { table, integer, text, index, uniqueIndex } from 'sdk/db';
 
 // Only permanent app data: each Telegram user's saved chats.
 // Upload session/chunk tables are temporary implementation storage for chunked uploads.
@@ -10,7 +10,7 @@ export const chats = table('saved_chats', {
   username: text('username'),
   type: text('type').notNull(),
   photoFileId: text('photo_file_id'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql\`(unixepoch())\`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql\`(unixepoch())\`),
 }, (t) => ({
   ownerChatUnique: uniqueIndex('uq_saved_chats_owner_chat').on(t.ownerTgId, t.chatId),
