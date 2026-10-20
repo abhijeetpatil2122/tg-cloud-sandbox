@@ -2,7 +2,7 @@ import { db, EndpointError } from 'sdk';
 import { and, eq } from 'sdk/db';
 import { mediaUploadChunks, mediaUploadSessions } from '../schema.js';
 
-const CHUNK_BYTES = 512 * 1024;
+const CHUNK_BYTES = 128 * 1024;
 
 function decodeBase64(value) {
   const binary = atob(value);
