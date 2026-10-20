@@ -7,6 +7,7 @@ export async function saveChat(ownerTgId, chat) {
   await db.insert(chats).values({
     ownerTgId,
     chatId: chat.id,
+    createdAt: now,
     title: chat.title || 'Untitled chat',
     username: chat.username || null,
     type: chat.type,
