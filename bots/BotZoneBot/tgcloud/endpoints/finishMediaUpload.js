@@ -1,7 +1,6 @@
 import { api, db, EndpointError, InputFile } from 'sdk';
 import { and, asc, eq } from 'sdk/db';
 import { mediaUploadChunks, mediaUploadSessions } from '../schema.js';
-import { saveMediaUpload, trackEvent } from '../lib/storage.js';
 
 const UPLOAD_METHODS = {
   photo: (params) => api.sendPhoto(params),
@@ -58,15 +57,10 @@ export default async function (input, ctx) {
       : message[field]?.file_id;
     if (!fileId) throw new Error('Telegram did not return a file reference.');
 
-    await saveMediaUpload(user.id, {
-      fileId, kind: session.kind, fileName: session.fileName, fileType: session.fileType, fileSize: session.fileSize
-    });
-    await trackEvent(user.id, 'media_upload_completed', { metadata: { kind: session.kind, size: session.fileSize } });
     await db.delete(mediaUploadChunks).where(eq(mediaUploadChunks.uploadId, uploadId)).run();
     await db.delete(mediaUploadSessions).where(eq(mediaUploadSessions.uploadId, uploadId)).run();
     return { ok: true, file_id: fileId, message_id: message.message_id };
   } catch (error) {
-    await trackEvent(user.id, 'media_upload_failed', { metadata: { kind: session.kind, message: error?.message || 'unknown' } });
     if (error instanceof EndpointError) throw error;
     console.error('finishMediaUpload failed', { kind: session.kind, message: error?.message });
     throw new EndpointError(error?.description || error?.message || 'Media upload failed.', { code: 'MEDIA_UPLOAD_FAILED' });
