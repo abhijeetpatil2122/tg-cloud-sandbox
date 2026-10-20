@@ -2,19 +2,45 @@ import { api } from '../../../telegram/api.js'
 
 const CHUNK_BYTES = 512 * 1024
 
-function bytesToBase64(bytes) {
-  let binary = ''
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
-  }
-  return btoa(binary)
-}
+// FileReader is more compatible with Telegram's embedded Android WebView than
+// relying on Blob.arrayBuffer() being implemented consistently.
+function fileChunkToBase64(blob, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Upload cancelled.', 'AbortError'))
+      return
+    }
 
-async function fileChunkToBase64(file, signal) {
-  if (signal?.aborted) throw new DOMException('Upload cancelled.', 'AbortError')
-  const bytes = new Uint8Array(await file.arrayBuffer())
-  if (signal?.aborted) throw new DOMException('Upload cancelled.', 'AbortError')
-  return bytesToBase64(bytes)
+    const reader = new FileReader()
+    const cleanup = () => signal?.removeEventListener('abort', onAbort)
+    const onAbort = () => {
+      try { reader.abort() } catch {}
+      cleanup()
+      reject(new DOMException('Upload cancelled.', 'AbortError'))
+    }
+
+    reader.onload = () => {
+      cleanup()
+      const result = String(reader.result || '')
+      const comma = result.indexOf(',')
+      if (comma < 0) {
+        reject(new Error('Could not read the selected file chunk.'))
+        return
+      }
+      resolve(result.slice(comma + 1))
+    }
+    reader.onerror = () => {
+      cleanup()
+      reject(reader.error || new Error('Could not read the selected file chunk.'))
+    }
+    reader.onabort = () => {
+      cleanup()
+      reject(new DOMException('Upload cancelled.', 'AbortError'))
+    }
+
+    signal?.addEventListener('abort', onAbort, { once: true })
+    reader.readAsDataURL(blob)
+  })
 }
 
 export const ACCEPT_BY_KIND = {
@@ -26,7 +52,6 @@ export const ACCEPT_BY_KIND = {
   document: '*/*'
 }
 
-// Upload small JSON chunks, avoiding a single large base64 request to Serverless.
 export function uploadMediaFile(file, kind) {
   const controller = new AbortController()
   const previewUrl = /^(image|video)\//.test(file.type) ? URL.createObjectURL(file) : null
@@ -36,6 +61,7 @@ export function uploadMediaFile(file, kind) {
   const promise = (async () => {
     let started = false
     try {
+      if (!file.size) throw new Error('The selected file is empty.')
       const totalChunks = Math.ceil(file.size / CHUNK_BYTES)
       await api.beginMediaUpload({
         upload_id: uploadId, kind, name: file.name || kind,
@@ -52,6 +78,7 @@ export function uploadMediaFile(file, kind) {
       }
 
       const { file_id: fileId } = await api.finishMediaUpload(uploadId, controller.signal)
+      if (!fileId) throw new Error('Telegram did not return a file reference.')
       return { previewUrl, fileId, name: file.name }
     } catch (err) {
       if (started) api.cancelMediaUpload(uploadId).catch(() => {})
