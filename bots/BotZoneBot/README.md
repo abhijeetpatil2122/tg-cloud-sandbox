@@ -6,13 +6,12 @@ This is the RichEditor Mini App migrated from Vercel into Telegram BotFather Ser
 
 - Original React/Vite editor and formatting tools.
 - Serverless endpoints for Rich Message sending, chat verification, avatar previews, SQLite-backed saved chats, and chunked media uploads.
-- SQLite tables for users, saved chats, upload sessions/chunks, media upload history, and bot-level usage events.
-- A channel-sharing flow using Telegram's native request-chat keyboard, asking for the minimum channel administrator rights needed to post.
+- Saved channels and groups are stored per Telegram user in SQLite, replacing the old per-user Telegram CloudStorage records.
 - The old Vercel functions are not used by this app.
 
 ## SQLite
 
-The schema lives in `tgcloud/schema.js`. New tables are additive. Deploying the schema records pending changes; it does not apply database migrations automatically. Review and apply the safe create-table/index migrations with `npx tgcloud migrate` before using the SQLite-backed endpoints.
+The schema lives in `tgcloud/schema.js`. The only permanent app data stored in SQLite is the user's saved chats. Temporary upload-session and chunk tables support chunked media upload; they are cleaned up after completion/cancellation and stale records are removed after 24 hours. Schema deployment records pending changes; it does not apply database migrations automatically. Review the create-table/index migrations with `npx tgcloud migrate` before using the SQLite-backed saved-chat endpoints.
 
 No old table is dropped. The previous demo table, if still present in the database, is left untouched.
 
@@ -21,10 +20,6 @@ No old table is dropped. The previous demo table, if still present in the databa
 Files are sent to Serverless in 512 KiB chunks to avoid one oversized JSON/Base64 request. Chunks are temporarily stored in SQLite, reassembled as a `Uint8Array`, uploaded using `InputFile`, and deleted after a successful upload or cancellation. Stale chunks are cleaned up after 24 hours.
 
 Telegram Bot API limits still apply: photo uploads are limited to 10 MB; other supported file types are limited to 20 MB for this Mini App because the file-preview/download API is capped at 20 MB.
-
-## Chat sharing
-
-Use **Share channel & add bot** in Settings. The bot sends a native Telegram chat-request keyboard in the private chat. Selecting a channel asks the user to confirm the bot's administrator permissions. The resulting `chat_shared` update is validated, saved to SQLite, and shown in the Mini App after refreshing or reopening Settings.
 
 ## App
 
