@@ -31,7 +31,7 @@ export function uploadMediaFile(file, kind) {
   const controller = new AbortController()
   const previewUrl = /^(image|video)\//.test(file.type) ? URL.createObjectURL(file) : null
   const uploadId = globalThis.crypto?.randomUUID?.()
-    || \`up_\${Date.now().toString(36)}_\${Math.random().toString(36).slice(2, 12)}\`
+    || `up_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`
 
   const promise = (async () => {
     let started = false

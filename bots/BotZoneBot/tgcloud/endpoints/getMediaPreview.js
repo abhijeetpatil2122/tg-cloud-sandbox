@@ -24,7 +24,7 @@ export default async function (input, ctx) {
     }
     const bytes = await api.getFileContent(fileId);
     if (!(bytes instanceof Uint8Array) || !bytes.length) throw new Error('Telegram returned an empty file.');
-    return { ok: true, data_url: \`data:\${mimeType(file.file_path)};base64,\${encodeBase64(bytes)}\` };
+    return { ok: true, data_url: `data:${mimeType(file.file_path)};base64,${encodeBase64(bytes)}` };
   } catch (error) {
     if (error instanceof EndpointError) throw error;
     console.error('getMediaPreview failed', { fileId, message: error?.message });

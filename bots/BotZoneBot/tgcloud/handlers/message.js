@@ -25,7 +25,7 @@ export default async function (message) {
       await trackEvent(user.id, 'chat_shared', { chatId: chat.id, metadata: { type: chat.type } });
       await api.sendMessage({
         chat_id: chatId,
-        text: \`Connected “\${chat.title || shared.title || 'your channel'}”. It is now saved in the editor's channel list.\`,
+        text: `Connected “${chat.title || shared.title || 'your channel'}”. It is now saved in the editor's channel list.`,
         reply_markup: { remove_keyboard: true }
       });
     } catch (error) {
