@@ -32,7 +32,7 @@ export default async function (input, ctx) {
   await db.insert(mediaUploadSessions).values({
     uploadId, ownerTgId: user.id, kind, fileName: String(input?.name || kind).slice(0, 255),
     fileType: String(input?.type || 'application/octet-stream').slice(0, 120),
-    fileSize: size, totalChunks
+    fileSize: size, totalChunks, createdAt: new Date()
   }).run();
   return { ok: true, chunk_bytes: CHUNK_BYTES, total_chunks: totalChunks };
 }
