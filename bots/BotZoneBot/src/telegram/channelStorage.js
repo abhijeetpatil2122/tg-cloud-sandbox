@@ -6,7 +6,7 @@ import { getWebApp } from './webApp.js'
 
 const INDEX_KEY = 'rich_channels_index'
 const MIGRATION_KEY = 'rich_channels_sqlite_migration_v1'
-const itemKey = (id) => \`rich_channel_\${String(id).replace(/^-/, 'n')}\`
+const itemKey = (id) => 'rich_channel_' + String(id).replace(/^-/, 'n')
 
 function cloud() {
   const storage = getWebApp()?.CloudStorage
