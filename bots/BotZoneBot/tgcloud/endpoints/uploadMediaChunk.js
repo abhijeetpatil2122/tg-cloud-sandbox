@@ -39,7 +39,7 @@ export default async function (input, ctx) {
     throw new EndpointError('Upload chunk size did not match the expected size.', { code: 'CHUNK_SIZE_MISMATCH' });
   }
 
-  await db.insert(mediaUploadChunks).values({ uploadId, chunkIndex: index, base64 })
+  await db.insert(mediaUploadChunks).values({ uploadId, chunkIndex: index, base64, createdAt: new Date() })
     .onConflictDoUpdate({
       target: [mediaUploadChunks.uploadId, mediaUploadChunks.chunkIndex],
       set: { base64, createdAt: new Date() }
