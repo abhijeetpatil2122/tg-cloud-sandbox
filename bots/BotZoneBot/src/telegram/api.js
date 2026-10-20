@@ -21,7 +21,16 @@ function call(name, input, { signal } = {}) {
         if (settled) return
         settled = true
         cleanup()
-        if (error) return reject(new Error(error.message || 'Serverless request failed.'))
+        if (error) {
+          const detail = error.message || 'Serverless request failed.'
+          const code = error.parameters?.code || error.type
+          const status = Number(error.status)
+          const suffix = [
+            code ? String(code) : '',
+            Number.isFinite(status) && status > 0 ? `HTTP ${status}` : ''
+          ].filter(Boolean).join(', ')
+          return reject(new Error(suffix ? `${detail} (${suffix})` : detail))
+        }
         if (result?.ok === false) return reject(new Error(result.error || result.message || 'Request failed.'))
         resolve(result)
       })
