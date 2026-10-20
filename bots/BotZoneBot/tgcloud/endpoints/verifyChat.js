@@ -1,6 +1,6 @@
 import { api, EndpointError } from 'sdk';
 import { assertBotCanSend, SUPPORTED_CHAT_TYPES } from '../lib/chatAccess.js';
-import { saveChat, trackEvent, upsertUser } from '../lib/storage.js';
+import { saveChat } from '../lib/storage.js';
 
 export default async function (input, ctx) {
   const user = ctx.initData?.user;
@@ -16,9 +16,7 @@ export default async function (input, ctx) {
       throw new EndpointError('That has to be a channel, group, or supergroup — not a private chat.', { code: 'UNSUPPORTED_CHAT_TYPE' });
     }
     await assertBotCanSend(chat, await api.getMe());
-    await upsertUser(user);
-    await saveChat(user.id, chat, 'manual');
-    await trackEvent(user.id, 'chat_verified', { chatId: chat.id, metadata: { type: chat.type, source: 'manual' } });
+    await saveChat(user.id, chat);
     return { ok: true, channel: {
       id: chat.id, title: chat.title || 'Untitled chat', username: chat.username || null,
       type: chat.type, photoFileId: chat.photo?.small_file_id || null
