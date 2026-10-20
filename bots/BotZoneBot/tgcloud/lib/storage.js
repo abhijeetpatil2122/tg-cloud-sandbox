@@ -26,8 +26,10 @@ export async function saveChat(ownerTgId, chat) {
 }
 
 export async function listSavedChats(ownerTgId) {
-  return db.select().from(chats).where(eq(chats.ownerTgId, ownerTgId))
+  const rows = await db.select().from(chats).where(eq(chats.ownerTgId, ownerTgId))
     .orderBy(desc(chats.updatedAt), asc(chats.title)).all();
+  // Preserve the CloudStorage contract: frontend `id` is the Telegram chat ID.
+  return rows.map((chat) => ({ ...chat, id: chat.chatId }));
 }
 
 export async function removeSavedChat(ownerTgId, chatId) {
