@@ -1,6 +1,6 @@
 import { api } from '../../../telegram/api.js'
 
-const CHUNK_BYTES = 128 * 1024
+const CHUNK_BYTES = 32 * 1024
 
 // FileReader is more compatible with Telegram's embedded Android WebView than
 // relying on Blob.arrayBuffer() being implemented consistently.
@@ -60,6 +60,7 @@ export function uploadMediaFile(file, kind) {
 
   const promise = (async () => {
     let started = false
+    let stage = 'starting upload session'
     try {
       if (!file.size) throw new Error('The selected file is empty.')
       const totalChunks = Math.ceil(file.size / CHUNK_BYTES)
@@ -73,17 +74,22 @@ export function uploadMediaFile(file, kind) {
         if (controller.signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError')
         const start = index * CHUNK_BYTES
         const end = Math.min(file.size, start + CHUNK_BYTES)
+        stage = `reading chunk ${index + 1}/${totalChunks}`
         const base64 = await fileChunkToBase64(file.slice(start, end), controller.signal)
+        stage = `sending chunk ${index + 1}/${totalChunks}`
         await api.uploadMediaChunk({ upload_id: uploadId, index, base64 }, controller.signal)
       }
 
+      stage = 'finalizing the file with Telegram'
       const { file_id: fileId } = await api.finishMediaUpload(uploadId, controller.signal)
       if (!fileId) throw new Error('Telegram did not return a file reference.')
       return { previewUrl, fileId, name: file.name }
     } catch (err) {
       if (started) api.cancelMediaUpload(uploadId).catch(() => {})
       if (previewUrl) URL.revokeObjectURL(previewUrl)
-      throw err
+      if (isCancelled(err)) throw err
+      const detail = err?.message || String(err)
+      throw new Error(`${detail} (while ${stage})`)
     }
   })()
 
