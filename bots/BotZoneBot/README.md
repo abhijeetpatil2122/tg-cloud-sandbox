@@ -1,15 +1,25 @@
-# Telegram Mini App Demo
+# Rich Message Editor — Telegram Serverless
 
-BotZoneBot is being repurposed from the Rich Message playground into the end-to-end Telegram Mini App demo for this workspace.
+A Telegram Mini App for building Bot API Rich Messages and publishing them to your private chat or a saved channel/group. This is the RichEditor app migrated from Vercel into Telegram BotFather Serverless.
 
-## What it demonstrates
+## What is included
 
-- A React + Vite Mini App built into `dist/`.
-- Native static hosting on Telegram Serverless at `https://app<APP_ID>.tgcloud.ai/`.
-- Backend endpoints in `tgcloud/endpoints/`, called with `Telegram.WebApp.Serverless.call`.
-- Server-verified Telegram user identity via `ctx.initData`.
-- A per-bot SQLite-backed notes table in `tgcloud/schema.js`.
-- A bot message handler and an authenticated Mini App frontend.
+- The original React/Vite editor UI and its block editing, inline formatting, media, tables, buttons, undo/redo, settings, and Telegram theme integration.
+- Native Telegram Mini App hosting through `tgcloud.jsonc`.
+- Serverless endpoints for chat verification, Rich Message publishing, media uploads, and media previews.
+- A Serverless message handler for `/start`, `/help`, `/howtouse`, and `/about`.
+- Telegram CloudStorage for each user's saved channels/groups. The app has no application-owned database table, so no SQLite schema migration is required for this data.
+
+## Serverless endpoints
+
+| Endpoint module | Purpose |
+|---|---|
+| `tgcloud/endpoints/verifyChat.js` | Checks the target is a channel/group/supergroup and verifies the bot can post |
+| `tgcloud/endpoints/sendRichMessage.js` | Validates and publishes the Rich Message to the user's private chat or a verified target |
+| `tgcloud/endpoints/uploadMedia.js` | Uploads selected media to the user's private chat and returns its Telegram `file_id` |
+| `tgcloud/endpoints/getMediaPreview.js` | Returns a data URL for small chat-avatar/media previews without exposing the bot token |
+
+All endpoints use the identity validated by Telegram Serverless through `ctx.initData.user`. The frontend does not send its own user ID for authorization and never receives a bot token.
 
 ## Development
 
@@ -22,28 +32,23 @@ npm run build
 npx tgcloud status
 ```
 
-## Backend endpoints
-
-| Module | Endpoint | Purpose |
-|---|---|---|
-| `tgcloud/endpoints/getDemoStatus.js` | `POST /api/getDemoStatus` | Returns server time and Telegram identity verified by Serverless |
-| `tgcloud/endpoints/listDemoNotes.js` | `POST /api/listDemoNotes` | Lists the current user's 10 most recent notes |
-| `tgcloud/endpoints/saveDemoNote.js` | `POST /api/saveDemoNote` | Validates and saves a note for the verified user |
-
-The frontend calls these using `Telegram.WebApp.Serverless.call()`. The platform authenticates the Mini App request and supplies `ctx.initData` to each endpoint. The frontend does not send a user ID for authorization.
+The local Vite server is useful for layout work, but Serverless calls and CloudStorage require a real Telegram Mini App launch.
 
 ## Deploy
 
-The GitHub Actions auto-deploy workflow is enabled for BotZoneBot with app ID `8747772496`. It validates the `TGCLOUD_TOKEN` secret against that app ID before deploying. The `/start` message includes an **Open Mini App** button pointing to `https://app8747772496.tgcloud.ai/`. The manual workflow remains available for a status-first check or deliberate deployment. A Mini App project builds its frontend and uses a full `tgcloud push` so the configured static output and modules are published together.
+The Serverless app ID is `8747772496`; its hosted URL is:
 
-A full push mirrors the local project to the cloud and removes cloud modules missing locally. Review status/diff before deploying.
+```text
+https://app8747772496.tgcloud.ai/
+```
 
-After the first successful deployment, use the URL printed by `tgcloud push` in BotFather's Menu Button or Main Mini App settings.
+The sandbox's existing manual workflow can run a status check for this project. The automatic deployment registry is unchanged; it deploys BotZoneBot only when eligible changes reach `main`. Review the CLI status/diff before any intentional full push because it mirrors local modules and static assets, including deletions.
 
-## Database setup
+After deployment, configure this URL as the bot's Main Mini App or Menu Button URL in BotFather if it is not already configured.
 
-Schema deployment and database migration are separate. After the first code deployment, run `npx tgcloud migrate` from this project in an interactive terminal and review the proposed change before confirming it. The notes feature will not work until the `demo_notes` table exists.
+## Important implementation notes
 
-## Security
-
-The frontend never receives a bot or Serverless token. Endpoints rely on Telegram Serverless to validate Mini App init data; they use `ctx.initData.user` as the trusted user identity. Do not trust `initDataUnsafe` for authorization.
+- Runtime modules use only the built-in `sdk` and project-relative imports ending in `.js`.
+- The existing Vercel API routes have been replaced with `tgcloud/endpoints/` and `tgcloud/handlers/message.js`; no Vercel functions, Node built-ins, or Vercel config are deployed.
+- Media uploads use the Serverless SDK's `InputFile`; media preview uses `api.getFileContent`.
+- Saved chat records remain in Telegram CloudStorage, per user and per bot. No app-specific database migration is needed.

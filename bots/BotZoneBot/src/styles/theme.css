@@ -1,0 +1,56 @@
+/* Telegram injects --tg-theme-* variables itself once the Mini App SDK
+   script runs inside a real client. These :root fallbacks only matter
+   when previewing in a plain browser (`npm run dev` outside Telegram) —
+   never override the real ones, and never hardcode colors elsewhere. */
+:root {
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #707579;
+  --tg-theme-link-color: #3390ec;
+  --tg-theme-button-color: #3390ec;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f4f4f5;
+  --tg-theme-header-bg-color: #ffffff;
+  --tg-theme-accent-text-color: #3390ec;
+  --tg-theme-section-bg-color: #ffffff;
+  --tg-theme-section-header-text-color: #3390ec;
+  --tg-theme-subtitle-text-color: #707579;
+  --tg-theme-destructive-text-color: #e53935;
+
+  --success-color: #31b545;
+  --error-color: var(--tg-theme-destructive-text-color);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  /* Some Android WebViews apply native button chrome that ignores
+     border-radius unless appearance is explicitly reset — without this
+     the round avatar button can render as a square. */
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+}
+
+input, textarea {
+  font-family: inherit;
+  color: inherit;
+}

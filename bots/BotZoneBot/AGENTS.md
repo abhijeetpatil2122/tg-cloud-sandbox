@@ -1,15 +1,18 @@
-# Telegram Mini App Demo — AI Coding Notes
+# Rich Message Editor — Serverless project notes
 
-- This project runs on Telegram BotFather Serverless using `@tgcloud/cli` 0.2.x.
-- The Mini App frontend is React + Vite; source lives in `src/`, and the production build is `dist/`.
-- `tgcloud.jsonc` configures native static hosting from `dist/`. The hosted URL is printed by `npx tgcloud push`.
-- Backend runtime modules live only under `tgcloud/`: `handlers/`, `endpoints/`, `lib/`, and `schema.js`.
-- Endpoint files are flat within `tgcloud/endpoints/`; each exports a default async function `(input, ctx)`.
-- Use `ctx.initData.user` for trusted Telegram identity. Never authorize using frontend-provided user IDs or `initDataUnsafe`.
-- Frontend calls endpoints using `Telegram.WebApp.Serverless.call(name, input, callback)`; never put tokens in frontend code.
-- Runtime modules may import only the built-in `sdk` modules and project-relative modules ending in `.js`. Do not use Node built-ins or arbitrary npm dependencies in runtime code.
-- Database changes must be reviewed and migrated separately. Never add automatic migrations to CI.
-- A full `npx tgcloud push` mirrors local modules and static files to the cloud, including deletions. Inspect `npx tgcloud status`/diff before deploying.
-- Automatic deployment is enabled for this bot with app ID `8747772496`; the workflow checks that `TGCLOUD_TOKEN` matches the ID before deploying. Static projects use a full push, so missing remote modules are deleted intentionally.
-- The shared GitHub Actions secret is `TGCLOUD_TOKEN`; never print, hardcode, or commit it.
-- Validate runtime JavaScript with `node --check`; validate the frontend with `npm run build`.
+- This project is the migrated RichEditor Mini App and runs on Telegram BotFather Serverless.
+- Keep the original React/Vite UI behavior intact unless a change is explicitly requested.
+- The frontend source is under `src/`; Vite builds static output to `dist/`.
+- The app is hosted with `tgcloud.jsonc`; runtime modules live under `tgcloud/`.
+- Endpoints under `tgcloud/endpoints/` must be flat and export a default async function `(input, ctx)`.
+- Telegram validates Mini App init data before invoking an endpoint. Use `ctx.initData.user` as the trusted identity; never authorize from a client-supplied ID or `initDataUnsafe`.
+- Use `Telegram.WebApp.Serverless.call(name, input, callback)` for backend calls from the frontend.
+- Use `import { api, InputFile, EndpointError } from 'sdk'` and other documented SDK modules. Never use Node built-ins or arbitrary npm packages in runtime code.
+- Internal imports between runtime modules must be relative and include `.js`.
+- `tgcloud/lib/validateBlocks.js` is the defensive validator for Rich Message blocks. Keep it aligned with the editor's builder.
+- Saved chats remain in Telegram CloudStorage. No application-owned SQLite schema is currently required.
+- Media uploads use `InputFile` and return Telegram file IDs; previews use the SDK's `api.getFileContent`.
+- The app ID is `8747772496`; the existing Actions secret is `TGCLOUD_TOKEN`. Never expose credentials.
+- Validate all runtime modules with `node --check` and run `npm run build`.
+- A full `npx tgcloud push` mirrors the local module set and static build to the cloud, including deletions. Check `npx tgcloud status`/diff before intentional deployment.
+- Never run `npx tgcloud migrate` automatically. If a future feature adds a database schema, review migrations separately and request explicit authorization.
