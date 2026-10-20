@@ -42,3 +42,10 @@ export const mediaUploadChunks = table('media_upload_chunks', {
   uploadIdx: index('idx_media_upload_chunks_upload').on(t.uploadId),
   createdIdx: index('idx_media_upload_chunks_created').on(t.createdAt),
 }));
+
+// Temporary deprecation declaration for the unused scaffold table.
+// Remove this declaration after the reviewed database migration drops demo_notes.
+export const demoNotes = table('demo_notes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  note: text('note'),
+}).deprecated('Unused scaffold table; this bot stores saved chats and temporary upload chunks only.');
