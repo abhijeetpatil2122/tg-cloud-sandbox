@@ -39,7 +39,10 @@ export async function removeSavedChat(ownerTgId, chatId) {
 }
 
 export async function cleanupExpiredMediaUploads() {
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  // timestamp-mode columns are stored as Unix seconds in SQLite. The
+  // Serverless query binder rejects Date objects in comparison predicates,
+  // so compare against a numeric timestamp rather than passing a Date.
+  const cutoff = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
   const expired = await db.select({ uploadId: mediaUploadSessions.uploadId })
     .from(mediaUploadSessions).where(lt(mediaUploadSessions.createdAt, cutoff)).all();
   for (const session of expired) {
