@@ -4,6 +4,7 @@ import { cleanupExpiredMediaUploads } from '../lib/storage.js';
 
 const MAX_BYTES = 20 * 1024 * 1024;
 const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
+// Keep request payloads small for Telegram Serverless endpoint transport.
 const CHUNK_BYTES = 32 * 1024;
 const KINDS = new Set(['photo', 'video', 'animation', 'audio', 'document', 'voice_note']);
 

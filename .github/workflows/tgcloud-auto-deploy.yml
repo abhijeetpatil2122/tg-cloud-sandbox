@@ -6,9 +6,11 @@ on:
       - main
     paths:
       - "bots/**"
+      - ".github/workflows/tgcloud-auto-deploy.yml"
   pull_request:
     paths:
       - "bots/**"
+      - ".github/workflows/tgcloud-auto-deploy.yml"
 
 permissions:
   contents: read
@@ -139,6 +141,25 @@ jobs:
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
+          # tgcloud CLI can apply remote changes and then fail while serializing
+          # boolean false into its local snapshot. Suppress only that exact
+          # post-deploy failure; all other deployment errors remain fatal.
+          push_with_snapshot_workaround() {
+            local output rc=0
+            output="$(npx tgcloud push "$@" 2>&1)" || rc=$?
+            printf '%s\\n' "$output"
+            if (( rc == 0 )); then
+              return 0
+            fi
+            if grep -Eq 'Deploying [0-9]+ changes' <<< "$output" &&
+               grep -q 'writeSnapshotFile' <<< "$output" &&
+               grep -q 'ERR_INVALID_ARG_TYPE' <<< "$output" &&
+               [[ "$output" == *"Received type boolean (false)"* ]]; then
+              echo "::warning::Remote changes were applied, but tgcloud CLI failed saving its local snapshot. Verifying deployed cloud status."
+              return 0
+            fi
+            return "$rc"
+          }
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             npm run build
           fi
@@ -265,7 +286,7 @@ jobs:
             # local modules to the cloud, including deletions.
             npm run build
             printf 'Auto-deploying Mini App and modules to app ID %s\n' "$EXPECTED_APP_ID"
-            npx tgcloud push
+            push_with_snapshot_workaround
           else
             mapfile -t modules < <(
               find tgcloud -type f -name '*.js' \
@@ -277,6 +298,6 @@ jobs:
               exit 1
             fi
             printf 'Auto-deploying %s module(s) to app ID %s\n' "${#modules[@]}" "$EXPECTED_APP_ID"
-            npx tgcloud push "${modules[@]}"
+            push_with_snapshot_workaround "${modules[@]}"
           fi
           npx tgcloud status
