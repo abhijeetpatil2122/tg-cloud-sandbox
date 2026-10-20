@@ -5,15 +5,13 @@ import { removeChannel as removeChannelFromStorage } from '../telegram/channelSt
 import TelegramFileImage from '../components/TelegramFileImage.jsx'
 import { haptic, showPopup } from '../telegram/webApp.js'
 
-// No header here on purpose — Telegram's own BackButton (wired up in
-// App.jsx) is what navigates back to the editor on this screen.
 export default function SettingsScreen({ user, channels, onChannelsChanged }) {
   const initial = (user?.first_name || user?.username || '?').charAt(0).toUpperCase()
 
   async function removeChannel(channel) {
     const pressed = await showPopup({
       title: 'Remove channel',
-      message: `Remove "${channel.title}" from your saved chats? You'll need to verify it again to add it back.`,
+      message: \`Remove "\${channel.title}" from your saved chats? This only removes it from the editor's list; it does not remove the bot from Telegram.\`,
       buttons: [
         { id: 'remove', type: 'destructive', text: 'Remove' },
         { id: 'cancel', type: 'cancel' }
@@ -36,12 +34,8 @@ export default function SettingsScreen({ user, channels, onChannelsChanged }) {
         <div className="avatar-large">
           {user?.photo_url ? <img src={user.photo_url} alt="" /> : initial}
         </div>
-        <div className="name">
-          {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'You'}
-        </div>
-        <div className="meta">
-          {user?.username ? `@${user.username} · ` : ''}ID {user?.id ?? '—'}
-        </div>
+        <div className="name">{[user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'You'}</div>
+        <div className="meta">{user?.username ? \`@\${user.username} · \` : ''}ID {user?.id ?? '—'}</div>
       </div>
 
       <div className="settings-section">
@@ -55,7 +49,7 @@ export default function SettingsScreen({ user, channels, onChannelsChanged }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="name">{ch.title}</div>
                 <div className="username">
-                  {ch.username ? `@${ch.username}` : ''}
+                  {ch.username ? \`@\${ch.username}\` : ''}
                   {ch.username && ch.type ? ' · ' : ''}
                   {ch.type === 'channel' ? 'Channel' : ch.type === 'supergroup' ? 'Group' : ch.type === 'group' ? 'Group' : ''}
                 </div>
@@ -65,13 +59,15 @@ export default function SettingsScreen({ user, channels, onChannelsChanged }) {
               </button>
             </div>
           ))}
+          {channels.length === 0 && (
+            <div className="hint" style={{ padding: '10px 12px' }}>No chats saved yet. Share a channel below to add it automatically.</div>
+          )}
           <ChannelForm onAdded={onChannelsChanged} />
+          <button className="add-btn" type="button" style={{ marginTop: 8 }} onClick={onChannelsChanged}>Refresh saved chats</button>
         </div>
       </div>
 
-      <div className="settings-footer-note">
-        Rich Message Editor · Bot API 10.x Rich Messages
-      </div>
+      <div className="settings-footer-note">Rich Message Editor · Bot API 10.x Rich Messages</div>
     </div>
   )
 }

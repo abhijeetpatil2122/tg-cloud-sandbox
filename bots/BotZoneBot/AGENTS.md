@@ -1,18 +1,13 @@
 # Rich Message Editor — Serverless project notes
 
-- This project is the migrated RichEditor Mini App and runs on Telegram BotFather Serverless.
-- Keep the original React/Vite UI behavior intact unless a change is explicitly requested.
-- The frontend source is under `src/`; Vite builds static output to `dist/`.
-- The app is hosted with `tgcloud.jsonc`; runtime modules live under `tgcloud/`.
-- Endpoints under `tgcloud/endpoints/` must be flat and export a default async function `(input, ctx)`.
-- Telegram validates Mini App init data before invoking an endpoint. Use `ctx.initData.user` as the trusted identity; never authorize from a client-supplied ID or `initDataUnsafe`.
-- Use `Telegram.WebApp.Serverless.call(name, input, callback)` for backend calls from the frontend.
-- Use `import { api, InputFile, EndpointError } from 'sdk'` and other documented SDK modules. Never use Node built-ins or arbitrary npm packages in runtime code.
-- Internal imports between runtime modules must be relative and include `.js`.
-- `tgcloud/lib/validateBlocks.js` is the defensive validator for Rich Message blocks. Keep it aligned with the editor's builder.
-- Saved chats remain in Telegram CloudStorage. No application-owned SQLite schema is currently required.
-- Media uploads use `InputFile` and return Telegram file IDs; previews use the SDK's `api.getFileContent`.
-- The app ID is `8747772496`; the existing Actions secret is `TGCLOUD_TOKEN`. Never expose credentials.
-- Validate all runtime modules with `node --check` and run `npm run build`.
-- A full `npx tgcloud push` mirrors the local module set and static build to the cloud, including deletions. Check `npx tgcloud status`/diff before intentional deployment.
-- Never run `npx tgcloud migrate` automatically. If a future feature adds a database schema, review migrations separately and request explicit authorization.
+- Preserve the original React/Vite editor behavior.
+- Runtime modules live under \`tgcloud/\`; imports between runtime modules use relative paths ending in \`.js\`.
+- The runtime SDK is \`sdk\`; use \`sdk/db\` for SQLite schema/query helpers. Always await database operations.
+- Trust \`ctx.initData.user\` only in Serverless endpoints; never trust a user ID supplied by the client.
+- The schema in \`tgcloud/schema.js\` creates additive tables for users, chats, media upload chunks/sessions, media upload history, and events.
+- \`npx tgcloud push\` deploys the schema and records pending database changes; it does not apply them. Review migrations and request explicit authorization before running \`npx tgcloud migrate\`.
+- Never remove old database tables automatically. Undeclared tables remain until a separately reviewed migration explicitly deprecates them.
+- Media is uploaded in small chunks through Serverless endpoints, then reassembled and sent through the SDK \`InputFile\` API. Do not put the bot token in the frontend.
+- Channel sharing uses a Bot API request-chat keyboard and persists the returned \`chat_shared\` update only after checking the bot's actual permissions.
+- Keep upload sessions private to their authenticated owner and delete temporary chunks after successful completion/cancellation.
+- Run \`node --check\` for every runtime module and \`npm run build\` before deploying.
