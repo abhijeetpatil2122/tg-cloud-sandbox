@@ -1,4 +1,5 @@
 name: One-time BotZoneBot SQLite migration
+# This temporary workflow applies only safe additive schema changes.
 
 on:
   push:
