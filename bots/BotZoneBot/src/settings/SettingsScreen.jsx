@@ -15,7 +15,7 @@ export default function SettingsScreen({ user, channels, onChannelsChanged }) {
       message: `Remove "${channel.title}" from your saved chats? You'll need to verify it again to add it back.`,
       buttons: [
         { id: 'remove', type: 'destructive', text: 'Remove' },
-        { id: 'cancel', type: 'cancel', text: 'Cancel' }
+        { id: 'cancel', type: 'cancel' }
       ]
     })
     if (pressed !== 'remove') return
