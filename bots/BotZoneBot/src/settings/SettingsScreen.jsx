@@ -60,7 +60,7 @@ export default function SettingsScreen({ user, channels, onChannelsChanged }) {
             </div>
           ))}
           {channels.length === 0 && (
-            <div className="hint" style={{ padding: '10px 12px' }}>No chats saved yet. Share a channel below to add it automatically.</div>
+            <div className="hint" style={{ padding: '10px 12px' }}>No chats saved yet. Add a channel or group below.</div>
           )}
           <ChannelForm onAdded={onChannelsChanged} />
           <button className="add-btn" type="button" style={{ marginTop: 8 }} onClick={onChannelsChanged}>Refresh saved chats</button>
