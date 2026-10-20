@@ -1,7 +1,6 @@
 import { api, EndpointError } from 'sdk';
 import { assertBotCanSend } from '../lib/chatAccess.js';
 import { validateBlocks } from '../lib/validateBlocks.js';
-import { trackEvent, upsertUser } from '../lib/storage.js';
 
 export default async function (input, ctx) {
   const user = ctx.initData?.user;
@@ -22,8 +21,6 @@ export default async function (input, ctx) {
     } else throw new EndpointError('Unknown send target.', { code: 'INVALID_TARGET' });
 
     const message = await api.sendRichMessage({ chat_id: chatId, rich_message: { blocks } });
-    await upsertUser(user);
-    await trackEvent(user.id, 'rich_message_sent', { chatId, metadata: { blockCount: blocks.length } });
     return { ok: true, message_id: message.message_id };
   } catch (error) {
     if (error instanceof EndpointError) throw error;
