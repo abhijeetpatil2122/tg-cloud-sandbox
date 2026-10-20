@@ -141,25 +141,6 @@ jobs:
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
-          # tgcloud CLI can apply remote changes and then fail while serializing
-          # boolean false into its local snapshot. Suppress only that exact
-          # post-deploy failure; all other deployment errors remain fatal.
-          push_with_snapshot_workaround() {
-            local output rc=0
-            output="$(npx tgcloud push "$@" 2>&1)" || rc=$?
-            printf '%s\\n' "$output"
-            if (( rc == 0 )); then
-              return 0
-            fi
-            if grep -Eq 'Deploying [0-9]+ changes' <<< "$output" &&
-               grep -q 'writeSnapshotFile' <<< "$output" &&
-               grep -q 'ERR_INVALID_ARG_TYPE' <<< "$output" &&
-               [[ "$output" == *"Received type boolean (false)"* ]]; then
-              echo "::warning::Remote changes were applied, but tgcloud CLI failed saving its local snapshot. Verifying deployed cloud status."
-              return 0
-            fi
-            return "$rc"
-          }
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             npm run build
           fi
@@ -281,6 +262,25 @@ jobs:
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
+          # tgcloud CLI can apply remote changes and then fail while serializing
+          # boolean false into its local snapshot. Suppress only that exact
+          # post-deploy failure; all other deployment errors remain fatal.
+          push_with_snapshot_workaround() {
+            local output rc=0
+            output="$(npx tgcloud push "$@" 2>&1)" || rc=$?
+            printf '%s\n' "$output"
+            if (( rc == 0 )); then
+              return 0
+            fi
+            if grep -Eq 'Deploying [0-9]+ changes' <<< "$output" &&
+               grep -q 'writeSnapshotFile' <<< "$output" &&
+               grep -q 'ERR_INVALID_ARG_TYPE' <<< "$output" &&
+               [[ "$output" == *"Received type boolean (false)"* ]]; then
+              echo "::warning::Remote changes were applied, but tgcloud CLI failed saving its local snapshot. Verifying deployed cloud status."
+              return 0
+            fi
+            return "$rc"
+          }
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             # Full push atomically deploys static assets and modules. It mirrors
             # local modules to the cloud, including deletions.
