@@ -4,7 +4,7 @@ import { cleanupExpiredMediaUploads } from '../lib/storage.js';
 
 const MAX_BYTES = 20 * 1024 * 1024;
 const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
-const CHUNK_BYTES = 512 * 1024;
+const CHUNK_BYTES = 128 * 1024;
 const KINDS = new Set(['photo', 'video', 'animation', 'audio', 'document', 'voice_note']);
 
 export default async function (input, ctx) {
