@@ -1,5 +1,5 @@
 import { EndpointError } from 'sdk';
-import { removeSavedChat, trackEvent } from '../lib/storage.js';
+import { removeSavedChat } from '../lib/storage.js';
 
 export default async function (input, ctx) {
   const user = ctx.initData?.user;
@@ -9,6 +9,5 @@ export default async function (input, ctx) {
     throw new EndpointError('Invalid chat ID.', { code: 'INVALID_CHAT_ID' });
   }
   await removeSavedChat(user.id, chatId);
-  await trackEvent(user.id, 'chat_removed', { chatId });
   return { ok: true };
 }
