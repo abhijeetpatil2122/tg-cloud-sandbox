@@ -12,8 +12,9 @@ const UPLOAD_METHODS = {
 };
 
 function decodeBase64(value) {
-  // Accept canonical Base64 and unpadded Base64URL. The Mini App sends
-  // Base64URL so '+' cannot be changed to a space by transport layers.
+  // Decode Base64URL without relying on atob(), which is not guaranteed to
+  // exist in the Serverless V8 runtime. Also accept standard Base64 for older
+  // clients and repair spaces produced if '+' was form-decoded upstream.
   let normalized = value.replace(/-/g, '+').replace(/_/g, '/').replace(/ /g, '+');
   if (!/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)) {
     throw new Error('Unexpected character in base64 payload.');
@@ -21,10 +22,22 @@ function decodeBase64(value) {
   normalized = normalized.replace(/=+$/, '');
   if (normalized.length % 4 === 1) throw new Error('Invalid base64 length.');
   normalized += '='.repeat((4 - normalized.length % 4) % 4);
-  const binary = atob(normalized);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const padding = normalized.endsWith('==') ? 2 : normalized.endsWith('=') ? 1 : 0;
+  const output = new Uint8Array((normalized.length / 4) * 3 - padding);
+  let offset = 0;
+  for (let i = 0; i < normalized.length; i += 4) {
+    const a = alphabet.indexOf(normalized[i]);
+    const b = alphabet.indexOf(normalized[i + 1]);
+    const c = normalized[i + 2] === '=' ? 0 : alphabet.indexOf(normalized[i + 2]);
+    const d = normalized[i + 3] === '=' ? 0 : alphabet.indexOf(normalized[i + 3]);
+    if (a < 0 || b < 0 || c < 0 || d < 0) throw new Error('Invalid base64 alphabet.');
+    if (offset < output.length) output[offset++] = (a << 2) | (b >> 4);
+    if (normalized[i + 2] !== '=' && offset < output.length) output[offset++] = ((b & 15) << 4) | (c >> 2);
+    if (normalized[i + 3] !== '=' && offset < output.length) output[offset++] = ((c & 3) << 6) | d;
+  }
+  return output;
 }
 
 export default async function (input, ctx) {
