@@ -2,7 +2,7 @@ import { db, EndpointError } from 'sdk';
 import { and, eq } from 'sdk/db';
 import { mediaUploadChunks, mediaUploadSessions } from '../schema.js';
 
-const CHUNK_BYTES = 32 * 1024;
+const CHUNK_BYTES = 512 * 1024;
 
 function decodeBase64(value) {
   // Decode Base64URL without relying on atob(), which is not guaranteed to
