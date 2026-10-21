@@ -1,6 +1,6 @@
 import { api } from '../../../telegram/api.js'
 
-const CHUNK_BYTES = 32 * 1024
+const CHUNK_BYTES = 512 * 1024
 
 // FileReader is more compatible with Telegram's embedded Android WebView than
 // relying on Blob.arrayBuffer() being implemented consistently.
