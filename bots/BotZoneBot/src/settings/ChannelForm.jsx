@@ -8,14 +8,13 @@ function validateChatReference(value) {
     return { error: 'Enter a channel or group username or ID.' }
   }
 
-  // Telegram channel/group usernames are 5–32 characters, start with a
-  // letter, and contain only letters, digits, and underscores.
-  const username = input.replace(/^@/, '')
+  // Accept only a public Telegram username or a negative channel/group ID.
+  // Links, invite links, display names, and private-user IDs are not accepted.
+  const username = input.startsWith('@') ? input.slice(1) : input
   if (/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(username)) {
     return { value: `@${username}` }
   }
 
-  // Numeric IDs for channels and groups are negative (including -100… IDs).
   if (/^-\d{1,20}$/.test(input)) {
     return { value: input }
   }
@@ -33,6 +32,7 @@ export default function ChannelForm({ onAdded }) {
 
   async function submit() {
     if (busy) return
+
     const validated = validateChatReference(value)
     if (validated.error) {
       setError(validated.error)
@@ -44,15 +44,33 @@ export default function ChannelForm({ onAdded }) {
     setBusy(true)
     setError('')
     setNotice('')
+
     try {
       await api.verifyChannel(validated.value)
-      haptic('success')
-      setValue('')
-      setNotice('Chat verified and saved.')
-      await onAdded()
     } catch (err) {
       haptic('error')
-      setError(err.message || 'We could not verify that chat. Check the username or ID and try again.')
+      // api.verifyChannel converts Telegram/Serverless failures to friendly
+      // messages; keep a safe fallback in case an unexpected error escapes.
+      const message = String(err?.message || '')
+      setError(
+        message && !/\bHTTP\s*\d+\b|\b(?:400|401|403|404|500)\b|serverless request failed|internal error/i.test(message)
+          ? message
+          : 'We could not verify that chat. Check the username or ID and try again.'
+      )
+      setBusy(false)
+      return
+    }
+
+    haptic('success')
+    setValue('')
+    setNotice('Chat verified and saved.')
+
+    try {
+      await onAdded()
+    } catch {
+      // The chat has already been saved. Do not incorrectly tell the user
+      // that verification failed just because refreshing the list failed.
+      setNotice('Chat saved, but the list could not refresh. Close and reopen Settings to see it.')
     } finally {
       setBusy(false)
     }
@@ -80,7 +98,7 @@ export default function ChannelForm({ onAdded }) {
         {busy ? 'Verifying…' : 'Verify and add'}
       </button>
       <div className="hint">
-        Enter only a channel/group username or numeric ID. The bot must already have permission to post in that chat.
+        Enter only a channel/group username or numeric ID. Links and invite links are not accepted. The bot must already have permission to post in that chat.
       </div>
     </div>
   )
