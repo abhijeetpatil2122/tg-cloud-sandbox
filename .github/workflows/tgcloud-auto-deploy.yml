@@ -272,7 +272,7 @@ jobs:
             if (( rc == 0 )); then
               return 0
             fi
-            if grep -Eq 'Deploying [0-9]+ changes' <<< "$output" &&
+            if grep -Eq 'Deploying [0-9]+ changes?' <<< "$output" &&
                grep -q 'writeSnapshotFile' <<< "$output" &&
                grep -q 'ERR_INVALID_ARG_TYPE' <<< "$output" &&
                [[ "$output" == *"Received type boolean (false)"* ]]; then
