@@ -30,8 +30,8 @@ function fileChunkToBase64(blob, signal) {
       // Serverless.call transports a JSON object, but URL-safe Base64 also
       // avoids '+' being interpreted as a space by any intermediary.
       const base64 = result.slice(comma + 1)
-        .replace(/\\+/g, '-')
-        .replace(/\\//g, '_')
+        .split('+').join('-')
+        .split('/').join('_')
         .replace(/=+$/g, '')
       resolve(base64)
     }
