@@ -12,6 +12,7 @@ import PullquoteBlock from './blocks/PullquoteBlock.jsx'
 import TableBlock from './blocks/TableBlock.jsx'
 import DetailsBlock from './blocks/DetailsBlock.jsx'
 import DividerBlock from './blocks/DividerBlock.jsx'
+import SpacingBlock from './blocks/SpacingBlock.jsx'
 import MathBlock from './blocks/MathBlock.jsx'
 import MapBlock from './blocks/MapBlock.jsx'
 import MediaBlock from './blocks/MediaBlock.jsx'
@@ -30,6 +31,7 @@ const COMPONENTS = {
   [BLOCK.TABLE]: TableBlock,
   [BLOCK.DETAILS]: DetailsBlock,
   [BLOCK.DIVIDER]: DividerBlock,
+  [BLOCK.SPACING]: SpacingBlock,
   [BLOCK.MATH]: MathBlock,
   [BLOCK.MAP]: MapBlock,
   [BLOCK.MEDIA]: MediaBlock,
