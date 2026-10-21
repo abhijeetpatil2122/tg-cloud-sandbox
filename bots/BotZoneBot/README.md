@@ -19,9 +19,13 @@ Telegram Serverless provides a separate SQLite-backed database for each bot. Thi
 
 The unused demo_notes scaffold table has been dropped. No demo notes data remains in this bot database.
 
+## Editor spacing
+
+The editor includes an adjustable spacing block (1–8 lines). Like the original Vercel editor, it serializes to empty paragraph blocks because spacing is an editor convenience rather than a standalone Telegram Rich Block.
+
 ## Media uploads
 
-Files are read with FileReader for compatibility with Telegram's embedded Android WebView, sent to Serverless sequentially in 32 KiB chunks, reassembled as a Uint8Array, and uploaded with the documented SDK InputFile API. The bot token is never exposed to the frontend. The backend enforces the chunk size and verifies the assembled file size before sending it to Telegram.
+Files are read with FileReader for compatibility with Telegram's embedded Android WebView, sent to Serverless sequentially in 512 KiB chunks, reassembled as a Uint8Array, and uploaded with the documented SDK InputFile API. The bot token is never exposed to the frontend. The backend enforces the chunk size and verifies the assembled file size before sending it to Telegram.
 
 Telegram Bot API limits apply: photos are limited to 10 MB; other supported file types are limited to 20 MB in this Mini App.
 
