@@ -12,7 +12,16 @@ const UPLOAD_METHODS = {
 };
 
 function decodeBase64(value) {
-  const binary = atob(value);
+  // Accept canonical Base64 and unpadded Base64URL. The Mini App sends
+  // Base64URL so '+' cannot be changed to a space by transport layers.
+  let normalized = value.replace(/-/g, '+').replace(/_/g, '/').replace(/ /g, '+');
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)) {
+    throw new Error('Unexpected character in base64 payload.');
+  }
+  normalized = normalized.replace(/=+$/, '');
+  if (normalized.length % 4 === 1) throw new Error('Invalid base64 length.');
+  normalized += '='.repeat((4 - normalized.length % 4) % 4);
+  const binary = atob(normalized);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
