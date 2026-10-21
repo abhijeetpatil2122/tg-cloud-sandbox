@@ -82,7 +82,7 @@ function call(name, input, { signal } = {}) {
       if (settled) return
       settled = true
       cleanup()
-      reject(error instanceof Error ? error : new Error(String(error)))
+      reject(name === 'verifyChat' ? new Error(friendlyVerificationError(error)) : (error instanceof Error ? error : new Error(String(error))))
     }
   })
 }
