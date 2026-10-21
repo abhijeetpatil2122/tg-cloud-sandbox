@@ -235,6 +235,10 @@ function buildBlock(block) {
     case BLOCK.DIVIDER:
       return { type: 'divider' }
 
+    case BLOCK.SPACING:
+      // The original Vercel editor serialized adjustable spacing as empty paragraphs.
+      return Array.from({ length: Math.max(1, Math.min(8, Number(block.lines) || 1)) }, () => ({ type: 'paragraph', text: '' }))
+
     case BLOCK.MATH:
       return block.expression.trim() ? { type: 'mathematical_expression', expression: block.expression } : null
 
@@ -281,5 +285,8 @@ function buildBlock(block) {
 
 /** Editor document -> { blocks } ready to send as InputRichMessage.blocks. */
 export function buildRichMessageBlocks(doc) {
-  return doc.blocks.map(buildBlock).filter(Boolean)
+  return doc.blocks.flatMap((block) => {
+    const result = buildBlock(block)
+    return Array.isArray(result) ? result : result ? [result] : []
+  })
 }
