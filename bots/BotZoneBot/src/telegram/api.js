@@ -2,7 +2,7 @@ import { getWebApp } from './webApp.js'
 
 function friendlyVerificationError(error) {
   const code = String(error?.parameters?.code || error?.code || error?.type || '').toUpperCase()
-  const detail = String(error?.description || error?.message || '').replace(/^(?:Bad Request|Forbidden|Error):\s*/i, '').trim()
+  const detail = String(error?.description || error?.message || error?.error || '').replace(/^(?:Bad Request|Forbidden|Error):\s*/i, '').replace(/\s*\(HTTP \d+\)/gi, '').trim()
   const message = detail.toLowerCase()
 
   if (code === 'TELEGRAM_AUTH_REQUIRED') {
