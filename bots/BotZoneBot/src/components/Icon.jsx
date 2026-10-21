@@ -39,6 +39,7 @@ const ICONS = {
   math: Sigma,
   map: MapPin,
   divider: Minus,
+  spacing: PanelBottom,
   close: X,
   send: Send,
   trash: Trash2,
