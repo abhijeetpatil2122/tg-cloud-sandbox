@@ -27,7 +27,13 @@ function fileChunkToBase64(blob, signal) {
         reject(new Error('Could not read the selected file chunk.'))
         return
       }
-      resolve(result.slice(comma + 1))
+      // Serverless.call transports a JSON object, but URL-safe Base64 also
+      // avoids '+' being interpreted as a space by any intermediary.
+      const base64 = result.slice(comma + 1)
+        .replace(/\\+/g, '-')
+        .replace(/\\//g, '_')
+        .replace(/=+$/g, '')
+      resolve(base64)
     }
     reader.onerror = () => {
       cleanup()
