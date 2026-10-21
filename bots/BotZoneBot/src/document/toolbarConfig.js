@@ -58,7 +58,8 @@ export const TOOLBAR_CATEGORIES = [
       // variants live here together, nowhere else.
       { id: 'math', icon: 'math', label: 'Math', type: BLOCK.MATH },
       { id: 'buttons', icon: 'buttons', label: 'Buttons', type: BLOCK.BUTTONS },
-      { id: 'divider', icon: 'divider', label: 'Divider', type: BLOCK.DIVIDER }
+      { id: 'divider', icon: 'divider', label: 'Divider', type: BLOCK.DIVIDER },
+      { id: 'spacing', icon: 'spacing', label: 'Spacing', type: BLOCK.SPACING, props: { lines: 1 } }
     ]
   }
 ]
