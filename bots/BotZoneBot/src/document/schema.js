@@ -16,6 +16,7 @@ export const BLOCK = Object.freeze({
   TABLE: 'table',
   DETAILS: 'details',
   DIVIDER: 'divider',
+  SPACING: 'spacing', // Editor-only vertical spacing; serialized as empty paragraphs.
   MATH: 'math',
   MAP: 'map',
   MEDIA: 'media',
@@ -136,6 +137,8 @@ export function createBlock(type, overrides = {}) {
       return { id, type, summaryHtml: emptyRich(), bodyHtml: emptyRich(), isOpen: false, ...overrides }
     case BLOCK.DIVIDER:
       return { id, type }
+    case BLOCK.SPACING:
+      return { id, type, lines: Math.max(1, Math.min(8, Number(overrides.lines) || 1)) }
     case BLOCK.MATH:
       return { id, type, expression: '', ...overrides }
     case BLOCK.MAP:
@@ -174,6 +177,7 @@ export function isDocumentEmpty(doc) {
   return doc.blocks.every((b) => {
     switch (b.type) {
       case BLOCK.DIVIDER:
+      case BLOCK.SPACING:
         return false
       case BLOCK.TABLE:
         return false
