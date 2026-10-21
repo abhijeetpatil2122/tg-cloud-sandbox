@@ -54,8 +54,17 @@ export default async function (input, ctx) {
   }
 
   let bytes;
-  try { bytes = decodeBase64(base64); }
-  catch { throw new EndpointError('Invalid upload chunk encoding.', { code: 'CHUNK_ENCODING_INVALID' }); }
+  try {
+    bytes = decodeBase64(base64);
+  } catch (error) {
+    // Keep payload contents out of logs; length and decoder reason are enough
+    // to diagnose transport/runtime encoding regressions.
+    console.error('uploadMediaChunk decode failed', {
+      inputLength: base64.length,
+      message: error?.message || String(error)
+    });
+    throw new EndpointError('Invalid upload chunk encoding.', { code: 'CHUNK_ENCODING_INVALID' });
+  }
   const expectedSize = Math.min(CHUNK_BYTES, session.fileSize - index * CHUNK_BYTES);
   if (bytes.byteLength !== expectedSize) {
     throw new EndpointError('Upload chunk size did not match the expected size.', { code: 'CHUNK_SIZE_MISMATCH' });
