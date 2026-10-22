@@ -1,8 +1,9 @@
 import React from 'react'
 import Icon from '../../components/Icon.jsx'
+import RichTextInput from './shared/RichTextInput.jsx'
 import { useDocument } from '../../store/DocumentContext.jsx'
 
-export default function MapBlock({ block }) {
+export default function MapBlock({ block, activeInputRef }) {
   const { updateBlock } = useDocument()
   const set = (patch) => updateBlock(block.id, patch)
 
@@ -46,11 +47,13 @@ export default function MapBlock({ block }) {
           onChange={(e) => set({ height: e.target.value })}
         />
       </div>
-      <input
-        className="media-caption-input"
+      <RichTextInput
+        html={block.caption}
+        multiline={false}
+        onChange={(caption) => set({ caption })}
         placeholder="Caption (optional)"
-        value={block.caption}
-        onChange={(e) => set({ caption: e.target.value })}
+        className="media-caption-input"
+        activeInputRef={activeInputRef}
       />
     </div>
   )
