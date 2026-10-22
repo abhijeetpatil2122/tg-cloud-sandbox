@@ -6,8 +6,8 @@ import {
   Sigma, MapPin, Minus, X, Send, Trash2, Plus, ChevronUp, ChevronDown, ChevronRight,
   Check, AlertCircle, Upload, LoaderCircle, Bold, Italic, Underline, Strikethrough,
   Code, Link2, Subscript, Superscript, Highlighter, EyeOff, RemoveFormatting, RefreshCw,
-  SquareMousePointer, ExternalLink, Webhook, AppWindow, AlignLeft, AlignCenter, AlignRight, Pencil,
-  Ban, Forward, CornerDownLeft, Copy
+  SquareMousePointer, ExternalLink, AppWindow, AlignLeft, AlignCenter, AlignRight, Pencil,
+  Ban, Forward, CornerDownLeft, Copy, Variable, Megaphone, Bot, Tag
 } from 'lucide-react'
 
 // Thin name -> Lucide-component lookup so the rest of the app keeps using
@@ -37,9 +37,13 @@ const ICONS = {
   table: Table,
   details: PanelBottomOpen,
   math: Sigma,
+  'inline-math': Variable,
+  'about-channel': Megaphone,
+  'about-developer': Code2,
+  'about-bot': Bot,
+  'about-version': Tag,
   map: MapPin,
   divider: Minus,
-  spacing: PanelBottom,
   close: X,
   send: Send,
   trash: Trash2,
@@ -66,7 +70,6 @@ const ICONS = {
   swap: RefreshCw,
   buttons: SquareMousePointer,
   'action-url': ExternalLink,
-  'action-callback': Webhook,
   'action-web_app': AppWindow,
   'action-disabled': Ban,
   'action-switch_inline_query': Forward,
