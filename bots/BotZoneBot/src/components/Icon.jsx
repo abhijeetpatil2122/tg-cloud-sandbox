@@ -44,6 +44,7 @@ const ICONS = {
   'about-version': Tag,
   map: MapPin,
   divider: Minus,
+  spacing: Minus,
   close: X,
   send: Send,
   trash: Trash2,
