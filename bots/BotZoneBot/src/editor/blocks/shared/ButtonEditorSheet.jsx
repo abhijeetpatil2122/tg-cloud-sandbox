@@ -2,22 +2,21 @@ import React, { useEffect, useState } from 'react'
 import BottomSheet from '../../../components/BottomSheet.jsx'
 import Icon from '../../../components/Icon.jsx'
 import { BUTTON_STYLES, BUTTON_ACTION_TYPES, buttonNeedsDest } from '../../../document/schema.js'
+import { normalizeUrl } from './urlUtils.js'
 
 const DEST_LABEL = {
   url: 'URL',
   web_app: 'Mini App URL',
   switch_inline_query: 'Pre-filled query (optional)',
   switch_inline_query_current_chat: 'Pre-filled query (optional)',
-  copy_text: 'Text to copy',
-  callback: 'Callback data'
+  copy_text: 'Text to copy'
 }
 const DEST_PLACEHOLDER = {
   url: 't.me/your_channel or example.com',
   web_app: 'your-app.vercel.app/...',
   switch_inline_query: 'leave blank to just open the chat picker',
   switch_inline_query_current_chat: 'leave blank to prefill nothing',
-  copy_text: 'the text the button copies',
-  callback: 'an identifier your bot reads back'
+  copy_text: 'the text the button copies'
 }
 const ACTION_LABEL = {
   url: 'URL',
@@ -25,30 +24,20 @@ const ACTION_LABEL = {
   switch_inline_query: 'Share to chat',
   switch_inline_query_current_chat: 'Insert here',
   copy_text: 'Copy text',
-  callback: 'Callback',
   disabled: 'Disabled'
 }
 const ACTION_HINT = {
-  callback:
-    "Needs your bot to handle this callback_data — not required just to post content. If you're not building that, URL or Mini App is usually what you want.",
   disabled: 'Shows the button but it does nothing when tapped — useful as a label-only row item.',
   switch_inline_query:
-    'Opens Telegram\u2019s chat picker with your bot\u2019s inline mode pre-armed — needs your bot to support inline queries to show results.',
-  switch_inline_query_current_chat: 'Same, but targets the chat the button is already in.'
+    'Opens the chat picker and types "@bot your query" for the user. The bot is always the one that posts this message (this bot) — Telegram has no field to point a button at a different bot. To send people to your own bot, use a URL button with https://t.me/your_bot instead.',
+  switch_inline_query_current_chat:
+    'Same, but types it into the chat the button is already in. Always uses the posting bot — to send people to your own bot, use a URL button with https://t.me/your_bot.'
 }
 
-// 'url' and 'web_app' are URL-shaped fields — if whatever's typed has no
-// scheme at all (someone typed "t.me/..." or "example.com"), assume https
-// rather than rejecting it. This is the actual fix for URLs that looked
-// "wrong" once and then seemed to stay rejected even after being
-// corrected: nothing used to normalize them, so a scheme-less value just
-// round-tripped back out the same way it went in, every time.
+// 'url' and 'web_app' are URL-shaped fields — scheme-less input gets https://
+// prepended (see urlUtils.js) instead of being rejected.
 function normalizeDest(actionType, raw) {
-  const trimmed = raw.trim()
-  if ((actionType === 'url' || actionType === 'web_app') && trimmed && !/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
-    return `https://${trimmed}`
-  }
-  return trimmed
+  return actionType === 'url' || actionType === 'web_app' ? normalizeUrl(raw) : raw.trim()
 }
 
 /**
@@ -100,7 +89,6 @@ export default function ButtonEditorSheet({ open, initial, onClose, onSave }) {
               key={s}
               type="button"
               className={`style-pill ${s} ${style === s ? 'active' : ''}`}
-              disabled={s === 'link' && actionType !== 'callback'}
               onClick={() => setStyle(s)}
             >
               {s}
@@ -115,10 +103,7 @@ export default function ButtonEditorSheet({ open, initial, onClose, onSave }) {
               key={t}
               type="button"
               className={`action-pill ${actionType === t ? 'active' : ''}`}
-              onClick={() => {
-                setActionType(t)
-                if (t !== 'callback' && style === 'link') setStyle('default')
-              }}
+              onClick={() => setActionType(t)}
             >
               <Icon name={`action-${t}`} size={14} />
               {ACTION_LABEL[t]}
