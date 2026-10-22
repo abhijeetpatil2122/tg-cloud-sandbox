@@ -1,5 +1,3 @@
-import { renderInlineMathHtml } from './inlineMath.js'
-
 const ALLOWED_TAGS = new Set([
   'B', 'STRONG', 'I', 'EM', 'U', 'S', 'STRIKE', 'CODE', 'A', 'BR', 'SUB', 'SUP', 'MARK', 'SPAN'
 ])
@@ -9,14 +7,13 @@ const ALLOWED_TAGS = new Set([
 //
 // - spoiler: a normal editable span (visually masked, but can contain
 //   nested bold/italic/etc — so its children get recursively cleaned).
-// - inline-math / rich-button: "atomic" chips — contenteditable="false" so
+// - rich-button: an "atomic" chip — contenteditable="false" so
 //   the caret can only sit before/after them, never inside (that's what
 //   fixes the cursor-gets-stuck / typing-corrupts-the-chip class of bugs).
-//   Their content is regenerated from data attributes every sanitize pass
-//   rather than trusted as free-form innerHTML.
+//   Its label is flattened to plain text on every sanitize pass (the API
+//   only allows plain text inside a button).
 const SPAN_ATTRS = {
   spoiler: ['data-spoiler'],
-  'inline-math': ['data-inline-math', 'data-expression'],
   // data-pending-id is temporary — present only while the ButtonEditorSheet
   // is open for this button (new OR an existing one being re-edited) — and
   // must survive sanitize until then (opening the sheet's inputs blurs
@@ -35,10 +32,7 @@ function cleanSpan(node, out) {
       if (value != null) el.setAttribute(name, value)
     })
 
-    if (kind === 'inline-math') {
-      el.setAttribute('contenteditable', 'false')
-      el.innerHTML = renderInlineMathHtml(node.getAttribute('data-expression') || '')
-    } else if (kind === 'rich-button') {
+    if (kind === 'rich-button') {
       el.setAttribute('contenteditable', 'false')
       el.textContent = node.textContent.replace(/\u200B/g, '')
     } else {
