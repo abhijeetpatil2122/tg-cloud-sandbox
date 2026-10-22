@@ -97,11 +97,13 @@ export default function TableBlock({ block, activeInputRef }) {
         </button>
       </div>
 
-      <input
-        className="table-caption-input"
+      <RichTextInput
+        html={block.caption}
+        multiline={false}
+        onChange={(caption) => setTableOption(block.id, { caption })}
         placeholder="Caption (optional)"
-        value={block.caption}
-        onChange={(e) => setTableOption(block.id, { caption: e.target.value })}
+        className="table-caption-input"
+        activeInputRef={activeInputRef}
       />
     </div>
   )
