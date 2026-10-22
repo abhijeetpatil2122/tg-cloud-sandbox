@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import Icon from '../../components/Icon.jsx'
+import RichTextInput from './shared/RichTextInput.jsx'
 import { useDocument } from '../../store/DocumentContext.jsx'
 import { ACCEPT_BY_KIND, uploadMediaFile, isCancelled } from './shared/useMediaUpload.js'
 
@@ -7,7 +8,7 @@ const KIND_ICON = { photo: 'image', video: 'video', animation: 'animation', audi
 const KIND_LABEL = { photo: 'photo', video: 'video', animation: 'GIF', audio: 'audio file', document: 'file', voice_note: 'voice note' }
 const URL_EXAMPLE = { photo: 'https://…jpg', video: 'https://…mp4', animation: 'https://…gif', audio: 'https://…mp3', document: 'https://…pdf', voice_note: 'https://…ogg' }
 
-export default function MediaBlock({ block }) {
+export default function MediaBlock({ block, activeInputRef }) {
   const { setMediaSource, updateBlock } = useDocument()
   const [urlDraft, setUrlDraft] = useState('')
   const [showUrlField, setShowUrlField] = useState(false)
@@ -59,6 +60,11 @@ export default function MediaBlock({ block }) {
     setUrlDraft('')
   }
 
+  function backToChoices() {
+    setShowUrlField(false)
+    setUrlDraft('')
+  }
+
   function reset() {
     attemptRef.current++
     abortRef.current?.()
@@ -73,15 +79,24 @@ export default function MediaBlock({ block }) {
         <div className="media-placeholder">
           <Icon name={KIND_ICON[block.kind] || 'document'} size={26} />
           {showUrlField ? (
-            <input
-              autoFocus
-              className="media-url-input"
-              placeholder={URL_EXAMPLE[block.kind] || 'https://…'}
-              value={urlDraft}
-              onChange={(e) => setUrlDraft(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && submitUrl()}
-              onBlur={submitUrl}
-            />
+            <>
+              <input
+                autoFocus
+                className="media-url-input"
+                placeholder={URL_EXAMPLE[block.kind] || 'https://…'}
+                value={urlDraft}
+                onChange={(e) => setUrlDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submitUrl()}
+              />
+              <div className="row">
+                <button className="media-mode-btn" type="button" onClick={submitUrl} disabled={!urlDraft.trim()}>
+                  <Icon name="check" size={13} /> Load
+                </button>
+                <button className="media-mode-btn secondary" type="button" onClick={backToChoices}>
+                  Back
+                </button>
+              </div>
+            </>
           ) : (
             <div className="row">
               <button className="media-mode-btn" type="button" onClick={() => fileInputRef.current?.click()}>
@@ -161,11 +176,13 @@ export default function MediaBlock({ block }) {
       )}
 
       {!uploading && (
-        <input
-          className="media-caption-input"
+        <RichTextInput
+          html={block.caption}
+          multiline={false}
+          onChange={(caption) => updateBlock(block.id, { caption })}
           placeholder="Caption (optional)"
-          value={block.caption}
-          onChange={(e) => updateBlock(block.id, { caption: e.target.value })}
+          className="media-caption-input"
+          activeInputRef={activeInputRef}
         />
       )}
       <input
