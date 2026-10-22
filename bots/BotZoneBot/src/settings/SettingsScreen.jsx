@@ -89,7 +89,6 @@ export default function SettingsScreen({ user, channels, onChannelsChanged }) {
           })}
         </div>
       </div>
-      </div>
 
       <div className="settings-footer-note">
         Rich Message Editor · Bot API 10.x Rich Messages
