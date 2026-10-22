@@ -918,3 +918,24 @@
 .inline-math-block .math-error { font-size: 12px; color: var(--tg-theme-destructive-text-color); margin-top: 4px; }
 
 
+/* Serverless migration: editor-only spacing block */
+
+
+.spacing-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 6px 10px;
+  border: 1px dashed color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  border-radius: 9px;
+  color: var(--tg-theme-hint-color);
+  font-size: 13px;
+}
+
+.spacing-block .spacing-controls { display: flex; align-items: center; gap: 8px; }
+
+.spacing-block .spacing-controls .icon-btn { background: var(--tg-theme-secondary-bg-color); }
+
+.spacing-block .spacing-controls .icon-btn:disabled { opacity: 0.3; }
