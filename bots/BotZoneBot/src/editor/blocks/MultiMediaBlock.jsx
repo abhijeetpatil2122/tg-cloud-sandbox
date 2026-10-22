@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import Icon from '../../components/Icon.jsx'
+import RichTextInput from './shared/RichTextInput.jsx'
 import { useDocument } from '../../store/DocumentContext.jsx'
 import { createMediaItem } from '../../document/schema.js'
 import { uploadMediaFile, isCancelled } from './shared/useMediaUpload.js'
@@ -39,10 +40,16 @@ function Item({ item, onChange, onRemove }) {
 
   function submitUrl() {
     const url = urlDraft.trim()
-    if (!url) return setMode('add')
+    if (!url) return
     const kind = /\.(mp4|webm|mov)(\?|$)/i.test(url) ? 'video' : 'photo'
     onChange({ kind, source: { mode: 'url', url } })
     setUrlDraft('')
+    setMode('add')
+  }
+
+  function backToChoices() {
+    setUrlDraft('')
+    setMode('add')
   }
 
   if (item.source) {
@@ -77,8 +84,15 @@ function Item({ item, onChange, onRemove }) {
           value={urlDraft}
           onChange={(e) => setUrlDraft(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submitUrl()}
-          onBlur={submitUrl}
         />
+        <div className="url-entry-actions">
+          <button type="button" onClick={submitUrl} disabled={!urlDraft.trim()} aria-label="Load">
+            <Icon name="check" size={13} />
+          </button>
+          <button type="button" onClick={backToChoices} aria-label="Back">
+            <Icon name="close" size={13} />
+          </button>
+        </div>
       </div>
     )
   }
@@ -96,7 +110,7 @@ function Item({ item, onChange, onRemove }) {
   )
 }
 
-export default function MultiMediaBlock({ block }) {
+export default function MultiMediaBlock({ block, activeInputRef }) {
   const { updateBlock } = useDocument()
 
   function updateItem(id, patch) {
@@ -127,11 +141,13 @@ export default function MultiMediaBlock({ block }) {
           </button>
         )}
       </div>
-      <input
-        className="media-caption-input"
+      <RichTextInput
+        html={block.caption}
+        multiline={false}
+        onChange={(caption) => updateBlock(block.id, { caption })}
         placeholder="Caption for the whole set (optional)"
-        value={block.caption}
-        onChange={(e) => updateBlock(block.id, { caption: e.target.value })}
+        className="media-caption-input"
+        activeInputRef={activeInputRef}
       />
     </div>
   )
