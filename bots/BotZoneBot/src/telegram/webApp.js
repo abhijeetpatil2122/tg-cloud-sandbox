@@ -134,3 +134,11 @@ export function getThemeParams() {
 export function getColorScheme() {
   return getWebApp()?.colorScheme || 'light'
 }
+
+/** Opens t.me links inside Telegram, anything else in the in-app browser. */
+export function openLink(url) {
+  const tg = getWebApp()
+  if (/^https?:\/\/(t\.me|telegram\.me)\//i.test(url) && tg?.openTelegramLink) tg.openTelegramLink(url)
+  else if (tg?.openLink) tg.openLink(url)
+  else window.open(url, '_blank', 'noopener')
+}

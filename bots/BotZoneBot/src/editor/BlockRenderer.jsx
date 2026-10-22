@@ -14,6 +14,7 @@ import DetailsBlock from './blocks/DetailsBlock.jsx'
 import DividerBlock from './blocks/DividerBlock.jsx'
 import SpacingBlock from './blocks/SpacingBlock.jsx'
 import MathBlock from './blocks/MathBlock.jsx'
+import InlineMathBlock from './blocks/InlineMathBlock.jsx'
 import MapBlock from './blocks/MapBlock.jsx'
 import MediaBlock from './blocks/MediaBlock.jsx'
 import MultiMediaBlock from './blocks/MultiMediaBlock.jsx'
@@ -33,6 +34,7 @@ const COMPONENTS = {
   [BLOCK.DIVIDER]: DividerBlock,
   [BLOCK.SPACING]: SpacingBlock,
   [BLOCK.MATH]: MathBlock,
+  [BLOCK.INLINE_MATH]: InlineMathBlock,
   [BLOCK.MAP]: MapBlock,
   [BLOCK.MEDIA]: MediaBlock,
   [BLOCK.MULTI_MEDIA]: MultiMediaBlock,

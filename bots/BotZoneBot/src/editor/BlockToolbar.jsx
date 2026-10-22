@@ -7,7 +7,6 @@ import {
   applyInlineMark,
   clearInlineMarks,
   hasActiveSelection,
-  insertInlineMath,
   insertRichButtonPlaceholder,
   markButtonPending,
   finalizeRichButton,
@@ -15,6 +14,7 @@ import {
   clearButtonPending
 } from './blocks/shared/RichTextInput.jsx'
 import ButtonEditorSheet from './blocks/shared/ButtonEditorSheet.jsx'
+import { normalizeUrl } from './blocks/shared/urlUtils.js'
 
 export default function BlockToolbar({ activeInputRef, lastBlockId }) {
   const { doc, addBlock, updateBlock } = useDocument()
@@ -75,7 +75,7 @@ export default function BlockToolbar({ activeInputRef, lastBlockId }) {
       return
     }
     if (mark.isLink) {
-      const url = window.prompt('Link URL')
+      const url = normalizeUrl(window.prompt('Link URL (e.g. t.me/channel or example.com)'))
       if (!url) return
       if (applyInlineMark(el, 'A', { href: url }) !== null) notifyChanged(el)
       return
@@ -92,17 +92,6 @@ export default function BlockToolbar({ activeInputRef, lastBlockId }) {
   }
 
   function handleInsert(item) {
-    const el = activeInputRef.current
-    const selected = hasActiveSelection(el)
-
-    // Math is dual-purpose: with text selected, convert it to inline math
-    // right where it is; with nothing selected, insert a new (centered)
-    // Math block instead. Both variants live behind this one toolbar item.
-    if (item.id === 'math' && selected) {
-      if (insertInlineMath(el) !== null) notifyChanged(el)
-      return
-    }
-
     // Repeated taps of "Buttons" used to each create a brand new block —
     // if one row already exists right here, add to it instead, so the
     // whole row keeps one consistent alignment rather than ending up as

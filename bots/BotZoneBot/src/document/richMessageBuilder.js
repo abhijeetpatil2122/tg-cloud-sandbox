@@ -48,9 +48,6 @@ function buildRichMessageButton({ text, style, actionType, dest }) {
     case 'disabled':
       out.disabled = {}
       break
-    case 'callback':
-      out.callback_data = dest || ''
-      break
     case 'url':
     default:
       out.url = dest || ''
@@ -66,15 +63,9 @@ function nodeToRichText(node) {
 
   const tag = node.tagName
 
-  // These two are "atomic" chips (contenteditable="false") whose real
-  // content lives in a data attribute, not in their rendered children —
-  // check them first so we never recurse into a button's icon markup or
-  // KaTeX's internal DOM tree for nothing.
-  if (tag === 'SPAN' && node.getAttribute('data-inline-math') === 'true') {
-    // Raw expression string, not nested RichText, and NOT the rendered
-    // KaTeX markup shown in the editor — per the API spec.
-    return { type: 'mathematical_expression', expression: (node.getAttribute('data-expression') || '').trim() }
-  }
+  // Rich Button is an "atomic" chip (contenteditable="false") whose real
+  // content lives in data attributes, not its rendered children — check it
+  // first so we never recurse into it for nothing.
   if (tag === 'SPAN' && node.getAttribute('data-rich-button') === 'true') {
     const button = buildRichMessageButton({
       text: node.textContent.trim(),
@@ -218,7 +209,8 @@ function buildBlock(block) {
       if (block.bordered) out.is_bordered = true
       if (block.striped) out.is_striped = true
       if (block.compact) out.is_compact = true
-      if (block.caption?.trim()) out.caption = block.caption.trim()
+      const caption = buildOptionalRichText(block.caption)
+      if (caption !== undefined) out.caption = caption
       return out
     }
 
@@ -236,11 +228,20 @@ function buildBlock(block) {
       return { type: 'divider' }
 
     case BLOCK.SPACING:
-      // The original Vercel editor serialized adjustable spacing as empty paragraphs.
+      // Editor-only spacing serializes as empty paragraph blocks.
       return Array.from({ length: Math.max(1, Math.min(8, Number(block.lines) || 1)) }, () => ({ type: 'paragraph', text: '' }))
 
     case BLOCK.MATH:
       return block.expression.trim() ? { type: 'mathematical_expression', expression: block.expression } : null
+
+    case BLOCK.INLINE_MATH:
+      // Same expression, but embedded in a paragraph's text rather than
+      // standing alone as its own block — that placement is what makes
+      // Telegram lay it out as left-aligned line text instead of a
+      // centered display equation.
+      return block.expression.trim()
+        ? { type: 'paragraph', text: { type: 'mathematical_expression', expression: block.expression.trim() } }
+        : null
 
     case BLOCK.MAP: {
       const lat = Number(block.latitude)

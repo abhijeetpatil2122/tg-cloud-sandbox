@@ -10,7 +10,7 @@ const RICH_TEXT_TYPES = new Set([
   'button' // Rich Button — note: uses `button`, not `text` (checked separately below)
 ])
 
-const BUTTON_STYLES = new Set(['primary', 'success', 'danger', 'link'])
+const BUTTON_STYLES = new Set(['primary', 'success', 'danger'])
 
 const MEDIA_BLOCK_TYPES = new Set(['photo', 'video', 'animation', 'audio', 'document', 'voice_note'])
 
@@ -22,7 +22,7 @@ const BLOCK_TYPES = new Set([
 ])
 
 const BUTTON_ACTION_FIELDS = [
-  'url', 'callback_data', 'web_app', 'switch_inline_query',
+  'url', 'web_app', 'switch_inline_query',
   'switch_inline_query_current_chat', 'copy_text', 'disabled'
 ]
 
@@ -39,9 +39,6 @@ function checkRichMessageButton(button) {
   // still require a real scheme here rather than silently rewriting it.
   if (button.url !== undefined && (typeof button.url !== 'string' || !/^(https?:|tg:)\/\//i.test(button.url))) {
     throw new Error('Button URLs must use http(s):// or tg:// — e.g. https://t.me/your_channel.')
-  }
-  if (button.callback_data !== undefined && (typeof button.callback_data !== 'string' || !button.callback_data || button.callback_data.length > 64)) {
-    throw new Error('Invalid button callback data.')
   }
   if (button.web_app !== undefined && (typeof button.web_app.url !== 'string' || !/^https:\/\//i.test(button.web_app.url))) {
     throw new Error('Button Mini App URLs must use https://.')

@@ -3,7 +3,8 @@ import Icon from '../components/Icon.jsx'
 import ChannelForm from './ChannelForm.jsx'
 import { removeChannel as removeChannelFromStorage } from '../telegram/channelStorage.js'
 import TelegramFileImage from '../components/TelegramFileImage.jsx'
-import { haptic, showPopup } from '../telegram/webApp.js'
+import { haptic, showPopup, openLink } from '../telegram/webApp.js'
+import { APP_INFO } from './appInfo.js'
 
 // Keep the original Settings layout: no extra empty-state banner or refresh button.
 export default function SettingsScreen({ user, channels, onChannelsChanged }) {
@@ -65,6 +66,27 @@ export default function SettingsScreen({ user, channels, onChannelsChanged }) {
             </div>
           ))}
           <ChannelForm onAdded={onChannelsChanged} />
+        </div>
+      </div>
+
+      <div className="settings-section">
+      <div className="settings-section-title">About</div>
+        <div className="about-pills">
+          {APP_INFO.pills.map((pill) => {
+            const Tag = pill.url ? 'button' : 'div'
+            return (
+              <Tag
+                key={pill.id}
+                className={`about-pill ${pill.url ? 'tappable' : ''}`}
+                {...(pill.url ? { type: 'button', onClick: () => { haptic('light'); openLink(pill.url) } } : {})}
+              >
+                <Icon name={pill.icon} size={15} className="about-pill-icon" />
+                <span className="about-pill-label">{pill.label}</span>
+                {pill.value && <span className="about-pill-value">{pill.value}</span>}
+                {pill.badge && <span className="about-badge">{pill.badge}</span>}
+              </Tag>
+            )
+          })}
         </div>
       </div>
 

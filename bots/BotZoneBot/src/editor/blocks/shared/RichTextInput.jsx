@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react'
 import { sanitizeInlineHtml } from './sanitizeInlineHtml.js'
-import { renderInlineMathHtml } from './inlineMath.js'
 
 /**
  * A single formattable text field. Selection-based bold/italic/etc. are
@@ -146,29 +145,6 @@ export function applyInlineMark(container, tagName, attrs = {}) {
   // as plain text instead of inheriting bold/italic/etc.
   placeCaretAfterNode(selection, el)
 
-  return sanitizeInlineHtml(container.innerHTML)
-}
-
-/**
- * Converts the current selection (treated as raw LaTeX source) into an
- * atomic, live-rendered inline math chip. Requires a selection — unlike
- * Rich Button, there's no form; the selected text itself is the source.
- */
-export function insertInlineMath(container) {
-  const selection = window.getSelection()
-  if (!selection || selection.rangeCount === 0) return null
-  const range = selection.getRangeAt(0)
-  if (!container.contains(range.commonAncestorContainer) || range.collapsed) return null
-
-  const expression = range.toString()
-  range.deleteContents()
-  const el = document.createElement('SPAN')
-  el.setAttribute('data-inline-math', 'true')
-  el.setAttribute('data-expression', expression)
-  el.setAttribute('contenteditable', 'false')
-  el.innerHTML = renderInlineMathHtml(expression)
-  range.insertNode(el)
-  placeCaretAfterNode(selection, el)
   return sanitizeInlineHtml(container.innerHTML)
 }
 

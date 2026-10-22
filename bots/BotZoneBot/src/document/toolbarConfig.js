@@ -52,11 +52,10 @@ export const TOOLBAR_CATEGORIES = [
       { id: 'table', icon: 'table', label: 'Table', type: BLOCK.TABLE },
       { id: 'details', icon: 'details', label: 'Details', type: BLOCK.DETAILS },
       { id: 'map', icon: 'map', label: 'Map', type: BLOCK.MAP },
-      // Dual-purpose — see BlockToolbar.handleInsert: with an active text
-      // selection this converts that selection to inline math; with no
-      // selection it inserts a new (centered) Math block. Both math
-      // variants live here together, nowhere else.
+      // Two separate math blocks: 'Math' is centered like a display equation,
+      // 'Inline math' sits in normal paragraph flow as one line of text.
       { id: 'math', icon: 'math', label: 'Math', type: BLOCK.MATH },
+      { id: 'inline_math', icon: 'inline-math', label: 'Inline math', type: BLOCK.INLINE_MATH },
       { id: 'buttons', icon: 'buttons', label: 'Buttons', type: BLOCK.BUTTONS },
       { id: 'divider', icon: 'divider', label: 'Divider', type: BLOCK.DIVIDER },
       { id: 'spacing', icon: 'spacing', label: 'Spacing', type: BLOCK.SPACING, props: { lines: 1 } }

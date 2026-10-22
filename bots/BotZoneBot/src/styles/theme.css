@@ -54,3 +54,24 @@ input, textarea {
   font-family: inherit;
   color: inherit;
 }
+
+/* The browser's default focus ring (a yellow/orange glow on Android
+   WebView) clashes with Telegram's native look on every input, caption
+   and editable field. Remove it everywhere; bordered inputs get a quiet
+   accent-colored border instead so there's still *some* focus feedback. */
+input:focus, input:focus-visible,
+textarea:focus, textarea:focus-visible,
+select:focus, select:focus-visible,
+button:focus, button:focus-visible,
+[contenteditable]:focus, [contenteditable]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.channel-form input:focus,
+.button-editor input:focus,
+.map-block input:focus,
+.media-url-input:focus,
+.inline-math-block input:focus,
+.math-block textarea:focus {
+  border-color: var(--tg-theme-accent-text-color);
+}

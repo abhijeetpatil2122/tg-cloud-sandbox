@@ -18,6 +18,7 @@ export const BLOCK = Object.freeze({
   DIVIDER: 'divider',
   SPACING: 'spacing', // Editor-only vertical spacing; serialized as empty paragraphs.
   MATH: 'math',
+  INLINE_MATH: 'inline_math',
   MAP: 'map',
   MEDIA: 'media',
   MULTI_MEDIA: 'multi_media', // collage or slideshow — see `layout` field
@@ -26,20 +27,21 @@ export const BLOCK = Object.freeze({
 
 // 'default' is OUR sentinel meaning "omit the style field" — the API has no
 // named "normal/no-colour" style, it's just the absence of the field
-// ("If omitted, then an app-specific style is used."). The other four are
-// real API values. 'link' is only valid when actionType is 'callback'.
-export const BUTTON_STYLES = ['default', 'primary', 'success', 'danger', 'link']
+// ("If omitted, then an app-specific style is used."). The rest are real
+// API values. (The API's fourth style, 'link', is only allowed on callback
+// buttons — and this editor doesn't offer callback buttons, so it's out too.)
+export const BUTTON_STYLES = ['default', 'primary', 'success', 'danger']
 
-// Action types exposed in the UI. `login_url` and
-// `switch_inline_query_chosen_chat` exist in the API too but are more
-// niche/complex (OAuth-style auth, multi-field chat picker) — not added.
+// Action types exposed in the UI. Callback buttons are intentionally NOT
+// offered: they only do something if the posting bot handles the resulting
+// callback query, and this bot just posts content. `login_url` and
+// `switch_inline_query_chosen_chat` exist in the API too but are niche.
 export const BUTTON_ACTION_TYPES = [
   'url',
   'web_app',
   'switch_inline_query',
   'switch_inline_query_current_chat',
   'copy_text',
-  'callback',
   'disabled'
 ]
 
@@ -78,7 +80,7 @@ export function createButtonConfig(overrides = {}) {
     text: '',
     style: 'default',
     actionType: 'url',
-    dest: '', // the url / callback_data / web_app url / switch-inline query / copy text, depending on actionType
+    dest: '', // the url / web_app url / switch-inline query / copy text, depending on actionType
     ...overrides
   }
 }
@@ -141,6 +143,8 @@ export function createBlock(type, overrides = {}) {
       return { id, type, lines: Math.max(1, Math.min(8, Number(overrides.lines) || 1)) }
     case BLOCK.MATH:
       return { id, type, expression: '', ...overrides }
+    case BLOCK.INLINE_MATH:
+      return { id, type, expression: '', ...overrides }
     case BLOCK.MAP:
       return { id, type, latitude: '', longitude: '', zoom: 14, width: 600, height: 300, caption: '', ...overrides }
     case BLOCK.MEDIA:
@@ -190,6 +194,7 @@ export function isDocumentEmpty(doc) {
       case BLOCK.MAP:
         return !b.latitude || !b.longitude
       case BLOCK.MATH:
+      case BLOCK.INLINE_MATH:
         return !b.expression.trim()
       case BLOCK.PREFORMATTED:
         return !b.code.trim()
