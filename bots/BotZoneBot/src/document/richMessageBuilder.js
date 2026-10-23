@@ -36,12 +36,6 @@ function buildRichMessageButton({ text, style, actionType, dest }) {
     case 'web_app':
       out.web_app = { url: dest || '' }
       break
-    case 'switch_inline_query':
-      out.switch_inline_query = dest || ''
-      break
-    case 'switch_inline_query_current_chat':
-      out.switch_inline_query_current_chat = dest || ''
-      break
     case 'copy_text':
       out.copy_text = { text: dest || '' }
       break
