@@ -236,7 +236,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
-            echo "::error::The required Actions secret for $BOT_PATH is missing."
+            echo "::error::The required Actions secret or variable for $BOT_PATH is missing."
             exit 1
           fi
           if [[ ! "$TGCLOUD_TOKEN" =~ ^app([0-9]+):.+$ ]]; then
@@ -255,7 +255,7 @@ jobs:
       - name: Fetch cloud state and show status
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -265,7 +265,7 @@ jobs:
       - name: Deploy selected bot modules
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
