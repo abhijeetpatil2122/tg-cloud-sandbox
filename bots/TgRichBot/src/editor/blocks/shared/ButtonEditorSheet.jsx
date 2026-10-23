@@ -11,7 +11,7 @@ const DEST_LABEL = {
 }
 const DEST_PLACEHOLDER = {
   url: 't.me/your_channel or example.com',
-  web_app: 'your-app.vercel.app/...',
+  web_app: 'https://example.com',
   copy_text: 'the text the button copies'
 }
 const ACTION_LABEL = {
