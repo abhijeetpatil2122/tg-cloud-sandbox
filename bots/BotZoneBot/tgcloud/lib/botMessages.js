@@ -130,7 +130,7 @@ const COMMANDS = {
         type: 'photo',
         photo: {
           type: 'photo',
-          media: 'https://image.zaw-myo.workers.dev/image/82831e3b-e35a-4920-991f-36d5ea7b4fe3'
+          media: 'https://image.zaw-myo.workers.dev/image/3b6f9113-a8a5-4487-bea8-c35d11594ecb'
         }
       },
       { type: 'paragraph', text: 'Available commands:' },
