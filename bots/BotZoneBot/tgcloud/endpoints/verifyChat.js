@@ -1,6 +1,7 @@
 import { api, EndpointError } from 'sdk';
 import { assertBotCanSend, SUPPORTED_CHAT_TYPES } from '../lib/chatAccess.js';
-import { saveChat } from '../lib/storage.js';
+import { listSavedChats, saveChat } from '../lib/storage.js';
+import { channelConnectionMessage } from '../lib/botMessages.js';
 
 function normalizeChatReference(value) {
   if ((typeof value !== 'string' && typeof value !== 'number') || !String(value).trim()) {
@@ -58,10 +59,45 @@ export default async function (input, ctx) {
       throw new EndpointError('Please enter a channel or group, not a private chat.', { code: 'UNSUPPORTED_CHAT_TYPE' });
     }
     await assertBotCanSend(chat, await api.getMe());
-    await saveChat(user.id, chat);
+
+    const existingChats = await listSavedChats(user.id);
+    const alreadySaved = existingChats.some((saved) => String(saved.id) === String(chat.id));
+    const savedChannel = {
+      ...chat,
+      id: chat.id,
+      title: chat.title || 'Untitled chat',
+      username: chat.username || null,
+      type: chat.type,
+      photoFileId: chat.photo?.small_file_id || null,
+    };
+    await saveChat(user.id, savedChannel);
+
+    // The channel is saved before notification delivery. A notification failure
+    // must not turn a successful verification into an apparent add failure.
+    try {
+      await api.sendRichMessage({
+        chat_id: user.id,
+        rich_message: channelConnectionMessage(savedChannel, alreadySaved),
+      });
+    } catch (notificationError) {
+      console.warn('Chat saved from Mini App, but Rich Message notification failed:', {
+        message: notificationError?.description || notificationError?.message || String(notificationError),
+      });
+      try {
+        await api.sendMessage({
+          chat_id: user.id,
+          text: `Channel “${savedChannel.title}” ${alreadySaved ? 'is already connected' : 'has been saved successfully'}. You can now use it in Rich Message Editor.`,
+        });
+      } catch (fallbackError) {
+        console.error('Chat saved from Mini App, but notification fallback also failed:', {
+          message: fallbackError?.description || fallbackError?.message || String(fallbackError),
+        });
+      }
+    }
+
     return { ok: true, channel: {
-      id: chat.id, title: chat.title || 'Untitled chat', username: chat.username || null,
-      type: chat.type, photoFileId: chat.photo?.small_file_id || null
+      id: chat.id, title: savedChannel.title, username: savedChannel.username,
+      type: chat.type, photoFileId: savedChannel.photoFileId
     }};
   } catch (error) {
     if (error instanceof EndpointError) throw error;
