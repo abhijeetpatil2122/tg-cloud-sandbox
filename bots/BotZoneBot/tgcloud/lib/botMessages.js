@@ -1,14 +1,6 @@
-// Bot-side command replies, built as Rich Messages (sendRichMessage) rather
-// than plain sendMessage, per the project's own format. Deliberately simple
-// placeholder copy for now — refine the actual wording later; this just
-// establishes the pattern (and that /help, /howtouse, /about all exist and
-// route correctly) with one shared `openEditorButton()` block.
-//
-// This is intentionally separate from api/send.js: send.js is the Mini
-// App's own authenticated "post this document" endpoint (initData,
-// CloudStorage-verified channels, block validation). Commands here are
-// plain bot replies straight to whoever messaged the bot — no Mini App
-// payload involved — so they don't share that code path.
+// Bot-side command replies, built as Rich Messages (sendRichMessage).
+// Keep the Mini App's authenticated publishing endpoint separate from command
+// replies and channel-onboarding notifications.
 
 const APP_URL = 'https://app8747772496.tgcloud.ai/'
 
@@ -24,6 +16,82 @@ export function openEditorButton(text = '✏️ Open editor') {
       }
     ]
   }
+}
+
+function channelDetailsItems(chat) {
+  const details = [
+    {
+      blocks: [{
+        type: 'paragraph',
+        text: [{ type: 'bold', text: 'Channel' }, ': ', chat.title || 'Untitled channel']
+      }]
+    }
+  ]
+
+  if (typeof chat.username === 'string' && chat.username.trim()) {
+    details.push({
+      blocks: [{
+        type: 'paragraph',
+        text: [
+          { type: 'bold', text: 'Username' },
+          ': ',
+          { type: 'code', text: `@${chat.username.replace(/^@/, '')}` }
+        ]
+      }]
+    })
+  }
+
+  if (chat.id !== undefined && chat.id !== null) {
+    details.push({
+      blocks: [{
+        type: 'paragraph',
+        text: [{ type: 'bold', text: 'Channel ID' }, ': ', { type: 'code', text: String(chat.id) }]
+      }]
+    })
+  }
+
+  details.push({
+    blocks: [
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Bot status' }] },
+      {
+        type: 'list',
+        items: [{
+          blocks: [
+            { type: 'paragraph', text: 'Administrator' },
+            {
+              type: 'list',
+              items: [{ blocks: [{ type: 'paragraph', text: 'Can post messages' }] }]
+            }
+          ]
+        }]
+      }
+    ]
+  })
+
+  return details
+}
+
+/** Rich success notification shared by the keyboard and Mini App add flows. */
+export function channelConnectionMessage(chat, alreadySaved = false) {
+  const blocks = [
+    {
+      type: 'heading',
+      size: 2,
+      text: alreadySaved ? '✅ Channel already connected' : '✅ Channel saved successfully'
+    }
+  ]
+
+  if (!alreadySaved) {
+    blocks.push({
+      type: 'paragraph',
+      text: 'Your channel is now connected to Rich Message Editor and is ready to use.'
+    })
+    blocks.push({ type: 'divider' })
+  }
+
+  blocks.push({ type: 'list', items: channelDetailsItems(chat) })
+  blocks.push(openEditorButton())
+  return { blocks }
 }
 
 const COMMANDS = {
@@ -70,6 +138,7 @@ const COMMANDS = {
         type: 'list',
         items: [
           { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: '/start' }, ' — welcome and open the editor'] }] },
+          { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: '/mychannel' }, ' — list your connected channels'] }] },
           { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: '/howtouse' }, ' — a step-by-step walkthrough'] }] },
           { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: '/about' }, ' — what this bot is'] }] },
           { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: '/help' }, ' — get this help menu'] }] }
@@ -124,7 +193,7 @@ const COMMANDS = {
           { type: '1', value: 3, blocks: [{ type: 'paragraph', text: 'Use the bottom toolbar to add blocks — text, headings, quotes, lists, tables, media, and more' }] },
           { type: '1', value: 4, blocks: [{ type: 'paragraph', text: 'Tap Send, then choose your chat with the bot to preview it, or your saved channel/group to post it' }] }
         ]
-      },
+      }
     ],
     button: () => openEditorButton()
   },
@@ -164,9 +233,10 @@ export function getCommandMessage(command, user) {
   return { blocks }
 }
 
-/** For registering with setMyCommands (see README) — keep in sync with COMMANDS above. */
+/** For registering with setMyCommands — keep in sync with COMMANDS and handlers. */
 export const COMMAND_LIST = [
   { command: 'start', description: 'Welcome and open the editor' },
+  { command: 'mychannel', description: 'List your connected channels' },
   { command: 'help', description: 'Get the help menu' },
   { command: 'howtouse', description: 'Learn how to use the editor' },
   { command: 'about', description: 'Learn about the bot' }
