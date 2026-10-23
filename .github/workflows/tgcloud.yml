@@ -95,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
-            echo "::error::Add the Actions secret mapped to the selected bot_path (TGCLOUD_TOKEN for BotZoneBot; TGCLOUD_TOKEN_RICHDOCSBOT for RichDocsBot; TGCLOUD_TOKEN_IDPULLBOT for IdPullBot)."
+            echo "::error::Add the Actions secret or variable mapped to the selected bot_path (including TGCLOUD_TOKEN_TGRICHBOT for TgRichBot)."
             exit 1
           fi
           if [[ ! "$TGCLOUD_TOKEN" =~ ^app([0-9]+):.+$ ]]; then
