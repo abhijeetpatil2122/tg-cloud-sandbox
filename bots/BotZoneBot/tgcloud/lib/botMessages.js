@@ -12,7 +12,7 @@
 
 const APP_URL = 'https://app8747772496.tgcloud.ai/'
 
-function openEditorButton(text = '✏️ Open editor') {
+export function openEditorButton(text = '✏️ Open editor') {
   return {
     type: 'buttons',
     align: 'center',
@@ -120,25 +120,11 @@ const COMMANDS = {
         type: 'list',
         items: [
           { type: '1', value: 1, blocks: [{ type: 'paragraph', text: 'Tap "Open editor" to launch the Mini App' }] },
-          { type: '1', value: 2, blocks: [{ type: 'paragraph', text: 'Add the bot to your channel as an admin with permission to post, or add it to your group' }] },
+          { type: '1', value: 2, blocks: [{ type: 'paragraph', text: ['Tap the ', { type: 'bold', text: 'Add Channel' }, ' button below the chat to add the bot as an administrator in your channel.'] }] },
           { type: '1', value: 3, blocks: [{ type: 'paragraph', text: 'Use the bottom toolbar to add blocks — text, headings, quotes, lists, tables, media, and more' }] },
           { type: '1', value: 4, blocks: [{ type: 'paragraph', text: 'Tap Send, then choose your chat with the bot to preview it, or your saved channel/group to post it' }] }
         ]
       },
-      {
-        type: 'buttons',
-        align: 'center',
-        buttons: [
-          {
-            text: '➕ Add to Channel',
-            url: 'https://t.me/WriteRichBot?startchannel&admin=post_messages'
-          },
-          {
-            text: '👥 Add to Group',
-            url: 'https://t.me/WriteRichBot?startgroup'
-          }
-        ]
-      }
     ],
     button: () => openEditorButton()
   },
