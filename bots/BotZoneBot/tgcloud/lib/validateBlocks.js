@@ -22,8 +22,7 @@ const BLOCK_TYPES = new Set([
 ])
 
 const BUTTON_ACTION_FIELDS = [
-  'url', 'web_app', 'switch_inline_query',
-  'switch_inline_query_current_chat', 'copy_text', 'disabled'
+  'url', 'web_app', 'copy_text', 'disabled'
 ]
 
 function checkRichMessageButton(button) {
@@ -42,12 +41,6 @@ function checkRichMessageButton(button) {
   }
   if (button.web_app !== undefined && (typeof button.web_app.url !== 'string' || !/^https:\/\//i.test(button.web_app.url))) {
     throw new Error('Button Mini App URLs must use https://.')
-  }
-  if (button.switch_inline_query !== undefined && typeof button.switch_inline_query !== 'string') {
-    throw new Error('Invalid switch_inline_query.')
-  }
-  if (button.switch_inline_query_current_chat !== undefined && typeof button.switch_inline_query_current_chat !== 'string') {
-    throw new Error('Invalid switch_inline_query_current_chat.')
   }
   if (button.copy_text !== undefined && (typeof button.copy_text.text !== 'string' || !button.copy_text.text || button.copy_text.text.length > 256)) {
     throw new Error('Invalid copy_text.')
