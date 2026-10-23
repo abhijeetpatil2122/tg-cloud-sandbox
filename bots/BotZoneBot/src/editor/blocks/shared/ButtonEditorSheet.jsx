@@ -7,31 +7,21 @@ import { normalizeUrl } from './urlUtils.js'
 const DEST_LABEL = {
   url: 'URL',
   web_app: 'Mini App URL',
-  switch_inline_query: 'Pre-filled query (optional)',
-  switch_inline_query_current_chat: 'Pre-filled query (optional)',
   copy_text: 'Text to copy'
 }
 const DEST_PLACEHOLDER = {
   url: 't.me/your_channel or example.com',
   web_app: 'your-app.vercel.app/...',
-  switch_inline_query: 'leave blank to just open the chat picker',
-  switch_inline_query_current_chat: 'leave blank to prefill nothing',
   copy_text: 'the text the button copies'
 }
 const ACTION_LABEL = {
   url: 'URL',
   web_app: 'Mini App',
-  switch_inline_query: 'Share to chat',
-  switch_inline_query_current_chat: 'Insert here',
   copy_text: 'Copy text',
   disabled: 'Disabled'
 }
 const ACTION_HINT = {
   disabled: 'Shows the button but it does nothing when tapped — useful as a label-only row item.',
-  switch_inline_query:
-    'Opens the chat picker and types "@bot your query" for the user. The bot is always the one that posts this message (this bot) — Telegram has no field to point a button at a different bot. To send people to your own bot, use a URL button with https://t.me/your_bot instead.',
-  switch_inline_query_current_chat:
-    'Same, but types it into the chat the button is already in. Always uses the posting bot — to send people to your own bot, use a URL button with https://t.me/your_bot.'
 }
 
 // 'url' and 'web_app' are URL-shaped fields — scheme-less input gets https://
