@@ -138,7 +138,7 @@ export default async function (message) {
       }
 
       const existingChats = await listSavedChats(message.from.id);
-      alreadySaved = existingingChatsPlaceholder(existingChats, chat.id);
+      alreadySaved = existingChats.some((saved) => String(saved.id) === String(chat.id));
 
       await saveChat(message.from.id, {
         ...chat,
@@ -223,7 +223,4 @@ export default async function (message) {
     ...(command === 'start' ? { reply_markup: CHAT_SHARE_KEYBOARD } : {}),
   });
 }
-
-function existingingChatsPlaceholder(chats, chatId) {
-  return chats.some((saved) => String(saved.id) === String(chatId));
-}
+\n
