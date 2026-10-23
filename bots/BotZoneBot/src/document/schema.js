@@ -34,13 +34,13 @@ export const BUTTON_STYLES = ['default', 'primary', 'success', 'danger']
 
 // Action types exposed in the UI. Callback buttons are intentionally NOT
 // offered: they only do something if the posting bot handles the resulting
-// callback query, and this bot just posts content. `login_url` and
-// `switch_inline_query_chosen_chat` exist in the API too but are niche.
+// callback query, and this bot just posts content. Inline-query buttons are
+// out too: they can only ever invoke the *posting* bot's inline mode (never
+// another bot's), which is useless to anyone else. `login_url` and
+// `switch_inline_query_chosen_chat` exist in the API but are niche.
 export const BUTTON_ACTION_TYPES = [
   'url',
   'web_app',
-  'switch_inline_query',
-  'switch_inline_query_current_chat',
   'copy_text',
   'disabled'
 ]
