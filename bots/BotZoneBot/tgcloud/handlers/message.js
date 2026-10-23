@@ -8,7 +8,7 @@ const SHARE_CHANNEL_REQUEST_ID = 4201;
 const CHAT_SHARE_KEYBOARD = {
   keyboard: [[
     {
-      text: '📢 Share Channel',
+      text: '➕ Add Channel',
       request_chat: {
         request_id: SHARE_CHANNEL_REQUEST_ID,
         chat_is_channel: true,
@@ -23,43 +23,59 @@ const CHAT_SHARE_KEYBOARD = {
   ]],
   is_persistent: true,
   resize_keyboard: true,
-  input_field_placeholder: 'Share Channel',
+  input_field_placeholder: 'Add Channel',
 };
 
 function confirmationMessage(chat, botCanPost, alreadySaved) {
-  const title = typeof chat.title === 'string' && chat.title.trim()
-    ? chat.title.trim()
-    : 'Untitled channel';
-  const username = typeof chat.username === 'string' && chat.username.trim()
-    ? `@${chat.username.replace(/^@/, '')}`
-    : 'No public username';
-  const heading = alreadySaved ? 'Channel already connected' : 'Channel saved successfully';
   const blocks = [
-    { type: 'heading', size: 2, text: `✅ ${heading}` },
-    {
-      type: 'paragraph',
-      text: alreadySaved
-        ? 'This channel was already in your saved chats. Its details have been refreshed.'
-        : 'Your channel is now connected to Rich Message Editor and is ready to use.',
-    },
-    { type: 'divider' },
-    {
-      type: 'list',
-      items: [
-        { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Channel' }, `: ${title}`] }] },
-        { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Username' }, `: ${username}`] }] },
-        { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Channel ID' }, `: ${chat.id}`] }] },
-        { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Bot status' }, `: ${botCanPost ? 'Administrator · can post messages' : 'Permission not verified'}`] }] },
-      ],
-    },
-    { type: 'divider' },
-    {
-      type: 'footer',
-      text: botCanPost
-        ? 'You can now select this channel from the editor’s Send menu.'
-        : 'Open channel settings and grant the bot permission to post messages.',
-    },
+    { type: 'heading', size: 2, text: alreadySaved ? '✅ Channel already connected' : '✅ Channel saved successfully' },
   ];
+
+  if (!alreadySaved) {
+    blocks.push({
+      type: 'paragraph',
+      text: 'Your channel is now connected to Rich Message Editor and is ready to use.',
+    });
+    blocks.push({ type: 'divider' });
+  }
+
+  const details = [
+    { blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Channel' }, ': ', chat.title || 'Untitled channel'] }] },
+  ];
+
+  if (typeof chat.username === 'string' && chat.username.trim()) {
+    details.push({
+      blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Username' }, ': ', { type: 'code', text: `@${chat.username.replace(/^@/, '')}` }] }],
+    });
+  }
+
+  details.push({
+    blocks: [
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Channel ID' }, ': ', { type: 'code', text: String(chat.id) }] },
+    ],
+  });
+  details.push({
+    blocks: [
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Bot status' }] },
+      {
+        type: 'list',
+        items: [
+          {
+            blocks: [
+              { type: 'paragraph', text: 'Administrator' },
+              {
+                type: 'list',
+                items: [{ blocks: [{ type: 'paragraph', text: 'Can post messages' }] }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  blocks.push({ type: 'list', items: details });
+  blocks.push(openEditorButton());
   return { blocks };
 }
 
