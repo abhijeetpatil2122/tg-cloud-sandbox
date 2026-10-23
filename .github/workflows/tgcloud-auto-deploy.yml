@@ -232,7 +232,7 @@ jobs:
       - name: Validate CLI token matches the configured app
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || '' }}
         run: |
           set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
