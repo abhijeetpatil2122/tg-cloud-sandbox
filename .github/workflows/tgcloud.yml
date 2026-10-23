@@ -9,7 +9,7 @@ on:
         default: "bots/BotZoneBot"
         type: string
       expected_app_id:
-        description: "Numeric app ID from this bot's CLI token (app<id>:...)"
+        description: "Numeric app ID, or FROM_TOKEN for TgRichBot (derived from its scoped token)"
         required: true
         type: string
       mode:
@@ -91,7 +91,7 @@ jobs:
 
       - name: Validate CLI token matches selected app
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
         run: |
           set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
@@ -103,14 +103,17 @@ jobs:
             exit 1
           fi
           token_app_id="${BASH_REMATCH[1]}"
-          if [[ ! "$EXPECTED_APP_ID" =~ ^[0-9]+$ || "$token_app_id" != "$EXPECTED_APP_ID" ]]; then
+          if [[ "$EXPECTED_APP_ID" == "FROM_TOKEN" && "$BOT_PATH" == "bots/TgRichBot" ]]; then
+            echo "EXPECTED_APP_ID=$token_app_id" >> "$GITHUB_ENV"
+            echo "Using the verified app ID encoded in the TgRichBot token."
+          elif [[ ! "$EXPECTED_APP_ID" =~ ^[0-9]+$ || "$token_app_id" != "$EXPECTED_APP_ID" ]]; then
             echo "::error::The token app ID does not match expected_app_id. Check the selected bot and secret; no deploy was attempted."
             exit 1
           fi
 
       - name: Fetch cloud state and show status
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -120,10 +123,18 @@ jobs:
       - name: Deploy selected bot project
         if: inputs.mode == 'deploy'
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
+          if [[ "$BOT_PATH" == "bots/TgRichBot" ]]; then
+            sed -i "s/__TGCLOUD_APP_ID__/$EXPECTED_APP_ID/g" tgcloud/lib/botMessages.js
+            if grep -q '__TGCLOUD_APP_ID__' tgcloud/lib/botMessages.js; then
+              echo "::error::Failed to resolve the production Mini App URL."
+              exit 1
+            fi
+            npm run build
+          fi
           if grep -Eq '"static"[[:space:]]*:' tgcloud.jsonc; then
             # Full push deploys static build output and Serverless modules together.
             # It mirrors the local module set to the cloud, including deletions.
