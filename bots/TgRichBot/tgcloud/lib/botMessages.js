@@ -2,7 +2,7 @@
 // Keep the Mini App's authenticated publishing endpoint separate from command
 // replies and channel-onboarding notifications.
 
-const APP_URL = 'https://app__TGCLOUD_APP_ID__.tgcloud.ai/'
+const APP_URL = 'https://app8742522520.tgcloud.ai/'
 
 export function openEditorButton(text = '✏️ Open editor') {
   return {
