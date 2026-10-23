@@ -7,7 +7,7 @@ import {
   Check, AlertCircle, Upload, LoaderCircle, Bold, Italic, Underline, Strikethrough,
   Code, Link2, Subscript, Superscript, Highlighter, EyeOff, RemoveFormatting, RefreshCw,
   SquareMousePointer, ExternalLink, AppWindow, AlignLeft, AlignCenter, AlignRight, Pencil,
-  Ban, Forward, CornerDownLeft, Copy, Variable, Megaphone, Bot, Tag
+  Ban, Copy, Variable, Megaphone, Bot, Tag
 } from 'lucide-react'
 
 // Thin name -> Lucide-component lookup so the rest of the app keeps using
@@ -73,8 +73,6 @@ const ICONS = {
   'action-url': ExternalLink,
   'action-web_app': AppWindow,
   'action-disabled': Ban,
-  'action-switch_inline_query': Forward,
-  'action-switch_inline_query_current_chat': CornerDownLeft,
   'action-copy_text': Copy,
   'align-left': AlignLeft,
   'align-center': AlignCenter,
