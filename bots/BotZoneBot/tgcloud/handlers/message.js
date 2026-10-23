@@ -131,7 +131,7 @@ export default async function (message) {
 
       await api.sendRichMessage({
         chat_id: chatId,
-        rich_message: confirmationMessage({ ...chat, title: chat.title || shared.title || 'Untitled channel' }, botCanPost, alreadySaved),
+        rich_message: confirmationMessage({ ...chat, id: chat.id, title: chat.title || shared.title || 'Untitled channel', username: chat.username || shared.username || null }, botCanPost, alreadySaved),
         reply_markup: CHAT_SHARE_KEYBOARD,
       });
     } catch (error) {
