@@ -91,7 +91,7 @@ jobs:
 
       - name: Validate CLI token matches selected app
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || '' }}
         run: |
           set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
