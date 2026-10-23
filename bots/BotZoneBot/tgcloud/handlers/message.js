@@ -223,4 +223,4 @@ export default async function (message) {
     ...(command === 'start' ? { reply_markup: CHAT_SHARE_KEYBOARD } : {}),
   });
 }
-\n
+
