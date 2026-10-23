@@ -1,6 +1,5 @@
 import { api, EndpointError } from 'sdk';
 import { listSavedChats, removeSavedChat } from '../lib/storage.js';
-import { openEditorButton } from '../lib/botMessages.js';
 
 export default async function (input, ctx) {
   const user = ctx.initData?.user;
@@ -26,7 +25,6 @@ export default async function (input, ctx) {
               type: 'paragraph',
               text: ['Your channel ', { type: 'bold', text: saved.title || 'Untitled channel' }, ' has been removed from the editor.'],
             },
-            openEditorButton(),
           ],
         },
       });
