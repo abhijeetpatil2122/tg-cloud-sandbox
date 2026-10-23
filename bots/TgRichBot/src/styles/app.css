@@ -1,0 +1,941 @@
+/* ---------- App shell ---------- */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ---------- Header ---------- */
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  background: var(--tg-theme-header-bg-color);
+  border-bottom: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent);
+  flex-shrink: 0;
+}
+
+.header-group { display: flex; align-items: center; gap: 4px; }
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: var(--tg-theme-text-color);
+}
+.icon-btn:active { background: color-mix(in srgb, var(--tg-theme-hint-color) 18%, transparent); }
+.icon-btn:disabled { opacity: 0.32; }
+
+.avatar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--tg-theme-button-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tg-theme-button-text-color);
+  font-weight: 600;
+  font-size: 14px;
+}
+.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- Editor canvas ---------- */
+.editor-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 14px 24px;
+}
+
+/* Controls sit in normal flow above each block's content (not floated over
+   it) and are always visible — no hover-state to lose on a touchscreen,
+   and nothing for them to visually overlap/"mix" with. */
+.block-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.block-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.block-controls .icon-btn {
+  width: 26px;
+  height: 26px;
+  background: var(--tg-theme-secondary-bg-color);
+  border-radius: 7px;
+  opacity: 0.85;
+}
+/* Not scoped to .block-controls — this also covers the channel-remove
+   button in Settings, which was rendering in the default text color. */
+.icon-btn.delete { color: var(--tg-theme-destructive-text-color); }
+
+.rich-input {
+  outline: none;
+  min-height: 1.4em;
+  line-height: 1.45;
+  font-size: 16px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.rich-input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--tg-theme-hint-color);
+  pointer-events: none;
+}
+.rich-input b, .rich-input strong { font-weight: 700; }
+.rich-input i, .rich-input em { font-style: italic; }
+.rich-input code {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: color-mix(in srgb, var(--tg-theme-hint-color) 16%, transparent);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.rich-input a { color: var(--tg-theme-link-color); text-decoration: none; }
+
+/* Headings — relative sizes 1 (largest) .. 6 (smallest), mirrors <h1>-<h6> */
+.heading-block[data-size='1'] .rich-input { font-size: 28px; font-weight: 700; line-height: 1.25; }
+.heading-block[data-size='2'] .rich-input { font-size: 24px; font-weight: 700; line-height: 1.28; }
+.heading-block[data-size='3'] .rich-input { font-size: 20px; font-weight: 700; line-height: 1.3; }
+.heading-block[data-size='4'] .rich-input { font-size: 18px; font-weight: 600; line-height: 1.3; }
+.heading-block[data-size='5'] .rich-input { font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--tg-theme-hint-color); }
+.heading-block[data-size='6'] .rich-input { font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--tg-theme-hint-color); text-transform: uppercase; letter-spacing: 0.03em; }
+
+.heading-size-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tg-theme-hint-color);
+  background: var(--tg-theme-secondary-bg-color);
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin-bottom: 6px;
+}
+
+/* Blockquote / expandable blockquote — flush, no card background, just
+   the accent bar (matches how Telegram actually renders these in-chat). */
+.blockquote-block {
+  display: flex;
+  gap: 10px;
+  padding: 2px 0 2px 2px;
+}
+.blockquote-block .bar { width: 3px; border-radius: 2px; background: var(--tg-theme-accent-text-color); flex-shrink: 0; }
+.blockquote-block .content { flex: 1; min-width: 0; }
+.blockquote-block .credit-input {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--tg-theme-hint-color);
+  border: none;
+  background: transparent;
+  width: 100%;
+}
+.blockquote-block .expand-toggle {
+  font-size: 12px;
+  color: var(--tg-theme-link-color);
+  margin-top: 6px;
+  display: inline-block;
+}
+
+/* Pull quote — centered, larger, with credit under a short rule */
+.pullquote-block {
+  text-align: center;
+  padding: 14px 10px;
+}
+.pullquote-block .rich-input {
+  font-size: 19px;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.4;
+}
+.pullquote-block .credit-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pullquote-block .credit-row .rule { width: 24px; height: 1px; background: var(--tg-theme-hint-color); }
+.pullquote-block .credit-input {
+  font-size: 13px;
+  color: var(--tg-theme-hint-color);
+  border: none;
+  background: transparent;
+  text-align: center;
+}
+
+/* Lists */
+.list-block { display: flex; flex-direction: column; gap: 4px; }
+.list-item-row { display: flex; align-items: flex-start; gap: 8px; }
+.list-marker {
+  flex-shrink: 0;
+  width: 20px;
+  padding-top: 2px;
+  color: var(--tg-theme-hint-color);
+  font-size: 15px;
+  text-align: right;
+}
+.list-marker.bullet::before { content: '•'; }
+.list-checkbox {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  border-radius: 5px;
+  border: 1.5px solid var(--tg-theme-hint-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.list-checkbox.checked { background: var(--tg-theme-button-color); border-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+.list-item-row .rich-input { flex: 1; }
+.list-item-remove { flex-shrink: 0; opacity: 0.5; }
+.list-add-row { font-size: 14px; color: var(--tg-theme-hint-color); padding: 4px 28px; }
+
+/* Divider */
+.divider-block { display: flex; align-items: center; padding: 6px 0; }
+.divider-block hr { flex: 1; border: none; border-top: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent); }
+
+/* Table */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+.rich-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.rich-table.bordered td, .rich-table.bordered th { border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 30%, transparent); }
+.rich-table.striped tr:nth-child(even) { background: var(--tg-theme-secondary-bg-color); }
+.rich-table.compact td, .rich-table.compact th { padding: 4px 6px; }
+.rich-table td, .rich-table th { padding: 8px 10px; min-width: 72px; }
+.rich-table th { background: var(--tg-theme-secondary-bg-color); font-weight: 600; }
+.rich-table .rich-input { min-width: 40px; white-space: normal; }
+.table-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+/* Generic small pill button — reused outside the table toolbar too (e.g. the Buttons block's alignment row). */
+.chip {
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 20px;
+  background: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-hint-color);
+}
+.chip.active { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+.table-caption-input {
+  width: 100%;
+  font-size: 12px;
+  color: var(--tg-theme-hint-color);
+  text-align: center;
+  margin-top: 6px;
+  border: none;
+  background: transparent;
+}
+
+/* Media block — only the empty placeholder gets a (dashed, flush) frame;
+   once there's a real photo/video, the image itself is the visual, with
+   no card background boxing it in. */
+.media-block { border-radius: 12px; overflow: hidden; }
+.media-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px 16px;
+  color: var(--tg-theme-hint-color);
+  border: 1.5px dashed color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  border-radius: 12px;
+}
+.media-placeholder .row { display: flex; gap: 8px; }
+.media-mode-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+}
+.media-mode-btn.secondary { background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent); }
+.media-url-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--tg-theme-bg-color);
+  border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  font-size: 14px;
+}
+.media-preview { position: relative; width: 100%; }
+.media-preview img, .media-preview video { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+.media-preview .upload-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  gap: 8px;
+}
+.media-caption-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: none;
+  background: transparent;
+  color: var(--tg-theme-hint-color);
+}
+.media-error-banner {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--tg-theme-destructive-text-color);
+  background: color-mix(in srgb, var(--tg-theme-destructive-text-color) 12%, transparent);
+}
+
+/* ---------- Bottom toolbar (block picker) ---------- */
+.block-toolbar {
+  flex-shrink: 0;
+  border-top: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent);
+  background: var(--tg-theme-bg-color);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.inline-marks-row {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-bottom: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
+}
+.inline-marks-row .icon-btn:disabled { opacity: 0.28; }
+
+/* Single compact scrolling row, categories separated by a thin divider
+   instead of stacked label headers — shorter, more native-feeling bar. */
+.toolbar-scroll {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 12px;
+}
+.toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent);
+  flex-shrink: 0;
+}
+.toolbar-items { display: flex; gap: 4px; flex-shrink: 0; }
+.toolbar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 50px;
+  padding: 4px 2px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.toolbar-item:active { background: var(--tg-theme-secondary-bg-color); }
+.toolbar-item .icon-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--tg-theme-secondary-bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tg-theme-accent-text-color);
+}
+.toolbar-item span { font-size: 10px; color: var(--tg-theme-hint-color); white-space: nowrap; }
+
+/* ---------- Bottom sheet ---------- */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.sheet-backdrop.open { opacity: 1; }
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  background: var(--tg-theme-bg-color);
+  border-radius: 16px 16px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.sheet.open { transform: translateY(0); }
+
+.sheet-handle { width: 36px; height: 4px; background: var(--tg-theme-hint-color); opacity: 0.4; border-radius: 3px; margin: 8px auto; }
+.sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 16px 8px; }
+.sheet-header h3 { font-size: 16px; margin: 0; }
+.sheet-body { overflow-y: auto; padding: 4px 12px 16px; min-height: 0; }
+
+.destination-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 6px;
+  border-radius: 12px;
+}
+.destination-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--tg-theme-secondary-bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--tg-theme-accent-text-color);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.destination-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.destination-info { flex: 1; min-width: 0; }
+.destination-title { font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.destination-sub { font-size: 12px; color: var(--tg-theme-hint-color); }
+.destination-send-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  flex-shrink: 0;
+}
+.destination-send-btn:disabled { opacity: 0.5; }
+.destination-send-btn.sent { background: var(--success-color); }
+
+.sheet-empty { text-align: center; padding: 24px 16px; color: var(--tg-theme-hint-color); font-size: 13px; }
+.sheet-add-channel-link { text-align: center; padding: 4px 0 12px; font-size: 13px; color: var(--tg-theme-link-color); }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 12px);
+  min-width: 220px;
+  max-width: 88vw;
+  padding: 11px 16px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  z-index: 60;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+.toast.success { background: var(--success-color); }
+.toast.error { background: var(--error-color); }
+
+.icon-spin { animation: icon-spin 0.9s linear infinite; }
+@keyframes icon-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Settings screen ---------- */
+.settings-screen { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.settings-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  /* No in-app header on this screen (native BackButton handles navigation),
+     so clear Telegram's own top chrome/safe-area ourselves. */
+  padding: calc(28px + env(safe-area-inset-top, 0px)) 16px 20px;
+}
+.settings-profile .avatar-large {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 600;
+  overflow: hidden;
+}
+.settings-profile .avatar-large img { width: 100%; height: 100%; object-fit: cover; }
+.settings-profile .name { font-size: 18px; font-weight: 600; }
+.settings-profile .meta { font-size: 13px; color: var(--tg-theme-hint-color); }
+
+.settings-section { padding: 0 16px 18px; }
+.settings-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tg-theme-hint-color);
+  padding: 0 4px 8px;
+}
+.settings-card { background: var(--tg-theme-section-bg-color); border-radius: 12px; overflow: hidden; }
+.channel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 14%, transparent);
+}
+.channel-row:last-child { border-bottom: none; }
+.channel-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-accent-text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.channel-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.channel-row .name { font-size: 14px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.channel-row .username { font-size: 12px; color: var(--tg-theme-hint-color); }
+.channel-form { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.channel-form input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  background: var(--tg-theme-bg-color);
+  font-size: 14px;
+}
+/* Generic filled pill button — also used by ButtonEditorSheet. */
+.add-btn {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tg-theme-button-text-color);
+  background: var(--tg-theme-button-color);
+  padding: 8px 14px;
+  border-radius: 20px;
+}
+.add-btn:disabled { opacity: 0.5; }
+.channel-form .hint {
+  font-size: 12px;
+  color: var(--tg-theme-hint-color);
+  line-height: 1.4;
+}
+.channel-form .form-error { font-size: 12px; color: var(--tg-theme-destructive-text-color); }
+.settings-footer-note {
+  padding: 0 16px 30px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--tg-theme-hint-color);
+  text-align: center;
+}
+
+/* ---------- New inline marks ---------- */
+.rich-input sub { font-size: 0.75em; }
+.rich-input sup { font-size: 0.75em; }
+.rich-input mark {
+  background: color-mix(in srgb, var(--tg-theme-accent-text-color) 28%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.rich-input span[data-spoiler='true'] {
+  background: color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  border-radius: 3px;
+  color: transparent;
+}
+.rich-input span[data-spoiler='true']::selection { color: transparent; }
+
+/* ---------- Preformatted / code block ---------- */
+.preformatted-block { border-radius: 10px; overflow: hidden; background: color-mix(in srgb, var(--tg-theme-hint-color) 10%, transparent); }
+.preformatted-block .lang-select {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tg-theme-hint-color);
+  background: transparent;
+  padding: 6px 10px;
+  width: 100%;
+  border-bottom: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 16%, transparent);
+}
+.preformatted-block textarea {
+  display: block;
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tg-theme-text-color);
+}
+
+/* ---------- Footer block ---------- */
+.footer-block { font-size: 13px; color: var(--tg-theme-hint-color); padding-left: 2px; }
+
+/* ---------- Details block ---------- */
+.details-block { border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 22%, transparent); border-radius: 10px; padding: 10px 12px; }
+.details-block .summary-row { display: flex; align-items: center; gap: 8px; }
+.details-block .summary-row .rich-input { flex: 1; font-weight: 600; }
+.details-block .body { margin-top: 8px; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--tg-theme-hint-color) 25%, transparent); }
+.details-block .open-toggle {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--tg-theme-hint-color);
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--tg-theme-secondary-bg-color);
+}
+.details-block .open-toggle.active { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+
+/* ---------- Math block ---------- */
+.math-block textarea {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  background: transparent;
+  padding: 10px 12px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 14px;
+  color: var(--tg-theme-text-color);
+}
+.math-block .hint { font-size: 11px; color: var(--tg-theme-hint-color); margin-top: 4px; }
+.math-block .math-preview {
+  padding: 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tg-theme-hint-color) 8%, transparent);
+  overflow-x: auto;
+  color: var(--tg-theme-text-color);
+}
+.math-block .math-error { font-size: 12px; color: var(--tg-theme-destructive-text-color); }
+
+/* ---------- Map block ---------- */
+.map-block { display: flex; flex-direction: column; gap: 8px; }
+.map-block .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.map-block input {
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 32%, transparent);
+  background: transparent;
+  font-size: 13px;
+  color: var(--tg-theme-text-color);
+}
+.map-block .preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1.5px dashed color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  color: var(--tg-theme-hint-color);
+  font-size: 12px;
+}
+
+/* ---------- Collage / slideshow ---------- */
+.multi-media-block { display: flex; flex-direction: column; gap: 8px; }
+.multi-media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.multi-media-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--tg-theme-hint-color) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tg-theme-hint-color);
+}
+.multi-media-item img, .multi-media-item video { width: 100%; height: 100%; object-fit: cover; }
+.multi-media-item .remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.multi-media-add {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 8px;
+  border: 1.5px dashed color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  color: var(--tg-theme-hint-color);
+  aspect-ratio: 1;
+}
+.multi-media-add.choices button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tg-theme-secondary-bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tg-theme-accent-text-color);
+}
+.multi-media-add.url-entry { padding: 4px; flex-direction: column; gap: 4px; }
+.multi-media-add.url-entry input {
+  width: 100%;
+  font-size: 10px;
+  text-align: center;
+  border: none;
+  background: transparent;
+  color: var(--tg-theme-text-color);
+}
+.url-entry-actions { display: flex; gap: 6px; }
+.url-entry-actions button {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-accent-text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.url-entry-actions button:disabled { opacity: 0.4; }
+.multi-media-add.uploading .remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cancel-upload-btn {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255,255,255,0.2);
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-left: 4px;
+}
+
+/* ---------- Inline Rich Button span (atomic chip, shown inline inside running text) ---------- */
+.rich-input span[data-rich-button='true'] {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  font-size: 0.85em;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 20px;
+  margin: 0 1px;
+  cursor: pointer;
+}
+.rich-input span[data-rich-button='true'][data-style='primary'] { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+.rich-input span[data-rich-button='true'][data-style='success'] { background: var(--success-color); color: #fff; }
+.rich-input span[data-rich-button='true'][data-style='danger'] { background: var(--error-color); color: #fff; }
+.rich-input span[data-rich-button='true'][data-style=''] {
+  background: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+  border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+}
+
+/* ---------- Buttons block (block-level row) ---------- */
+.buttons-block { display: flex; flex-direction: column; gap: 8px; }
+.align-row { display: flex; gap: 4px; }
+.align-row .chip { display: flex; align-items: center; justify-content: center; width: 30px; padding: 5px 0; }
+.buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.buttons-row.align-left { justify-content: flex-start; }
+.buttons-row.align-center { justify-content: center; }
+.buttons-row.align-right { justify-content: flex-end; }
+.buttons-empty { font-size: 13px; color: var(--tg-theme-hint-color); }
+
+.rich-button-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.rich-button-pill.primary { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+.rich-button-pill.success { background: var(--success-color); color: #fff; }
+.rich-button-pill.danger { background: var(--error-color); color: #fff; }
+.rich-button-pill.default {
+  background: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+}
+.rich-button-remove {
+  display: flex;
+  margin-left: 2px;
+  opacity: 0.75;
+}
+.buttons-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  color: var(--tg-theme-hint-color);
+}
+
+/* ---------- Button editor sheet ---------- */
+.button-editor { display: flex; flex-direction: column; gap: 6px; padding-bottom: 8px; }
+.button-editor label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--tg-theme-hint-color);
+  margin-top: 8px;
+}
+.button-editor input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 32%, transparent);
+  background: transparent;
+  font-size: 14px;
+  color: var(--tg-theme-text-color);
+}
+.button-editor .field-hint {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--tg-theme-hint-color);
+  margin-top: 2px;
+}
+.pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.style-pill, .action-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-hint-color);
+  text-transform: capitalize;
+}
+.style-pill:disabled { opacity: 0.35; }
+.style-pill.active.default { background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); border: 1px solid color-mix(in srgb, var(--tg-theme-hint-color) 40%, transparent); }
+.style-pill.active.primary { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+.style-pill.active.success { background: var(--success-color); color: #fff; }
+.style-pill.active.danger { background: var(--error-color); color: #fff; }
+.action-pill.active { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+/* ---------- Settings: About pills (one line each: icon, name, optional value/badge) ---------- */
+.about-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.about-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: var(--tg-theme-section-bg-color);
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.about-pill.tappable:active { background: var(--tg-theme-secondary-bg-color); }
+.about-pill-icon { color: var(--tg-theme-accent-text-color); flex-shrink: 0; }
+.about-pill-label { font-weight: 600; }
+.about-pill-value {
+  color: var(--tg-theme-hint-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.about-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+}
+
+/* ---------- Inline math block (left-aligned, one scrollable line) ---------- */
+.inline-math-block input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  background: transparent;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 14px;
+  color: var(--tg-theme-text-color);
+}
+.inline-math-preview {
+  margin-top: 6px;
+  padding: 2px 2px;
+  text-align: left;
+  white-space: nowrap;
+  overflow-x: auto;
+  color: var(--tg-theme-text-color);
+}
+.inline-math-block .math-error { font-size: 12px; color: var(--tg-theme-destructive-text-color); margin-top: 4px; }
+
+
+/* Serverless migration: editor-only spacing block */
+
+
+.spacing-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 6px 10px;
+  border: 1px dashed color-mix(in srgb, var(--tg-theme-hint-color) 35%, transparent);
+  border-radius: 9px;
+  color: var(--tg-theme-hint-color);
+  font-size: 13px;
+}
+
+.spacing-block .spacing-controls { display: flex; align-items: center; gap: 8px; }
+
+.spacing-block .spacing-controls .icon-btn { background: var(--tg-theme-secondary-bg-color); }
+
+.spacing-block .spacing-controls .icon-btn:disabled { opacity: 0.3; }
