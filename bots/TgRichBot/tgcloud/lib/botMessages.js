@@ -166,7 +166,7 @@ const COMMANDS = {
             type: 'photo',
             photo: {
               type: 'photo',
-              media: 'https://image.zaw-myo.workers.dev/image/de6c8a03-ceff-47b5-975d-709ceb73b839'
+              media: 'https://image.zaw-myo.workers.dev/image/563decb5-d2c6-47cd-a891-a60ddbdb1e58'
             }
           },
           {
