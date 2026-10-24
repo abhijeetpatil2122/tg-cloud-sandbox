@@ -1,8 +1,10 @@
-import { api } from 'sdk';
+import { api, db } from 'sdk';
+import { eq } from 'sdk/db';
+import { chats } from '../schema.js';
 import { getCommandMessage, channelConnectionMessage } from '../lib/botMessages.js';
 import { listSavedChats, saveChat } from '../lib/storage.js';
 
-const KNOWN_COMMANDS = new Set(['start', 'help', 'howtouse', 'about', 'mychannel']);
+const KNOWN_COMMANDS = new Set(['start', 'help', 'howtouse', 'about', 'mychannel', 'stats']);
 const SHARE_CHANNEL_REQUEST_ID = 4201;
 
 const CHAT_SHARE_KEYBOARD = {
@@ -191,6 +193,40 @@ export default async function (message) {
   if (!text.startsWith('/')) return;
   const command = text.split(/\s+/)[0].slice(1).split('@')[0].toLowerCase();
   if (!KNOWN_COMMANDS.has(command)) return;
+
+  // Private owner-only global statistics. Intentionally excluded from help
+  // and the public BotFather command list.
+  if (command === 'stats') {
+    if (String(message.from?.id) !== '1314643983') return;
+
+    try {
+      const channelRows = await db.select({ chatId: chats.chatId })
+        .from(chats)
+        .where(eq(chats.type, 'channel'))
+        .all();
+      await api.sendRichMessage({
+        chat_id: chatId,
+        rich_message: {
+          blocks: [
+            { type: 'heading', size: 2, text: 'Global Statistics' },
+            { type: 'paragraph', text: [
+              { type: 'bold', text: 'Total added channels: ' },
+              String(channelRows.length),
+            ] },
+          ],
+        },
+      });
+    } catch (error) {
+      console.error('Failed to load global channel statistics:', {
+        message: error?.description || error?.message || String(error),
+      });
+      await api.sendMessage({
+        chat_id: chatId,
+        text: 'I could not load the global statistics right now. Please try again in a moment.',
+      });
+    }
+    return;
+  }
 
   if (command === 'mychannel') {
     try {
