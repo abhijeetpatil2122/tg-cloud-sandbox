@@ -50,10 +50,26 @@ function checkRichMessageButton(button) {
   }
 }
 
+// Limits straight from the Bot API's rich-message docs: up to 500 blocks
+// (counting nested blocks, list items and table rows), 16 levels of nesting,
+// 50 media attachments, 20 table columns, 32768 characters of text.
+const LIMITS = { blocks: 500, depth: 16, media: 50, columns: 20, chars: 32768 }
+
+// Running totals for the message being validated. Validation is fully
+// synchronous, so one module-level object (reset per call) is safe.
+let stats = { blocks: 0, media: 0, chars: 0 }
+
+function countBlocks(n) {
+  stats.blocks += n
+  if (stats.blocks > LIMITS.blocks) {
+    throw new Error(`Too many blocks — Telegram allows ${LIMITS.blocks} in total (nested blocks, list items and table rows all count).`)
+  }
+}
+
 function checkRichText(value, depth = 0) {
   if (depth > 12) throw new Error('Rich text is nested too deeply.')
   if (typeof value === 'string') {
-    if (value.length > 8000) throw new Error('A text block is too long.')
+    stats.chars += value.length
     return
   }
   if (Array.isArray(value)) {
@@ -65,9 +81,10 @@ function checkRichText(value, depth = 0) {
     throw new Error('Unsupported inline formatting.')
   }
   if (value.type === 'mathematical_expression') {
-    if (typeof value.expression !== 'string' || !value.expression || value.expression.length > 4000) {
+    if (typeof value.expression !== 'string' || !value.expression) {
       throw new Error('Invalid inline math expression.')
     }
+    stats.chars += value.expression.length
     return
   }
   if (value.type === 'button') {
@@ -97,12 +114,17 @@ function checkMediaBlock(block) {
 }
 
 function checkBlock(block, depth = 0) {
-  if (depth > 6) throw new Error('Blocks are nested too deeply.')
+  if (depth > LIMITS.depth) throw new Error(`Blocks are nested too deeply — Telegram allows ${LIMITS.depth} levels.`)
   if (!block || typeof block !== 'object' || !BLOCK_TYPES.has(block.type)) {
     throw new Error(`Unsupported block type: ${block?.type}`)
   }
+  countBlocks(1)
 
-  if (MEDIA_BLOCK_TYPES.has(block.type)) return checkMediaBlock(block)
+  if (MEDIA_BLOCK_TYPES.has(block.type)) {
+    stats.media += 1
+    if (stats.media > LIMITS.media) throw new Error(`Too many media files — Telegram allows ${LIMITS.media} per message.`)
+    return checkMediaBlock(block)
+  }
 
   switch (block.type) {
     case 'paragraph':
@@ -114,7 +136,8 @@ function checkBlock(block, depth = 0) {
       }
       return checkRichText(block.text)
     case 'pre':
-      if (typeof block.text !== 'string' || block.text.length > 20000) throw new Error('Invalid code block.')
+      if (typeof block.text !== 'string') throw new Error('Invalid code block.')
+      stats.chars += block.text.length
       return
     case 'pullquote':
       checkRichText(block.text)
@@ -125,23 +148,24 @@ function checkBlock(block, depth = 0) {
       if (block.credit !== undefined) checkRichText(block.credit)
       return
     case 'blockquote':
-      if (!Array.isArray(block.blocks) || block.blocks.length > 50) throw new Error('Invalid quote content.')
+      if (!Array.isArray(block.blocks)) throw new Error('Invalid quote content.')
       block.blocks.forEach((b) => checkBlock(b, depth + 1))
       if (block.credit !== undefined) checkRichText(block.credit)
       return
     case 'list':
-      if (!Array.isArray(block.items) || !block.items.length || block.items.length > 200) {
-        throw new Error('Invalid list.')
-      }
+      if (!Array.isArray(block.items) || !block.items.length) throw new Error('Invalid list.')
       block.items.forEach((item) => {
-        if (!Array.isArray(item.blocks)) throw new Error('Invalid list item.')
+        if (!Array.isArray(item.blocks) || !item.blocks.length) throw new Error('Invalid list item.')
+        countBlocks(1) // each list item counts toward the 500-block limit
         item.blocks.forEach((b) => checkBlock(b, depth + 1))
       })
       return
     case 'table': {
-      if (!Array.isArray(block.cells) || block.cells.length > 100) throw new Error('Invalid table.')
+      if (!Array.isArray(block.cells)) throw new Error('Invalid table.')
       block.cells.forEach((row) => {
-        if (!Array.isArray(row) || row.length > 30) throw new Error('Invalid table row.')
+        if (!Array.isArray(row)) throw new Error('Invalid table row.')
+        if (row.length > LIMITS.columns) throw new Error(`Tables can have at most ${LIMITS.columns} columns.`)
+        countBlocks(1) // each table row counts too
         row.forEach((cell) => {
           if (cell.text !== undefined) checkRichText(cell.text)
         })
@@ -151,15 +175,14 @@ function checkBlock(block, depth = 0) {
     }
     case 'details':
       checkRichText(block.summary)
-      if (!Array.isArray(block.blocks) || block.blocks.length > 20) throw new Error('Invalid details content.')
+      if (!Array.isArray(block.blocks)) throw new Error('Invalid details content.')
       block.blocks.forEach((b) => checkBlock(b, depth + 1))
       return
     case 'divider':
       return
     case 'mathematical_expression':
-      if (typeof block.expression !== 'string' || !block.expression || block.expression.length > 4000) {
-        throw new Error('Invalid math expression.')
-      }
+      if (typeof block.expression !== 'string' || !block.expression) throw new Error('Invalid math expression.')
+      stats.chars += block.expression.length
       return
     case 'map':
       if (!block.location || typeof block.location.latitude !== 'number' || typeof block.location.longitude !== 'number') {
@@ -169,9 +192,7 @@ function checkBlock(block, depth = 0) {
       return
     case 'collage':
     case 'slideshow':
-      if (!Array.isArray(block.blocks) || !block.blocks.length || block.blocks.length > 20) {
-        throw new Error(`Invalid ${block.type}.`)
-      }
+      if (!Array.isArray(block.blocks) || !block.blocks.length) throw new Error(`Invalid ${block.type}.`)
       block.blocks.forEach((b) => checkBlock(b, depth + 1))
       checkCaption(block.caption)
       return
@@ -189,8 +210,11 @@ function checkBlock(block, depth = 0) {
 
 export function validateBlocks(blocks) {
   if (!Array.isArray(blocks) || !blocks.length) throw new Error('The message is empty.')
-  if (blocks.length > 300) throw new Error('The message has too many blocks.')
+  stats = { blocks: 0, media: 0, chars: 0 }
   blocks.forEach((b) => checkBlock(b))
-  if (JSON.stringify(blocks).length > 200_000) throw new Error('The message is too large.')
+  if (stats.chars > LIMITS.chars) {
+    throw new Error(`The message is too long — ${stats.chars} characters, Telegram allows ${LIMITS.chars}.`)
+  }
+  if (JSON.stringify(blocks).length > 1_000_000) throw new Error('The message is too large.')
   return blocks
 }

@@ -48,6 +48,12 @@ export const BUTTON_ACTION_TYPES = [
 /** 'disabled' buttons (DisabledButton = {}) have no destination field — every other action type needs one. */
 export const buttonNeedsDest = (actionType) => actionType !== 'disabled'
 
+// How deep the editor lets you nest blocks inside blocks (top level = 0).
+// The API allows 16 levels of nested formatting *and* blocks combined — we
+// stop well short of that because every level costs horizontal space on a
+// phone. Raise it here if you want to allow more.
+export const MAX_NEST_DEPTH = 4
+
 export const LIST_STYLE = Object.freeze({
   BULLET: 'bullet',
   NUMBER: 'number',
@@ -103,11 +109,11 @@ export function createBlock(type, overrides = {}) {
         style: overrides.style || LIST_STYLE.BULLET,
         items: overrides.items?.length
           ? overrides.items
-          : [{ id: uid('li'), html: emptyRich(), checked: false }],
+          : [{ id: uid('li'), html: emptyRich(), checked: false, children: [] }],
         ...overrides
       }
     case BLOCK.BLOCKQUOTE:
-      return { id, type, html: emptyRich(), creditHtml: emptyRich(), ...overrides }
+      return { id, type, html: emptyRich(), creditHtml: emptyRich(), children: [], ...overrides }
     case BLOCK.EXPANDABLE_BLOCKQUOTE:
       // Always renders collapsed-until-tapped — Telegram has no "default open" option for this one.
       return { id, type, html: emptyRich(), creditHtml: emptyRich(), ...overrides }
@@ -136,7 +142,7 @@ export function createBlock(type, overrides = {}) {
         ...overrides
       }
     case BLOCK.DETAILS:
-      return { id, type, summaryHtml: emptyRich(), bodyHtml: emptyRich(), isOpen: false, ...overrides }
+      return { id, type, summaryHtml: emptyRich(), bodyHtml: emptyRich(), isOpen: false, children: [], ...overrides }
     case BLOCK.DIVIDER:
       return { id, type }
     case BLOCK.SPACING:
@@ -176,36 +182,42 @@ export function createInitialDocument() {
   return { blocks: [createBlock(BLOCK.PARAGRAPH)] }
 }
 
+const childrenEmpty = (children) => !children?.length || children.every(blockIsEmpty)
+
+/** True when a block (and everything nested inside it) has nothing worth sending. */
+export function blockIsEmpty(b) {
+  switch (b.type) {
+    case BLOCK.DIVIDER:
+    case BLOCK.SPACING:
+    case BLOCK.TABLE:
+      return false
+    case BLOCK.MEDIA:
+      return !b.source
+    case BLOCK.MULTI_MEDIA:
+      return b.items.every((i) => !i.source)
+    case BLOCK.BUTTONS:
+      return b.buttons.every((btn) => !btn.text.trim() || (buttonNeedsDest(btn.actionType) && !btn.dest.trim()))
+    case BLOCK.MAP:
+      return !b.latitude || !b.longitude
+    case BLOCK.MATH:
+    case BLOCK.INLINE_MATH:
+      return !b.expression.trim()
+    case BLOCK.PREFORMATTED:
+      return !b.code.trim()
+    case BLOCK.DETAILS:
+      return !plainText(b.summaryHtml).trim() && !plainText(b.bodyHtml).trim() && childrenEmpty(b.children)
+    case BLOCK.BLOCKQUOTE:
+      return !plainText(b.html).trim() && childrenEmpty(b.children)
+    case BLOCK.LIST:
+      return b.items.every((i) => !plainText(i.html).trim() && childrenEmpty(i.children))
+    default:
+      return !plainText(b.html).trim()
+  }
+}
+
 export function isDocumentEmpty(doc) {
   if (!doc?.blocks?.length) return true
-  return doc.blocks.every((b) => {
-    switch (b.type) {
-      case BLOCK.DIVIDER:
-      case BLOCK.SPACING:
-        return false
-      case BLOCK.TABLE:
-        return false
-      case BLOCK.MEDIA:
-        return !b.source
-      case BLOCK.MULTI_MEDIA:
-        return b.items.every((i) => !i.source)
-      case BLOCK.BUTTONS:
-        return b.buttons.every((btn) => !btn.text.trim() || (buttonNeedsDest(btn.actionType) && !btn.dest.trim()))
-      case BLOCK.MAP:
-        return !b.latitude || !b.longitude
-      case BLOCK.MATH:
-      case BLOCK.INLINE_MATH:
-        return !b.expression.trim()
-      case BLOCK.PREFORMATTED:
-        return !b.code.trim()
-      case BLOCK.DETAILS:
-        return !plainText(b.summaryHtml).trim() && !plainText(b.bodyHtml).trim()
-      case BLOCK.LIST:
-        return b.items.every((i) => !plainText(i.html).trim())
-      default:
-        return !plainText(b.html).trim()
-    }
-  })
+  return doc.blocks.every(blockIsEmpty)
 }
 
 /** Strip HTML tags to get plain text length/content checks. */

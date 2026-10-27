@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import EditorHeader from './EditorHeader.jsx'
 import BlockToolbar from './BlockToolbar.jsx'
-import BlockRenderer from './BlockRenderer.jsx'
+import BlockList from './BlockList.jsx'
 import SendSheet from './SendSheet.jsx'
 import Toast from '../components/Toast.jsx'
 import { useDocument } from '../store/DocumentContext.jsx'
@@ -29,25 +29,16 @@ export default function EditorScreen({ user, channels, onOpenSettings }) {
   }, [isEmpty, sheetOpen])
 
   const blocks = sheetOpen ? buildRichMessageBlocks(doc) : null
-  const lastBlockId = doc.blocks[doc.blocks.length - 1]?.id
 
   return (
     <div className="app">
       <EditorHeader user={user} onOpenSettings={onOpenSettings} />
 
       <div className="editor-canvas">
-        {doc.blocks.map((block, index) => (
-          <BlockRenderer
-            key={block.id}
-            block={block}
-            index={index}
-            total={doc.blocks.length}
-            activeInputRef={activeInputRef}
-          />
-        ))}
+        <BlockList blocks={doc.blocks} depth={0} activeInputRef={activeInputRef} />
       </div>
 
-      <BlockToolbar activeInputRef={activeInputRef} lastBlockId={lastBlockId} />
+      <BlockToolbar activeInputRef={activeInputRef} />
 
       <SendSheet
         open={sheetOpen}

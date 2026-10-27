@@ -1,8 +1,9 @@
 import React from 'react'
 import RichTextInput from './shared/RichTextInput.jsx'
+import BlockList from '../BlockList.jsx'
 import { useDocument } from '../../store/DocumentContext.jsx'
 
-export default function DetailsBlock({ block, activeInputRef }) {
+export default function DetailsBlock({ block, depth = 0, activeInputRef }) {
   const { updateBlock } = useDocument()
   return (
     <div className="details-block">
@@ -29,6 +30,7 @@ export default function DetailsBlock({ block, activeInputRef }) {
           placeholder="Hidden content…"
           activeInputRef={activeInputRef}
         />
+        <BlockList blocks={block.children || []} depth={depth + 1} containerId={block.id} footer activeInputRef={activeInputRef} />
       </div>
     </div>
   )
