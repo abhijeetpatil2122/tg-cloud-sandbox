@@ -41,13 +41,18 @@ const COMPONENTS = {
   [BLOCK.BUTTONS]: ButtonsBlock
 }
 
-export default function BlockRenderer({ block, index, total, activeInputRef }) {
-  const { deleteBlock, moveBlock } = useDocument()
+export default function BlockRenderer({ block, index, total, depth = 0, activeInputRef }) {
+  const { deleteBlock, moveBlock, setActiveBlock } = useDocument()
   const Comp = COMPONENTS[block.type]
   if (!Comp) return null
 
+  // Capture-phase handlers run outermost → innermost, so with nested blocks
+  // the *innermost* block ends up as the active one — which is what the
+  // bottom toolbar's "insert after the block I'm in" needs.
+  const markActive = () => setActiveBlock(block.id)
+
   return (
-    <div className="block-wrap">
+    <div className="block-wrap" onFocusCapture={markActive} onClickCapture={markActive}>
       <div className="block-controls">
         <button
           className="icon-btn"
@@ -76,7 +81,7 @@ export default function BlockRenderer({ block, index, total, activeInputRef }) {
           <Icon name="trash" size={15} />
         </button>
       </div>
-      <Comp block={block} activeInputRef={activeInputRef} />
+      <Comp block={block} depth={depth} activeInputRef={activeInputRef} />
     </div>
   )
 }
