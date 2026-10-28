@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo, useRef, useState, useCallback } from 'react'
-import { createInitialDocument, createBlock, isDocumentEmpty } from '../document/schema.js'
+import { createInitialDocument, createBlock, isDocumentEmpty, uid } from '../document/schema.js'
 import { createHistory, pushHistory, undo as undoHistory, redo as redoHistory, canUndo, canRedo } from '../document/history.js'
+import { mapNodes, updateNode, removeBlock, moveBlockInTree, insertAfter, appendChild, findNode } from '../document/tree.js'
 
 const DocumentCtx = createContext(null)
 
@@ -9,6 +10,15 @@ export function DocumentProvider({ children }) {
   const historyRef = useRef(createHistory())
   const [, forceRender] = useState(0)
   const bump = () => forceRender((n) => n + 1)
+
+  // Which block the user last focused/tapped (innermost one wins, see
+  // BlockRenderer). A ref, not state — it changes on every focus and nothing
+  // needs to re-render because of it; the toolbar just reads it on tap.
+  const activeBlockRef = useRef(null)
+  const setActiveBlock = useCallback((id) => {
+    activeBlockRef.current = id
+  }, [])
+  const getActiveBlockId = useCallback(() => activeBlockRef.current, [])
 
   const commit = useCallback((updater, { coalesceKey } = {}) => {
     setDoc((prev) => {
@@ -19,17 +29,24 @@ export function DocumentProvider({ children }) {
     bump()
   }, [])
 
-  const findIndex = (blocks, id) => blocks.findIndex((b) => b.id === id)
+  // Every edit goes through the tree helpers, so it works the same whether
+  // the target sits at the top level or nested in a quote / list item / details.
+  const editNode = (prev, id, fn) => ({ ...prev, blocks: mapNodes(prev.blocks, (n) => (n.id === id ? fn(n) : n)) })
 
   const addBlock = useCallback(
     (type, props = {}, afterId = null) => {
       const block = createBlock(type, props)
-      commit((prev) => {
-        const blocks = [...prev.blocks]
-        const index = afterId ? findIndex(blocks, afterId) : blocks.length - 1
-        blocks.splice(index + 1, 0, block)
-        return { ...prev, blocks }
-      })
+      commit((prev) => ({ ...prev, blocks: insertAfter(prev.blocks, afterId, block) }))
+      return block.id
+    },
+    [commit]
+  )
+
+  /** Adds a block as the last child of a container (a blockquote, details block, or list item id). */
+  const addChildBlock = useCallback(
+    (containerId, type, props = {}) => {
+      const block = createBlock(type, props)
+      commit((prev) => ({ ...prev, blocks: appendChild(prev.blocks, containerId, block) }))
       return block.id
     },
     [commit]
@@ -37,13 +54,7 @@ export function DocumentProvider({ children }) {
 
   const updateBlock = useCallback(
     (id, patch, { coalesceKey } = {}) => {
-      commit(
-        (prev) => ({
-          ...prev,
-          blocks: prev.blocks.map((b) => (b.id === id ? { ...b, ...patch } : b))
-        }),
-        { coalesceKey: coalesceKey || `block:${id}` }
-      )
+      commit((prev) => ({ ...prev, blocks: updateNode(prev.blocks, id, patch) }), { coalesceKey: coalesceKey || `block:${id}` })
     },
     [commit]
   )
@@ -51,7 +62,8 @@ export function DocumentProvider({ children }) {
   const deleteBlock = useCallback(
     (id) => {
       commit((prev) => {
-        const blocks = prev.blocks.filter((b) => b.id !== id)
+        const blocks = removeBlock(prev.blocks, id)
+        // There must always be something to type into at the top level.
         return { ...prev, blocks: blocks.length ? blocks : [createBlock('paragraph')] }
       })
     },
@@ -60,31 +72,19 @@ export function DocumentProvider({ children }) {
 
   const moveBlock = useCallback(
     (id, direction) => {
-      commit((prev) => {
-        const blocks = [...prev.blocks]
-        const index = findIndex(blocks, id)
-        const target = direction === 'up' ? index - 1 : index + 1
-        if (target < 0 || target >= blocks.length) return prev
-        ;[blocks[index], blocks[target]] = [blocks[target], blocks[index]]
-        return { ...prev, blocks }
-      })
+      commit((prev) => ({ ...prev, blocks: moveBlockInTree(prev.blocks, id, direction) }))
     },
     [commit]
   )
 
-  // ---- List item helpers ----
-  const mapListBlock = (prev, id, fn) => ({
-    ...prev,
-    blocks: prev.blocks.map((b) => (b.id === id ? fn(b) : b))
-  })
-
+  // ---- Lists ----
   const addListItem = useCallback(
     (blockId, afterItemId) => {
       commit((prev) =>
-        mapListBlock(prev, blockId, (b) => {
+        editNode(prev, blockId, (b) => {
           const items = [...b.items]
           const index = afterItemId ? items.findIndex((i) => i.id === afterItemId) : items.length - 1
-          items.splice(index + 1, 0, { id: `li_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, html: '', checked: false })
+          items.splice(index + 1, 0, { id: uid('li'), html: '', checked: false, children: [] })
           return { ...b, items }
         })
       )
@@ -94,14 +94,7 @@ export function DocumentProvider({ children }) {
 
   const updateListItem = useCallback(
     (blockId, itemId, patch) => {
-      commit(
-        (prev) =>
-          mapListBlock(prev, blockId, (b) => ({
-            ...b,
-            items: b.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i))
-          })),
-        { coalesceKey: `listitem:${itemId}` }
-      )
+      commit((prev) => ({ ...prev, blocks: updateNode(prev.blocks, itemId, patch) }), { coalesceKey: `listitem:${itemId}` })
     },
     [commit]
   )
@@ -109,7 +102,7 @@ export function DocumentProvider({ children }) {
   const removeListItem = useCallback(
     (blockId, itemId) => {
       commit((prev) =>
-        mapListBlock(prev, blockId, (b) => {
+        editNode(prev, blockId, (b) => {
           const items = b.items.filter((i) => i.id !== itemId)
           return { ...b, items: items.length ? items : b.items.slice(0, 1) }
         })
@@ -118,22 +111,17 @@ export function DocumentProvider({ children }) {
     [commit]
   )
 
-  // ---- Table helpers ----
-  const mapTableBlock = (prev, id, fn) => ({
-    ...prev,
-    blocks: prev.blocks.map((b) => (b.id === id ? fn(b) : b))
-  })
-
+  // ---- Tables ----
   const updateTableCell = useCallback(
     (blockId, rowIndex, colIndex, patch) => {
       commit(
         (prev) =>
-          mapTableBlock(prev, blockId, (b) => {
-            const rows = b.rows.map((row, r) =>
+          editNode(prev, blockId, (b) => ({
+            ...b,
+            rows: b.rows.map((row, r) =>
               r !== rowIndex ? row : row.map((cell, c) => (c !== colIndex ? cell : { ...cell, ...patch }))
             )
-            return { ...b, rows }
-          }),
+          })),
         { coalesceKey: `cell:${blockId}:${rowIndex}:${colIndex}` }
       )
     },
@@ -143,7 +131,7 @@ export function DocumentProvider({ children }) {
   const addTableRow = useCallback(
     (blockId) => {
       commit((prev) =>
-        mapTableBlock(prev, blockId, (b) => {
+        editNode(prev, blockId, (b) => {
           const cols = b.rows[0]?.length || 2
           const row = Array.from({ length: cols }, () => ({ text: '', isHeader: false }))
           return { ...b, rows: [...b.rows, row] }
@@ -156,10 +144,7 @@ export function DocumentProvider({ children }) {
   const removeTableRow = useCallback(
     (blockId, rowIndex) => {
       commit((prev) =>
-        mapTableBlock(prev, blockId, (b) => {
-          if (b.rows.length <= 1) return b
-          return { ...b, rows: b.rows.filter((_, r) => r !== rowIndex) }
-        })
+        editNode(prev, blockId, (b) => (b.rows.length <= 1 ? b : { ...b, rows: b.rows.filter((_, r) => r !== rowIndex) }))
       )
     },
     [commit]
@@ -168,11 +153,12 @@ export function DocumentProvider({ children }) {
   const addTableColumn = useCallback(
     (blockId) => {
       commit((prev) =>
-        mapTableBlock(prev, blockId, (b) => ({
-          ...b,
-          align: [...b.align, 'left'],
-          rows: b.rows.map((row, r) => [...row, { text: '', isHeader: r === 0 }])
-        }))
+        editNode(prev, blockId, (b) =>
+          // The API allows at most 20 columns per table.
+          b.rows[0].length >= 20
+            ? b
+            : { ...b, align: [...b.align, 'left'], rows: b.rows.map((row, r) => [...row, { text: '', isHeader: r === 0 }]) }
+        )
       )
     },
     [commit]
@@ -181,14 +167,11 @@ export function DocumentProvider({ children }) {
   const removeTableColumn = useCallback(
     (blockId, colIndex) => {
       commit((prev) =>
-        mapTableBlock(prev, blockId, (b) => {
-          if (b.rows[0].length <= 1) return b
-          return {
-            ...b,
-            align: b.align.filter((_, i) => i !== colIndex),
-            rows: b.rows.map((row) => row.filter((_, c) => c !== colIndex))
-          }
-        })
+        editNode(prev, blockId, (b) =>
+          b.rows[0].length <= 1
+            ? b
+            : { ...b, align: b.align.filter((_, i) => i !== colIndex), rows: b.rows.map((row) => row.filter((_, c) => c !== colIndex)) }
+        )
       )
     },
     [commit]
@@ -196,17 +179,14 @@ export function DocumentProvider({ children }) {
 
   const setTableOption = useCallback(
     (blockId, patch) => {
-      commit((prev) => mapTableBlock(prev, blockId, (b) => ({ ...b, ...patch })))
+      commit((prev) => editNode(prev, blockId, (b) => ({ ...b, ...patch })))
     },
     [commit]
   )
 
   const setMediaSource = useCallback(
     (blockId, source) => {
-      commit((prev) => ({
-        ...prev,
-        blocks: prev.blocks.map((b) => (b.id === blockId ? { ...b, source } : b))
-      }))
+      commit((prev) => editNode(prev, blockId, (b) => ({ ...b, source })))
     },
     [commit]
   )
@@ -223,11 +203,17 @@ export function DocumentProvider({ children }) {
     bump()
   }, [doc])
 
+  const getBlock = useCallback((id) => findNode(doc.blocks, id), [doc])
+
   const value = useMemo(
     () => ({
       doc,
       isEmpty: isDocumentEmpty(doc),
+      getBlock,
+      setActiveBlock,
+      getActiveBlockId,
       addBlock,
+      addChildBlock,
       updateBlock,
       deleteBlock,
       moveBlock,

@@ -111,8 +111,10 @@ function buildOptionalRichText(html) {
   return htmlToRichText(html)
 }
 
-function buildListItem(item, style, index) {
-  const out = { blocks: [paragraphFromHtml(item.html)] }
+/** A list item's blocks: its own text first (when it has any), then whatever's nested under it. */
+function buildListItem(item, style, index, nested) {
+  const hasText = plainText(item.html).trim()
+  const out = { blocks: [...(hasText ? [paragraphFromHtml(item.html)] : []), ...nested] }
   if (style === LIST_STYLE.NUMBER) {
     out.type = '1'
     out.value = index + 1
@@ -122,6 +124,11 @@ function buildListItem(item, style, index) {
     out.is_checked = !!item.checked
   }
   return out
+}
+
+/** Builds a sibling array of editor blocks into Telegram blocks, dropping any that have nothing to send. */
+function buildBlocks(blocks) {
+  return (blocks || []).flatMap(buildBlock).filter(Boolean)
 }
 
 function buildTableCells(rows, align) {
@@ -167,16 +174,22 @@ function buildBlock(block) {
     case BLOCK.FOOTER:
       return { type: 'footer', text: htmlToRichText(block.html) }
 
-    case BLOCK.LIST:
-      return {
-        type: 'list',
-        items: block.items
-          .filter((i) => plainText(i.html).trim())
-          .map((item, index) => buildListItem(item, block.style, index))
-      }
+    case BLOCK.LIST: {
+      // An item is kept if it has text OR something nested under it.
+      const kept = block.items
+        .map((item) => ({ item, nested: buildBlocks(item.children) }))
+        .filter(({ item, nested }) => plainText(item.html).trim() || nested.length)
+      if (!kept.length) return null
+      return { type: 'list', items: kept.map(({ item, nested }, index) => buildListItem(item, block.style, index, nested)) }
+    }
 
     case BLOCK.BLOCKQUOTE: {
-      const out = { type: 'blockquote', blocks: [paragraphFromHtml(block.html)] }
+      // The quote's own text first, then nested blocks. The text paragraph is
+      // only sent empty when there's nothing else, so a quote that's *just* a
+      // nested list doesn't start with a blank line.
+      const nested = buildBlocks(block.children)
+      const hasText = plainText(block.html).trim()
+      const out = { type: 'blockquote', blocks: [...(hasText || !nested.length ? [paragraphFromHtml(block.html)] : []), ...nested] }
       const credit = buildOptionalRichText(block.creditHtml)
       if (credit !== undefined) out.credit = credit
       return out
@@ -213,7 +226,7 @@ function buildBlock(block) {
       return {
         type: 'details',
         summary: htmlToRichText(block.summaryHtml),
-        blocks: bodyText ? [paragraphFromHtml(block.bodyHtml)] : [],
+        blocks: [...(bodyText ? [paragraphFromHtml(block.bodyHtml)] : []), ...buildBlocks(block.children)],
         ...(block.isOpen ? { is_open: true } : {})
       }
     }
@@ -280,8 +293,5 @@ function buildBlock(block) {
 
 /** Editor document -> { blocks } ready to send as InputRichMessage.blocks. */
 export function buildRichMessageBlocks(doc) {
-  return doc.blocks.flatMap((block) => {
-    const result = buildBlock(block)
-    return Array.isArray(result) ? result : result ? [result] : []
-  })
+  return buildBlocks(doc.blocks)
 }
