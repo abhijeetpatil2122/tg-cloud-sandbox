@@ -16,8 +16,8 @@ import {
 import ButtonEditorSheet from './blocks/shared/ButtonEditorSheet.jsx'
 import { normalizeUrl } from './blocks/shared/urlUtils.js'
 
-export default function BlockToolbar({ activeInputRef, lastBlockId }) {
-  const { doc, addBlock, updateBlock } = useDocument()
+export default function BlockToolbar({ activeInputRef }) {
+  const { doc, getBlock, getActiveBlockId, addBlock, updateBlock } = useDocument()
   const [selectionActive, setSelectionActive] = useState(false)
   // { pendingId, initial, isNew } | null — isNew decides whether Cancel
   // deletes the span (a fresh insert) or just leaves an existing one alone.
@@ -92,19 +92,25 @@ export default function BlockToolbar({ activeInputRef, lastBlockId }) {
   }
 
   function handleInsert(item) {
+    // New blocks go right after the block you're working in — nested or not
+    // (inside a quote's child, that means inside the quote). With nothing
+    // focused yet, they go at the end of the document.
+    const lastTopLevelId = doc.blocks[doc.blocks.length - 1]?.id
+    const activeId = getActiveBlockId()
+    const anchorId = activeId && getBlock(activeId) ? activeId : lastTopLevelId
+
     // Repeated taps of "Buttons" used to each create a brand new block —
-    // if one row already exists right here, add to it instead, so the
-    // whole row keeps one consistent alignment rather than ending up as
-    // several separate rows each defaulting back to left-aligned.
+    // if the block you're on is already a button row, add to that row
+    // instead, so the whole row keeps one consistent alignment.
     if (item.id === 'buttons') {
-      const anchorBlock = doc.blocks.find((b) => b.id === lastBlockId)
+      const anchorBlock = getBlock(anchorId)
       if (anchorBlock?.type === BLOCK.BUTTONS) {
         updateBlock(anchorBlock.id, { buttons: [...anchorBlock.buttons, createButtonConfig()] })
         return
       }
     }
 
-    addBlock(item.type, item.props || {}, lastBlockId)
+    addBlock(item.type, item.props || {}, anchorId)
   }
 
   return (
