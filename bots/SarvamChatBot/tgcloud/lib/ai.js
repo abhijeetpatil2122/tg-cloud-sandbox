@@ -77,7 +77,7 @@ export async function streamSarvamReply({ apiKey, messages, onDraft }) {
 
   const decoder = new TextDecoder();
   for await (const chunk of response.body) {
-    buffer += decoder.decode(chunk, { stream: true });
+    buffer += decoder.decode(chunk, { stream: true }).replace(/\\r\\n/g, '\\n');
 
     let boundary;
     while ((boundary = buffer.indexOf('\n\n')) !== -1) {
