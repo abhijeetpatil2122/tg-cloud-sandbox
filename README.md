@@ -48,7 +48,7 @@ For projects without static hosting, deployment uses a targeted push of JavaScri
 
 The **Telegram Serverless Auto Deploy** workflow is triggered by pushes to `main` that touch `bots/**`. It detects projects with deployable changes, validates each detected project, checks JavaScript syntax, and builds a configured Mini App frontend. Only projects present in its explicit registry with `auto_deploy: true` are eligible for deployment.
 
-- Both currently listed projects are enabled for automatic deployment; their app IDs and secret names are shown in the table above.
+- BotZoneBot and RichDocsBot are enabled for automatic deployment. IdPullBot and SarvamChatBot remain manual-only; their first deployments and live behavior must be verified before any auto-deploy registration.
 - Documentation-only edits are filtered out. Root-only changes do not match the workflow's `bots/**` trigger.
 - Non-static projects use targeted module pushes. Static Mini App projects build their frontend and use a full push, which can delete remote modules absent from the local project.
 - Automatic deployment never runs database migrations.
