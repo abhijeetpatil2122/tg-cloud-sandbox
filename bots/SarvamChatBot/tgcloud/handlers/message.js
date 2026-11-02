@@ -422,6 +422,7 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
 
   let answer = first.content;
   let incomplete = Boolean(first.incomplete);
+  let streamError = first.streamError || null;
   if (first.toolCalls.length) {
     currentDraft = await thinkingDraft('search');
     await sendDraft(chatId, draftId, currentDraft);
@@ -482,13 +483,14 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
     if (final.stopped) return { stopped: true };
     answer = final.content;
     incomplete = Boolean(final.incomplete);
+    streamError = final.streamError || null;
   }
 
   if (!answer?.trim()) throw new Error('Sarvam returned an empty answer.');
   if (incomplete) {
-    const streamNote = first.streamError
-      ? 'Stream interrupted — ' + (first.streamError.status ? 'HTTP ' + first.streamError.status + ' · ' : '')
-        + first.streamError.code + ': ' + (first.streamError.providerMessage || first.streamError.message)
+    const streamNote = streamError
+      ? 'Stream interrupted — ' + (streamError.status ? 'HTTP ' + streamError.status + ' · ' : '')
+        + streamError.code + ': ' + (streamError.providerMessage || streamError.message)
       : 'The response ended before Sarvam sent its normal completion marker.';
     answer = answer.trim() + '\n\n_' + streamNote + '. Ask me to continue from where it stopped._';
   }
