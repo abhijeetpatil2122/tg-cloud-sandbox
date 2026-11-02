@@ -1,6 +1,11 @@
 name: Telegram Serverless CLI
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'bots/SarvamChatBot/**'
   workflow_dispatch:
     inputs:
       bot_path:
@@ -25,7 +30,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: tgcloud-${{ inputs.bot_path }}-${{ github.ref }}
+  group: tgcloud-${{ github.event_name == 'push' && 'bots/SarvamChatBot' || inputs.bot_path }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -37,9 +42,9 @@ jobs:
       run:
         shell: bash
     env:
-      BOT_PATH: ${{ inputs.bot_path }}
-      EXPECTED_APP_ID: ${{ inputs.expected_app_id }}
-      DEPLOY_MODE: ${{ inputs.mode }}
+      BOT_PATH: ${{ github.event_name == 'push' && 'bots/SarvamChatBot' || inputs.bot_path }}
+      EXPECTED_APP_ID: ${{ github.event_name == 'push' && 'FROM_TOKEN' || inputs.expected_app_id }}
+      DEPLOY_MODE: ${{ github.event_name == 'push' && 'deploy' || inputs.mode }}
     steps:
       - name: Check out workspace
         uses: actions/checkout@v4
@@ -113,7 +118,7 @@ jobs:
 
       - name: Fetch cloud state and show status
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || '' }}
+          TGCLOUD_TOKEN: ${{ github.event_name == 'push' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -121,9 +126,9 @@ jobs:
           npx tgcloud status
 
       - name: Deploy selected bot project
-        if: inputs.mode == 'deploy'
+        if: github.event_name == 'push' || inputs.mode == 'deploy'
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || '' }}
+          TGCLOUD_TOKEN: ${{ github.event_name == 'push' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
