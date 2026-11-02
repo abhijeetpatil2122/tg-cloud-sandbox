@@ -183,8 +183,11 @@ function userFacingGenerationError(error) {
     || code === 'model_rate_limit_exceeded_error' || code === 'model_overloaded') {
     return 'The AI service is busy or has reached its request limit. Please wait briefly and send your message again.';
   }
-  if (status === 400 || status === 413 || status === 422 || code === 'invalid_request_error') {
-    return 'The request could not be processed because its content or size was not accepted. Try shortening the message or splitting it into smaller parts.';
+  if (status === 413) {
+    return 'This request is larger than the AI provider accepts. Please split it into smaller parts.';
+  }
+  if (status === 400 || status === 422 || code === 'invalid_request_error') {
+    return 'The AI provider rejected the request format. Try rephrasing or shortening the request; if it keeps happening, the bot owner should check the model configuration.';
   }
   if (status === 404 || code === 'not_found_error') {
     return 'The configured AI model or endpoint could not be found. The bot owner needs to check the model configuration.';
