@@ -23,13 +23,11 @@ function getCommand(text) {
 }
 
 function getCommandValue(text, command) {
-  const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = typeof text === 'string'
-    ? text.trim().match(new RegExp('^/' + escaped + '(?:@[A-Za-z0-9_]+)?\\s+([\\s\\S]+)$', 'i'))
-    : null;
+  if (typeof text !== 'string') return '';
+  const pattern = new RegExp('^/' + command + '(?:@[A-Za-z0-9_]+)?\\s+([\\s\\S]+)$', 'i');
+  const match = text.trim().match(pattern);
   return match?.[1]?.trim() || '';
 }
-
 async function sendRich(chatId, richMessage) {
   return await api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
 }
