@@ -295,50 +295,28 @@ const MODEL_DIAGNOSTIC_NAME = 'sarvam-105b';
 function diagnosticSummary(result) {
   if (result.ok) {
     return {
-      heading: 'Sarvam connection test passed',
-      detail: `The saved key was accepted and the streaming response was read successfully in ${result.elapsedMs} ms.`,
-      metadata: `HTTP ${result.status} · ${result.model} · ${result.receivedChunks} chunks · [DONE]: ${result.done ? 'yes' : 'no'}`,
+      heading: 'Sarvam streaming test passed',
+      detail: 'The saved key was accepted and the streaming response body was read successfully.',
+      metadata: 'HTTP ' + result.status + ' · ' + result.model + ' · ' + result.receivedChunks + ' chunks · [DONE]: ' + (result.done ? 'yes' : 'no') + ' · ' + result.elapsedMs + ' ms',
     };
   }
-
-  const code = String(result.code || '').toLowerCase();
-  let detail = result.providerMessage || 'The diagnostic request failed before a successful response.';
-  if (result.status === 402 || code === 'insufficient_quota_error') {
-    detail = 'Sarvam returned an out-of-credits response. This is a billing balance issue, not a connection issue.';
-  } else if (result.status === 403 || code === 'invalid_api_key_error') {
-    detail = 'Sarvam rejected the saved API key. Check whether the key is valid and active.';
-  } else if (result.status === 429 && code === 'seat_budget_exhausted_error') {
-    detail = 'The organisation or seat spending budget is exhausted. Waiting will not clear this limit.';
-  } else if (result.status === 429 && code === 'model_rate_limit_exceeded_error') {
-    detail = 'The model or upstream capacity is rate-limited. This is not necessarily your account quota.';
-  } else if (result.status === 429 || result.status === 503 || code === 'rate_limit_exceeded_error') {
-    detail = 'Sarvam is rate-limiting requests or temporarily overloaded. Check Retry-After and retry after the indicated delay.';
-  } else if (result.status >= 500) {
-    detail = 'Sarvam returned a server-side or model-backend error. The request reached Sarvam, but the service failed.';
-  } else if (result.status > 0) {
-    detail = 'Sarvam received the request and rejected it. The HTTP status and error code below identify the cause.';
-  } else {
-    const cause = result.networkFailure?.find((item) => item.code || item.message);
-    detail = cause
-      ? `No HTTP response was received. Network failure: ${cause.code || cause.name || 'unknown'} — ${cause.message || 'no additional detail'}`
-      : (result.providerMessage || 'No HTTP response was received. The Serverless runtime could not establish or complete the connection to Sarvam.');
-  }
+  let detail;
   if (result.status >= 200 && result.status < 300 && result.streamFailure) {
-    detail = `Sarvam accepted the request (HTTP ${result.status}), but the SSE stream failed: ${result.streamFailure.code || result.streamFailure.name || 'stream_transport_error'} — ${result.streamFailure.message}`;
-  } else if (result.providerMessage && result.status > 0) {
-    detail = `${result.code || 'provider_error'}: ${result.providerMessage}`;
+    detail = 'HTTP ' + result.status + ' was accepted, but reading the SSE stream failed: ' + (result.streamFailure.code || result.streamFailure.name || 'stream_transport_error') + ' — ' + result.streamFailure.message;
+  } else if (result.status > 0) {
+    detail = (result.code || 'provider_error') + ': ' + (result.providerMessage || 'Sarvam did not include an error description.');
+  } else {
+    detail = (result.code || 'connection_error') + ': ' + (result.providerMessage || (result.streamFailure && result.streamFailure.message) || 'No HTTP response was received from Sarvam.');
   }
-
   const metadata = [
-    result.status ? `HTTP ${result.status}` : 'No HTTP response',
-    result.code ? `Code: ${result.code}` : null,
-    result.retryAfter ? `Retry-After: ${result.retryAfter}` : null,
-    result.receivedChunks ? `SSE chunks: ${result.receivedChunks}` : null,
-    result.requestId ? `Request ID: ${result.requestId}` : null,
-    `Elapsed: ${result.elapsedMs} ms`,
+    result.status ? 'HTTP ' + result.status : 'No HTTP response',
+    result.code ? 'Code: ' + result.code : null,
+    result.retryAfter ? 'Retry-After: ' + result.retryAfter : null,
+    result.receivedChunks ? 'SSE chunks: ' + result.receivedChunks : null,
+    result.requestId ? 'Request ID: ' + result.requestId : null,
+    'Elapsed: ' + result.elapsedMs + ' ms',
   ].filter(Boolean).join(' · ');
-
-  return { heading: 'Sarvam connection test failed', detail, metadata };
+  return { heading: 'Sarvam streaming test failed', detail, metadata };
 }
 
 function userFacingGenerationError(error) {
