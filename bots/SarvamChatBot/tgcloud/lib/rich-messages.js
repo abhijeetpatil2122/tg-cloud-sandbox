@@ -34,7 +34,8 @@ export function helpMessage(configured, webSearchEnabled) {
       { type: 'list', items: [
         { text: 'Send a message to chat with the AI.' },
         { text: 'Use the Stop button on a streaming draft to stop generation.' },
-        { text: 'Use /reset to clear your saved conversation history.' },
+        { text: 'If a long answer is interrupted, send “continue” to carry on from the saved partial answer.' },
+        { text: 'Use /reset to clear your saved conversation history and release a stuck generation.' },
         { text: 'The bot owner can use /setkey YOUR_SARVAM_API_KEY to configure or rotate Sarvam.' },
         { text: 'The bot owner can use /setsearchkey YOUR_TAVILY_API_KEY to enable live web search.' },
       ] },
