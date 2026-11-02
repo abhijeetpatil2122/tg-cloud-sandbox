@@ -114,3 +114,12 @@ export async function deleteGeneration(chatId, draftId) {
     .where(and(eq(activeGenerations.chatId, chatId), eq(activeGenerations.draftId, draftId)))
     .run();
 }
+
+export async function getActiveGenerationForUser(userTgId) {
+  return await db.select().from(activeGenerations)
+    .where(and(
+      eq(activeGenerations.userTgId, userTgId),
+      eq(activeGenerations.status, 'running'),
+    ))
+    .get();
+}
