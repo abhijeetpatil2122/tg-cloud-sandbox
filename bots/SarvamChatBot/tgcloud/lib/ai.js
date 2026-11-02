@@ -2,7 +2,8 @@ import { fetch } from 'sdk';
 
 const SARVAM_ENDPOINT = 'https://api.sarvam.ai/v2/chat/completions';
 const MODEL = 'sarvam-105b';
-const MAX_OUTPUT_CHARS = 28000;
+const MAX_OUTPUT_BYTES = 28000;
+const textEncoder = new TextEncoder();
 const DRAFT_STEP_CHARS = 400;
 const DRAFT_REFRESH_MS = 10000;
 
@@ -80,6 +81,7 @@ export async function streamSarvamCompletion({
 
   let buffer = '';
   let answer = '';
+  let answerBytes = 0;
   let nextDraftAt = 1;
   let draftAvailable = true;
   let finishReason = null;
@@ -99,9 +101,16 @@ export async function streamSarvamCompletion({
     if (!choice) return; // Usage-only chunks have an empty choices array.
 
     const delta = choice.delta || {};
-    if (typeof delta.content === 'string' && answer.length < MAX_OUTPUT_CHARS) {
-      answer = (answer + delta.content).slice(0, MAX_OUTPUT_CHARS);
-      if (draftAvailable && (
+    if (typeof delta.content === 'string' && answerBytes < MAX_OUTPUT_BYTES) {
+      let accepted = '';
+      for (const character of delta.content) {
+        const characterBytes = textEncoder.encode(character).length;
+        if (answerBytes + characterBytes > MAX_OUTPUT_BYTES) break;
+        accepted += character;
+        answerBytes += characterBytes;
+      }
+      answer += accepted;
+      if (draftAvailable && accepted && (
         answer.length >= nextDraftAt
         || Date.now() - lastDraftAt >= DRAFT_REFRESH_MS
       )) {
@@ -156,7 +165,7 @@ export async function streamSarvamCompletion({
       }
     }
 
-    if (answer.length >= MAX_OUTPUT_CHARS) break;
+    if (answerBytes >= MAX_OUTPUT_BYTES) break;
   }
 
   buffer = (buffer + decoder.decode()).replace(/\r\n/g, '\n');
@@ -173,6 +182,6 @@ export async function streamSarvamCompletion({
     content: answer.trim(),
     toolCalls: completedToolCalls,
     finishReason,
-    incomplete: !finishReason || finishReason === 'length',
+    incomplete: !finishReason || finishReason === 'length' || answerBytes >= MAX_OUTPUT_BYTES,
   };
 }
