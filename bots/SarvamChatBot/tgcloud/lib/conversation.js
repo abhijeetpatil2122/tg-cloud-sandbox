@@ -43,16 +43,30 @@ export async function loadConversation(userTgId) {
   return rows.reverse().map((row) => ({ role: row.role, content: row.content }));
 }
 
-export async function saveConversationTurn(userTgId, userText, assistantText) {
-  const now = new Date();
-  await db.insert(conversationMessages).values([
-    { userTgId, role: 'user', content: userText, createdAt: now },
-    { userTgId, role: 'assistant', content: assistantText, createdAt: now },
-  ]).run();
+async function trimConversation(userTgId) {
   await db.run(
     'DELETE FROM conversation_messages WHERE user_tg_id = :user_id AND id NOT IN (SELECT id FROM conversation_messages WHERE user_tg_id = :user_id ORDER BY id DESC LIMIT 40)',
     { ':user_id': userTgId },
   );
+}
+
+export async function saveConversationUserMessage(userTgId, userText) {
+  await db.insert(conversationMessages).values({
+    userTgId, role: 'user', content: userText, createdAt: new Date(),
+  }).run();
+  await trimConversation(userTgId);
+}
+
+export async function saveConversationAssistantMessage(userTgId, assistantText) {
+  await db.insert(conversationMessages).values({
+    userTgId, role: 'assistant', content: assistantText, createdAt: new Date(),
+  }).run();
+  await trimConversation(userTgId);
+}
+
+export async function saveConversationTurn(userTgId, userText, assistantText) {
+  await saveConversationUserMessage(userTgId, userText);
+  await saveConversationAssistantMessage(userTgId, assistantText);
 }
 
 export async function resetConversation(userTgId) {
