@@ -116,7 +116,8 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
     try { await saveGenerationPartial(chatId, draftId, partial); } catch (error) {
       console.warn('Could not persist the latest draft text:', { message: error?.message || 'database update failed' });
     }
-    await sendDraft(chatId, draftId, { markdown: partial });
+    const sent = await sendDraft(chatId, draftId, { markdown: partial });
+    if (!sent) throw new Error('Rich draft preview is unavailable.');
   };
 
   const first = await streamSarvamCompletion({
@@ -130,6 +131,7 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
   if (first.stopped || await isStopped()) return { stopped: true };
 
   let answer = first.content;
+  let incomplete = first.finishReason === 'length' || !first.finishReason;
   if (first.toolCalls.length) {
     await sendDraft(chatId, draftId, await thinkingDraft('search'));
 
@@ -179,9 +181,13 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
     });
     if (final.stopped) return { stopped: true };
     answer = final.content;
+    incomplete = final.finishReason === 'length' || !final.finishReason;
   }
 
   if (!answer?.trim()) throw new Error('Sarvam returned an empty answer.');
+  if (incomplete) {
+    answer = `${answer.trim()}\\n\\n_This response reached the model or runtime output boundary before a normal completion marker. Ask me to continue from where it stopped._`;
+  }
 
   // Atomically claim completion. If the Stop update won the race, it has
   // already persisted the partial draft and this invocation must not duplicate it.
