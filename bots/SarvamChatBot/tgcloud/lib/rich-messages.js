@@ -34,9 +34,10 @@ export function helpMessage(configured, webSearchEnabled) {
         { blocks: [{ type: 'paragraph', text: 'Send a message to chat with the AI.' }] },
         { blocks: [{ type: 'paragraph', text: 'Use the Stop button on a streaming draft to stop generation.' }] },
         { blocks: [{ type: 'paragraph', text: 'If a long answer is interrupted, send “continue” to carry on from the saved partial answer.' }] },
-        { blocks: [{ type: 'paragraph', text: 'Use /reset to clear your saved conversation history and release a stuck generation.' }] },
-        { blocks: [{ type: 'paragraph', text: 'The bot owner can use /setkey YOUR_SARVAM_API_KEY to configure or rotate Sarvam.' }] },
-        { blocks: [{ type: 'paragraph', text: 'The bot owner can use /setsearchkey YOUR_TAVILY_API_KEY to enable live web search.' }] },
+        { blocks: [{ type: 'paragraph', text: '/help — show these usage instructions.' }] },
+        { blocks: [{ type: 'paragraph', text: '/reset — clear your saved conversation history and release a stuck generation.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Owner only: /setkey YOUR_SARVAM_API_KEY — configure or rotate the AI key.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Owner only: /setsearchkey YOUR_TAVILY_API_KEY — enable or rotate live search.' }] },
       ] },
       { type: 'divider' },
       { type: 'paragraph', text: configured
@@ -45,7 +46,7 @@ export function helpMessage(configured, webSearchEnabled) {
       { type: 'paragraph', text: webSearchEnabled
         ? 'Live web search is enabled. Current news and changing facts can be checked against online sources.'
         : 'Live web search is currently disabled. Configure a Tavily key to enable it.' },
-      { type: 'footer', text: 'This version responds only in private chats. Guest Mode and groups are not enabled.' },
+      { type: 'footer', text: 'The assistant currently works in private chats only.' },
     ],
   };
 }
