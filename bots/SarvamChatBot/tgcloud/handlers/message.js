@@ -65,10 +65,10 @@ const THINKING_ACTIONS = {
 };
 
 function detectThinkingAction(text) {
-  if (/\\b(code|coding|program|script|function|bot|api|debug|error|implement|build|deploy)\\b/i.test(text)) return 'coding';
-  if (/\\b(write|draft|rewrite|email|post|article|story|document|proposal)\\b/i.test(text)) return 'writing';
-  if (/\\b(analy[sz]e|analysis|compare|review|data|statistics|calculate|research)\\b/i.test(text)) return 'analysis';
-  if (/\\b(design|logo|mockup|layout|visual|image)\\b/i.test(text)) return 'design';
+  if (/\b(code|coding|program|script|function|bot|api|debug|error|implement|build|deploy)\b/i.test(text)) return 'coding';
+  if (/\b(write|draft|rewrite|email|post|article|story|document|proposal)\b/i.test(text)) return 'writing';
+  if (/\b(analy[sz]e|analysis|compare|review|data|statistics|calculate|research)\b/i.test(text)) return 'analysis';
+  if (/\b(design|logo|mockup|layout|visual|image)\b/i.test(text)) return 'design';
   return 'thinking';
 }
 
@@ -319,7 +319,7 @@ export default async function (message) {
       if (partial) {
         await deliverFinal(
           chatId,
-          `${partial}\\n\\n_The previous generation was interrupted by the Serverless runtime. This is the recovered partial answer._`,
+          `${partial}\n\n_The previous generation was interrupted by the Serverless runtime. This is the recovered partial answer._`,
         );
       } else {
         await sendRich(chatId, errorMessage('The previous response was interrupted before any answer text could be saved. You can send your question again.'));
