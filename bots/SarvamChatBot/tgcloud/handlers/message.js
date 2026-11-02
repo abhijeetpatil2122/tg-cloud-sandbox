@@ -480,7 +480,7 @@ export default async function (message) {
   }
 
   if (!settings?.sarvamApiKey) {
-    await sendRich(chatId, errorMessage('Sarvam is not configured yet. The bot owner must set the key using /setkey YOUR_SARVAM_API_KEY.'));
+    await sendRich(chatId, errorMessage('The assistant is not configured yet. The bot owner needs to finish setup before I can answer.'));
     return;
   }
 
