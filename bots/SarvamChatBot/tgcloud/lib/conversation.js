@@ -147,7 +147,7 @@ export async function recoverInterruptedGenerations(userTgId) {
       : new Date(row.createdAt).getTime();
     const stale = !Number.isFinite(createdAt) || now - createdAt > GENERATION_STALE_AFTER_MS;
 
-    if (stale && (row.status === 'running' || row.status === 'stopped')) {
+    if (stale && (row.status === 'running' || row.status === 'stopped' || row.status === 'completed')) {
       await db.update(activeGenerations).set({ status: 'interrupted' })
         .where(and(
           eq(activeGenerations.chatId, row.chatId),
