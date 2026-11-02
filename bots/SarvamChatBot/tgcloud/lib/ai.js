@@ -4,6 +4,7 @@ const SARVAM_ENDPOINT = 'https://api.sarvam.ai/v2/chat/completions';
 const MODEL = 'sarvam-105b';
 const MAX_OUTPUT_CHARS = 28000;
 const DRAFT_STEP_CHARS = 180;
+const DRAFT_REFRESH_MS = 8000;
 
 function parseSseEvent(eventText) {
   const data = eventText.split(/\r?\n/)
@@ -35,6 +36,7 @@ export async function streamSarvamCompletion({
   messages,
   tools = null,
   onDraft = async () => {},
+  onKeepAlive = async () => {},
   isStopped = async () => false,
 }) {
   const request = {
@@ -73,6 +75,7 @@ export async function streamSarvamCompletion({
   let nextDraftAt = 1;
   let draftAvailable = true;
   let finishReason = null;
+  let lastDraftAt = Date.now();
   const toolCalls = [];
 
   async function consumeEvent(eventText) {
@@ -84,8 +87,12 @@ export async function streamSarvamCompletion({
     const delta = choice.delta || {};
     if (typeof delta.content === 'string' && answer.length < MAX_OUTPUT_CHARS) {
       answer = (answer + delta.content).slice(0, MAX_OUTPUT_CHARS);
-      if (draftAvailable && answer.length >= nextDraftAt) {
+      if (draftAvailable && (
+        answer.length >= nextDraftAt
+        || Date.now() - lastDraftAt >= DRAFT_REFRESH_MS
+      )) {
         nextDraftAt = answer.length + DRAFT_STEP_CHARS;
+        lastDraftAt = Date.now();
         try {
           await onDraft(answer);
         } catch (error) {
@@ -119,6 +126,20 @@ export async function streamSarvamCompletion({
       const frame = buffer.slice(0, boundary);
       buffer = buffer.slice(boundary + 2);
       await consumeEvent(frame);
+    }
+
+    // Telegram drafts expire after roughly 30 seconds. Refresh the current
+    // preview on incoming stream chunks even when no new text was emitted.
+    if (draftAvailable && Date.now() - lastDraftAt >= DRAFT_REFRESH_MS) {
+      lastDraftAt = Date.now();
+      try {
+        await onKeepAlive();
+      } catch (error) {
+        draftAvailable = false;
+        console.warn('Rich draft keep-alive failed; continuing without further previews:', {
+          message: error?.description || error?.message || 'draft unavailable',
+        });
+      }
     }
 
     if (answer.length >= MAX_OUTPUT_CHARS) break;
