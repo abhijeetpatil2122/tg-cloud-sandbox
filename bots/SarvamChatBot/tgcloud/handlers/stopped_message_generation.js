@@ -1,5 +1,9 @@
 import { api } from 'sdk';
-import { deleteGeneration, stopGeneration } from '../lib/conversation.js';
+import {
+  deleteGeneration,
+  saveConversationAssistantMessage,
+  stopGeneration,
+} from '../lib/conversation.js';
 
 export default async function (payload) {
   const stopped = payload?.stopped_message_generation || payload;
@@ -32,6 +36,18 @@ export default async function (payload) {
 
     // sendRichMessage creates the permanent chat message. Telegram then removes
     // the temporary draft preview; keep_on_stop alone cannot make it permanent.
+    if (generation.userTgId) {
+      try {
+        await saveConversationAssistantMessage(
+          generation.userTgId,
+          partial || 'Generation stopped.',
+        );
+      } catch (historyError) {
+        console.warn('Stopped answer was sent but could not be saved to conversation history:', {
+          message: historyError?.description || historyError?.message || 'history write failed',
+        });
+      }
+    }
     await deleteGeneration(chatId, draftId);
   } catch (error) {
     console.error('Could not finalize stopped generation:', {
