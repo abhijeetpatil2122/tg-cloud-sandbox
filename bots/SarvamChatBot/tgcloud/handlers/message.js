@@ -163,6 +163,42 @@ async function thinkingDraft(action) {
   return { html: `<tg-thinking>${fallback} ${config.label}</tg-thinking>` };
 }
 
+function userFacingGenerationError(error) {
+  const status = Number(error?.status || error?.statusCode || 0);
+  const code = String(error?.code || '').toLowerCase();
+
+  if (status === 402 || code === 'insufficient_quota_error') {
+    return 'The AI service has run out of available credits. The bot owner needs to add credits to the provider account before requests can continue.';
+  }
+  if (status === 403 || code === 'invalid_api_key_error') {
+    return 'The AI service rejected its configured key. The bot owner should check the saved API key.';
+  }
+  if (status === 429 && code === 'seat_budget_exhausted_error') {
+    return 'The AI service account has reached its spending limit. The account owner needs to review its usage budget.';
+  }
+  if (status === 429 || status === 503 || code === 'rate_limit_exceeded_error'
+    || code === 'model_rate_limit_exceeded_error' || code === 'model_overloaded') {
+    return 'The AI service is busy or has reached its request limit. Please wait briefly and send your message again.';
+  }
+  if (status === 400 || status === 413 || status === 422 || code === 'invalid_request_error') {
+    return 'The request could not be processed because its content or size was not accepted. Try shortening the message or splitting it into smaller parts.';
+  }
+  if (status === 404 || code === 'not_found_error') {
+    return 'The configured AI model or endpoint could not be found. The bot owner needs to check the model configuration.';
+  }
+  if (status === 500 || status === 502 || status === 504 || code === 'internal_server_error'
+    || code === 'model_call_failed') {
+    return 'The AI provider encountered a temporary service problem. Please wait briefly and try again.';
+  }
+  if (code === 'invalid_sse_event' || code === 'stream_error') {
+    return 'The AI response stream was interrupted unexpectedly. Please send “continue” to resume if a partial answer was saved, or retry your question.';
+  }
+  if (status === 0) {
+    return 'The AI service could not be reached. Check the connection or try again shortly.';
+  }
+  return 'I could not complete that response. Please try again shortly.';
+}
+
 async function deliverFinal(chatId, answer) {
   try {
     await sendRich(chatId, { markdown: answer });
@@ -475,8 +511,10 @@ export default async function (message) {
 
     await runAssistantTurn({ chatId, userTgId, draftId, text, settings, history, initialDraft });
   } catch (error) {
-    console.error('Sarvam response failed:', {
-      status: error?.status || null,
+    console.error('AI response failed:', {
+      status: error?.status || error?.statusCode || null,
+      code: error?.code || null,
+      requestId: error?.requestId || null,
       message: error?.description || error?.message || 'upstream request failed',
     });
 
@@ -487,13 +525,7 @@ export default async function (message) {
       return;
     }
 
-    const status = Number(error?.status);
-    let messageText = 'I could not generate a response right now. Please try again shortly.';
-    if (status === 401 || status === 403) {
-      messageText = 'Sarvam rejected the configured API key. The bot owner can update it using /setkey YOUR_SARVAM_API_KEY.';
-    } else if (status === 429) {
-      messageText = 'Sarvam is receiving too many requests right now. Please wait a little and try again.';
-    }
+    const messageText = userFacingGenerationError(error);
 
     try {
       const generation = await getGeneration(chatId, draftId);
