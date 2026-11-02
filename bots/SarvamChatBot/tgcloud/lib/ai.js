@@ -192,6 +192,7 @@ export async function streamSarvamCompletion({
   if (!streamFailure && !stopped && buffer.trim()) await consumeEvent(buffer);
   if (stopped) return { stopped: true, content: answer, toolCalls: [], finishReason: 'stopped' };
   if (streamFailure && !answer.trim() && !toolCalls.length) {
+    if (streamFailure.status || streamFailure.providerMessage) throw streamFailure;
     const error = new Error(streamFailure?.message || 'The Sarvam SSE connection closed before any response content arrived.');
     error.name = streamFailure?.name || 'StreamTransportError';
     error.code = streamFailure?.code || 'stream_transport_error';
@@ -214,6 +215,9 @@ export async function streamSarvamCompletion({
     incomplete: !finishReason || finishReason === 'length' || answerBytes >= MAX_OUTPUT_BYTES || Boolean(streamFailure),
     streamError: streamFailure ? {
       code: streamFailure?.code || 'stream_transport_error',
+      status: streamFailure?.status || null,
+      providerMessage: streamFailure?.providerMessage || null,
+      requestId: streamFailure?.requestId || null,
       message: streamFailure?.message || 'The streaming connection ended unexpectedly.',
       name: streamFailure?.name || null,
     } : null,
