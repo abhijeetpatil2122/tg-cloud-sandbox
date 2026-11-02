@@ -124,7 +124,7 @@ export async function streamSarvamCompletion({
     if (answer.length >= MAX_OUTPUT_CHARS) break;
   }
 
-  buffer += decoder.decode();
+  buffer = (buffer + decoder.decode()).replace(/\\r\\n/g, '\\n');
   if (!stopped && buffer.trim()) await consumeEvent(buffer);
   if (stopped) return { stopped: true, content: answer, toolCalls: [], finishReason: 'stopped' };
 
