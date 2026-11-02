@@ -46,6 +46,30 @@ async function sendDraft(chatId, draftId, richMessage) {
     });
     return true;
   } catch (error) {
+    // Some bot accounts cannot send custom emoji. Retry the same thinking state
+    // with its standard Unicode fallback before disabling draft previews.
+    if (typeof richMessage?.html === 'string' && richMessage.html.includes('<tg-emoji')) {
+      const fallbackHtml = richMessage.html.replace(
+        /<tg-emoji[^>]*>([\\s\\S]*?)<\\/tg-emoji>/g,
+        '$1',
+      );
+      try {
+        await api.sendRichMessageDraft({
+          chat_id: chatId,
+          draft_id: draftId,
+          rich_message: { html: fallbackHtml },
+          can_stop: true,
+          keep_on_stop: true,
+        });
+        return true;
+      } catch (fallbackError) {
+        console.warn('Custom and standard thinking emoji drafts both failed:', {
+          message: fallbackError?.description || fallbackError?.message || 'draft unavailable',
+        });
+        return false;
+      }
+    }
+
     // Drafts are only previews. A preview failure must never cancel the AI
     // request or prevent its permanent sendRichMessage response.
     console.warn('Rich draft update failed; continuing generation:', {
