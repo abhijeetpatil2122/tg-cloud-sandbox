@@ -3,8 +3,8 @@ import { fetch } from 'sdk';
 const SARVAM_ENDPOINT = 'https://api.sarvam.ai/v2/chat/completions';
 const MODEL = 'sarvam-105b';
 const MAX_OUTPUT_CHARS = 28000;
-const DRAFT_STEP_CHARS = 180;
-const DRAFT_REFRESH_MS = 8000;
+const DRAFT_STEP_CHARS = 400;
+const DRAFT_REFRESH_MS = 10000;
 
 function parseSseEvent(eventText) {
   const data = eventText.split(/\r?\n/)
