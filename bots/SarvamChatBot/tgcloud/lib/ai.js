@@ -2,26 +2,54 @@ import { fetch } from 'sdk';
 
 const SARVAM_ENDPOINT = 'https://api.sarvam.ai/v2/chat/completions';
 const MODEL = 'sarvam-105b';
-const MAX_OUTPUT_CHARS = 30000;
-const DRAFT_STEP_CHARS = 140;
+const MAX_OUTPUT_CHARS = 28000;
+const DRAFT_STEP_CHARS = 180;
 
 function parseSseEvent(eventText) {
-  const data = eventText
-    .split(/\r?\n/)
+  const data = eventText.split(/\r?\n/)
     .filter((line) => line.startsWith('data:'))
     .map((line) => line.slice(5).trimStart())
     .join('\n');
-
   if (!data || data === '[DONE]') return null;
   try { return JSON.parse(data); } catch { return null; }
 }
 
-function extractDelta(event) {
-  const delta = event?.choices?.[0]?.delta;
-  return typeof delta?.content === 'string' ? delta.content : '';
+function addToolCallDelta(calls, deltaCalls) {
+  for (const item of deltaCalls || []) {
+    const index = Number.isInteger(item?.index) ? item.index : 0;
+    const current = calls[index] || {
+      id: '',
+      type: 'function',
+      function: { name: '', arguments: '' },
+    };
+    if (typeof item.id === 'string') current.id = item.id;
+    if (typeof item.type === 'string') current.type = item.type;
+    if (typeof item.function?.name === 'string') current.function.name += item.function.name;
+    if (typeof item.function?.arguments === 'string') current.function.arguments += item.function.arguments;
+    calls[index] = current;
+  }
 }
 
-export async function streamSarvamReply({ apiKey, messages, onDraft }) {
+export async function streamSarvamCompletion({
+  apiKey,
+  messages,
+  tools = null,
+  onDraft = async () => {},
+  isStopped = async () => false,
+}) {
+  const request = {
+    model: MODEL,
+    messages,
+    stream: true,
+    temperature: 0.35,
+    max_tokens: 4096,
+  };
+  if (tools?.length) {
+    request.tools = tools;
+    request.tool_choice = 'auto';
+    request.parallel_tool_calls = false;
+  }
+
   const response = await fetch(SARVAM_ENDPOINT, {
     method: 'POST',
     headers: {
@@ -29,69 +57,86 @@ export async function streamSarvamReply({ apiKey, messages, onDraft }) {
       'api-subscription-key': apiKey,
       'Accept': 'text/event-stream',
     },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 2048,
-    }),
+    body: JSON.stringify(request),
   });
 
   if (!response.ok) {
-    const status = response.status;
+    const error = new Error('Sarvam request failed.');
+    error.status = response.status;
     try { await response.text(); } catch {}
-    const error = new Error('Sarvam request failed');
-    error.status = status;
     throw error;
   }
-
-  if (!response.body) throw new Error('Sarvam returned no streaming response body');
+  if (!response.body) throw new Error('Sarvam returned no streaming response body.');
 
   let buffer = '';
   let answer = '';
   let nextDraftAt = DRAFT_STEP_CHARS;
   let draftAvailable = true;
+  let finishReason = null;
+  const toolCalls = [];
 
   async function consumeEvent(eventText) {
     const event = parseSseEvent(eventText);
     if (!event) return;
+    const choice = event?.choices?.[0];
+    if (!choice) return; // Usage-only chunks have an empty choices array.
 
-    const delta = extractDelta(event);
-    if (!delta || answer.length >= MAX_OUTPUT_CHARS) return;
-
-    answer = (answer + delta).slice(0, MAX_OUTPUT_CHARS);
-
-    if (draftAvailable && answer.length >= nextDraftAt) {
-      nextDraftAt = answer.length + DRAFT_STEP_CHARS;
-      try {
-        await onDraft(answer);
-      } catch (error) {
-        draftAvailable = false;
-        console.warn('Rich draft update failed; continuing without further previews:', {
-          message: error?.description || error?.message || 'draft update failed',
-        });
+    const delta = choice.delta || {};
+    if (typeof delta.content === 'string' && answer.length < MAX_OUTPUT_CHARS) {
+      answer = (answer + delta.content).slice(0, MAX_OUTPUT_CHARS);
+      if (draftAvailable && answer.length >= nextDraftAt) {
+        nextDraftAt = answer.length + DRAFT_STEP_CHARS;
+        try {
+          await onDraft(answer);
+        } catch (error) {
+          draftAvailable = false;
+          console.warn('Rich draft update failed; continuing without further previews:', {
+            message: error?.description || error?.message || 'draft unavailable',
+          });
+        }
       }
     }
+
+    if (Array.isArray(delta.tool_calls)) addToolCallDelta(toolCalls, delta.tool_calls);
+    if (typeof choice.finish_reason === 'string') finishReason = choice.finish_reason;
   }
 
   const decoder = new TextDecoder();
+  let stopped = false;
   for await (const chunk of response.body) {
-    buffer = (buffer + decoder.decode(chunk, { stream: true })).replace(/\\r\\n/g, '\\n');
+    try {
+      if (await isStopped()) {
+        stopped = true;
+        break;
+      }
+    } catch {
+      // A transient DB read failure must not discard the in-flight answer.
+    }
 
+    buffer = (buffer + decoder.decode(chunk, { stream: true })).replace(/\r\n/g, '\n');
     let boundary;
     while ((boundary = buffer.indexOf('\n\n')) !== -1) {
-      const eventText = buffer.slice(0, boundary);
+      const frame = buffer.slice(0, boundary);
       buffer = buffer.slice(boundary + 2);
-      await consumeEvent(eventText);
+      await consumeEvent(frame);
     }
 
     if (answer.length >= MAX_OUTPUT_CHARS) break;
   }
 
   buffer += decoder.decode();
-  if (buffer.trim()) await consumeEvent(buffer);
+  if (!stopped && buffer.trim()) await consumeEvent(buffer);
+  if (stopped) return { stopped: true, content: answer, toolCalls: [], finishReason: 'stopped' };
 
-  if (!answer.trim()) throw new Error('Sarvam completed without a text response');
-  return answer.trim();
+  const completedToolCalls = toolCalls.filter((call) => call.id && call.function.name);
+  if (!answer.trim() && !completedToolCalls.length) {
+    throw new Error('Sarvam completed without a text response or tool call.');
+  }
+
+  return {
+    stopped: false,
+    content: answer.trim(),
+    toolCalls: completedToolCalls,
+    finishReason,
+  };
 }
