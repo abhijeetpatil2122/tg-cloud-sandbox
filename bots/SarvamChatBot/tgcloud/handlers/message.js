@@ -235,10 +235,18 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
         try {
           result = await runWebSearch(settings.tavilyApiKey, call.function.arguments);
         } catch (error) {
+          const searchStatus = Number(error?.status);
+          const searchCode = String(error?.code || '');
           result = {
-            error: Number(error?.status) === 429
-              ? 'The live search provider is rate-limiting requests. Do not invent current facts; explain that live verification is temporarily unavailable.'
-              : 'The live search provider is temporarily unavailable. Do not invent current facts; explain that live verification could not be completed.',
+            error: searchStatus === 402 || searchCode === 'insufficient_quota_error'
+              ? 'The search provider has no available credits. Tell the user live verification is unavailable until the owner tops up the search account.'
+              : searchStatus === 403
+                ? 'The search provider rejected its configured key. Tell the user live verification is temporarily unavailable and the owner may need to check the search key.'
+                : searchStatus === 429 || searchStatus === 503
+                  ? 'The search provider is rate-limiting or temporarily overloaded. Do not invent current facts; explain that live verification could not be completed.'
+                  : 'The search provider returned an error. Do not invent current facts; explain that live verification could not be completed.',
+            provider_status: searchStatus || null,
+            provider_code: searchCode || null,
           };
         }
       }
