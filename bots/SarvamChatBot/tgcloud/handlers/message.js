@@ -346,40 +346,24 @@ function diagnosticSummary(result) {
 function userFacingGenerationError(error) {
   const status = Number(error?.status || error?.statusCode || 0);
   const code = String(error?.code || '').toLowerCase();
+  const providerMessage = typeof error?.providerMessage === 'string'
+    ? error.providerMessage.trim().slice(0, 1200)
+    : '';
+  const requestId = error?.requestId ? ` Request ID: ${error.requestId}.` : '';
+  const retryAfter = error?.retryAfter ? ` Retry-After: ${error.retryAfter}.` : '';
 
-  if (status === 402 || code === 'insufficient_quota_error') {
-    return 'The AI service has run out of available credits. The bot owner needs to add credits to the provider account before requests can continue.';
+  if (status > 0 || code) {
+    const statusText = status ? `HTTP ${status}` : 'SSE stream error';
+    const codeText = code || 'provider_error';
+    const description = providerMessage || 'Sarvam did not include an error description.';
+    return `Sarvam API error — ${statusText} · ${codeText}: ${description}${retryAfter}${requestId}`;
   }
-  if (status === 403 || code === 'invalid_api_key_error') {
-    return 'The AI service rejected its configured key. The bot owner should check the saved API key.';
-  }
-  if (status === 429 && code === 'seat_budget_exhausted_error') {
-    return 'The AI service account has reached its spending limit. The account owner needs to review its usage budget.';
-  }
-  if (status === 429 || status === 503 || code === 'rate_limit_exceeded_error'
-    || code === 'model_rate_limit_exceeded_error' || code === 'model_overloaded') {
-    return 'The AI service is busy or has reached its request limit. Please wait briefly and send your message again.';
-  }
-  if (status === 413) {
-    return 'This request is larger than the AI provider accepts. Please split it into smaller parts.';
-  }
-  if (status === 400 || status === 422 || code === 'invalid_request_error') {
-    return 'The AI provider rejected the request format. Try rephrasing or shortening the request; if it keeps happening, the bot owner should check the model configuration.';
-  }
-  if (status === 404 || code === 'not_found_error') {
-    return 'The configured AI model or endpoint could not be found. The bot owner needs to check the model configuration.';
-  }
-  if (status === 500 || status === 502 || status === 504 || code === 'internal_server_error'
-    || code === 'model_call_failed') {
-    return 'The AI provider encountered a temporary service problem. Please wait briefly and try again.';
-  }
-  if (code === 'invalid_sse_event' || code === 'stream_error') {
-    return 'The AI response stream was interrupted unexpectedly. Please send “continue” to resume if a partial answer was saved, or retry your question.';
-  }
-  if (status === 0) {
-    return 'The AI service could not be reached. Check the connection or try again shortly.';
-  }
-  return 'I could not complete that response. Please try again shortly.';
+
+  const cause = getNetworkFailureDetails(error).find((item) => item.code || item.message);
+  const causeText = cause
+    ? `${cause.code || cause.name || 'network_error'}: ${cause.message || 'connection failed'}`
+    : (error?.message || 'The streaming connection ended without an HTTP response.');
+  return `Sarvam connection error — ${error?.code || 'stream_transport_error'}: ${causeText}`;
 }
 
 function plainTextFallback(value) {
@@ -762,6 +746,8 @@ export default async function (message) {
       status: error?.status || error?.statusCode || null,
       code: error?.code || null,
       requestId: error?.requestId || null,
+      providerMessage: error?.providerMessage || null,
+      retryAfter: error?.retryAfter || null,
       name: error?.name || null,
       cause: getNetworkFailureDetails(error),
       message: error?.description || error?.message || 'upstream request failed',
