@@ -199,17 +199,49 @@ function userFacingGenerationError(error) {
   return 'I could not complete that response. Please try again shortly.';
 }
 
+function plainTextFallback(value) {
+  return String(value || '')
+    .replace(/^#{1,6}\\s+/gm, '')
+    .replace(/^\\s*[-*+]\\s+/gm, '• ')
+    .replace(/^\\s*>\\s?/gm, '')
+    .replace(/^\\s*[-*_]{3,}\\s*$/gm, '')
+    .replace(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^)]+)\\)/g, '$1 ($2)')
+    .replace(/\\*\\*(.*?)\\*\\*/gs, '$1')
+    .replace(/(?<!\\*)\\*(?!\\*)(.*?)\\*(?!\\*)/gs, '$1')
+    .replace(/~~(.*?)~~/gs, '$1')
+    .replace(/==(.*?)==/gs, '$1')
+    .replace(/\\|\\|(.*?)\\|\\|/gs, '$1')
+    .replace(/`{1,3}/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/^\\s*\\|?\\s*:?-{3,}:?\\s*(?:\\|\\s*:?-{3,}:?\\s*)+\\|?\\s*$/gm, '')
+    .replace(/^\\s*\\|/gm, '')
+    .replace(/\\|\\s*$/gm, '')
+    .replace(/\\n{3,}/g, '\\n\\n')
+    .trim();
+}
+
 async function deliverFinal(chatId, answer) {
   try {
     await sendRich(chatId, { markdown: answer });
-  } catch (error) {
-    console.warn('Rich Markdown final delivery failed; retrying as a plain Rich Message:', {
-      message: error?.description || error?.message || 'Rich Markdown rejected',
-    });
-    await sendRich(chatId, {
-      blocks: [{ type: 'paragraph', text: answer }],
+    return;
+  } catch (markdownError) {
+    console.warn('Rich Markdown final delivery failed; retrying as Rich HTML:', {
+      message: markdownError?.description || markdownError?.message || 'Markdown rejected',
     });
   }
+
+  try {
+    await sendRich(chatId, { html: answer });
+    return;
+  } catch (htmlError) {
+    console.warn('Rich HTML final delivery failed; sending a plain-text Rich Message:', {
+      message: htmlError?.description || htmlError?.message || 'HTML rejected',
+    });
+  }
+
+  await sendRich(chatId, {
+    blocks: [{ type: 'paragraph', text: plainTextFallback(answer) }],
+  });
 }
 
 async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, history, initialDraft }) {
