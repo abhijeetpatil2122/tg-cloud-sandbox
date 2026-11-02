@@ -83,7 +83,7 @@ A GitHub Actions secret named SARVAM_API_KEY alone does not inject the key into 
 - Auto-deploy workflow registry: bots/SarvamChatBot, app_id=FROM_TOKEN, secret_key=TGCLOUD_TOKEN_SARVAMCHATBOT, auto_deploy=true.
 - Both workflows validate the app ID encoded in the scoped CLI token. The auto-deploy workflow detects deployable changes on main and pushes only this bot's runtime modules.
 - Automatic and manual workflows never run migrations. Keep the manual status/deploy workflow available.
-- Never deploy or migrate unless the user explicitly asks.
+- Do not initiate manual deployments or migrations unless the user explicitly asks. Eligible pushes to main are intentionally auto-deployed by the registered workflow; the workflow never runs migrations.
 - Do not modify other bot projects.
 
 ## Next milestones — not implemented
