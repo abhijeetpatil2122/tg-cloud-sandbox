@@ -13,7 +13,7 @@ import {
   saveTavilyKey,
 } from '../lib/conversation.js';
 import { streamSarvamCompletion } from '../lib/ai.js';
-import { SYSTEM_PROMPT, buildSystemPrompt } from '../lib/prompts.js';
+import { buildSystemPrompt } from '../lib/prompts.js';
 import { WEB_SEARCH_TOOL, runWebSearch } from '../lib/search.js';
 import { errorMessage, helpMessage, startMessage } from '../lib/rich-messages.js';
 
