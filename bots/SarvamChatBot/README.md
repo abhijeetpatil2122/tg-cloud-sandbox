@@ -10,9 +10,11 @@ A Telegram private-chat AI assistant powered by Sarvam 105B. It streams answers 
 - Telegram Stop button using can_stop, keep_on_stop and the stopped_message_generation update; stopped partial answers are persisted with sendRichMessage.
 - Task-aware tg-thinking states use Telegram's recommended AIActions custom-emoji pack when available, with standard emoji fallbacks.
 - Stale generation recovery after a Serverless invocation has ended; the original prompt and recovered partial are saved to history so sending “continue” resumes the answer. /reset also clears any active or stuck generation lock.
-- Output is capped conservatively at 28,000 characters (below the 32k Rich Message limit) and 4,096 model tokens. Truncated or incomplete streams are labelled rather than silently presented as complete.
+- Output is capped conservatively at 28,000 UTF-8 bytes (below Telegram's 32,768-byte Rich Message limit) and 4,096 model tokens. Truncated or incomplete streams are labelled rather than silently presented as complete.
+- Rich formatting guidance covers Markdown/HTML, spoiler and marked text, sub/superscript, LaTeX math, anchors, URL/copy buttons, and responsive table choices. Tables are kept narrow and use explicit bordered/striped/compact styles only when appropriate.
+- Final delivery retries the Rich HTML representation if Rich Markdown fails, then falls back to readable plain text.
 - Per-user conversation history and /reset.
-- Optional Tavily web_search function tool. The model decides when a lookup is necessary.
+- Optional Tavily web_search function tool. The model decides when a lookup is necessary. Search supports fast/basic/advanced depth, domain filters, exact matching, country boosts for general searches, and up to eight deduplicated sources.
 - News searches use Tavily's news topic, a recent time window, publication dates and live page fetching. Final answers cite the returned source URLs.
 
 ## Configure API keys
@@ -57,11 +59,15 @@ The current recovery, Stop, and thinking-state changes do not alter the database
 ## Commands
 
 - /start — introduction and configuration status.
-- /help — usage and setup help.
+- /help — usage and setup help. The command menu is registered automatically when the user starts the bot or requests help.
 - /setkey YOUR_SARVAM_API_KEY — configure or rotate Sarvam.
 - /setsearchkey YOUR_TAVILY_API_KEY — configure or rotate live search.
 - /reset — clear the invoking user's conversation history and release any active or stuck generation.
 - If a response is recovered after a runtime interruption, send “continue” to resume from the saved prompt and partial answer.
+
+## Formatting and reliability
+
+The assistant is instructed to balance answer length with the user's request, avoid repeated summaries and decorative formatting, and optimize tables for phone screens. It uses Telegram's native Rich Markdown/HTML support instead of invented tags. Help list items use the required nested Rich Block structure. Provider errors are classified using Sarvam's status and error codes (including exhausted credits, invalid keys, rate limits, model overload and invalid requests) instead of displaying one generic failure for every case. Internal provider payloads and stack traces are never shown to users.
 
 ## Accuracy and source handling
 
