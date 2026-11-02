@@ -119,7 +119,7 @@ export async function deleteGeneration(chatId, draftId) {
     .run();
 }
 
-const GENERATION_STALE_AFTER_MS = 35000;
+const GENERATION_STALE_AFTER_MS = 32000;
 
 export async function recoverInterruptedGenerations(userTgId) {
   const rows = await db.select().from(activeGenerations)
