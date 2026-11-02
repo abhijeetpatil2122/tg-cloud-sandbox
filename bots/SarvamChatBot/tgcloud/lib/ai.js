@@ -71,10 +71,18 @@ export async function streamSarvamCompletion({
     const error = new Error('Sarvam request failed.');
     error.status = response.status;
     try {
-      const body = await response.json();
+      const rawBody = await response.text();
+      let body = null;
+      try { body = JSON.parse(rawBody); } catch {}
       error.code = body?.error?.code || body?.code || null;
-      error.requestId = body?.error?.request_id || body?.request_id || null;
-    } catch {}
+      error.providerMessage = body?.error?.message || body?.message
+        || (rawBody ? rawBody.slice(0, 1200) : null);
+      error.requestId = body?.error?.request_id || body?.request_id
+        || response.headers?.get?.('x-request-id') || null;
+      error.retryAfter = response.headers?.get?.('retry-after') || null;
+    } catch (readError) {
+      error.bodyReadError = readError?.message || 'Could not read the provider error body.';
+    }
     throw error;
   }
   if (!response.body) throw new Error('Sarvam returned no streaming response body.');
@@ -95,6 +103,9 @@ export async function streamSarvamCompletion({
       const error = new Error('Sarvam reported a streaming error.');
       error.code = event.error?.code || 'stream_error';
       error.status = Number(event.error?.status) || null;
+      error.providerMessage = event.error?.message || event.error?.detail
+        || 'Sarvam reported an error inside the SSE stream.';
+      error.requestId = event.error?.request_id || event.error?.requestId || null;
       throw error;
     }
     const choice = event?.choices?.[0];
@@ -133,44 +144,62 @@ export async function streamSarvamCompletion({
 
   const decoder = new TextDecoder();
   let stopped = false;
-  for await (const chunk of response.body) {
-    try {
-      if (await isStopped()) {
-        stopped = true;
-        break;
-      }
-    } catch {
-      // A transient DB read failure must not discard the in-flight answer.
-    }
-
-    buffer = (buffer + decoder.decode(chunk, { stream: true })).replace(/\r\n/g, '\n');
-    let boundary;
-    while ((boundary = buffer.indexOf('\n\n')) !== -1) {
-      const frame = buffer.slice(0, boundary);
-      buffer = buffer.slice(boundary + 2);
-      await consumeEvent(frame);
-    }
-
-    // Telegram drafts expire after roughly 30 seconds. Refresh the current
-    // preview on incoming stream chunks even when no new text was emitted.
-    if (draftAvailable && Date.now() - lastDraftAt >= DRAFT_REFRESH_MS) {
-      lastDraftAt = Date.now();
+  let streamFailure = null;
+  try {
+    for await (const chunk of response.body) {
       try {
-        await onKeepAlive();
-      } catch (error) {
-        draftAvailable = false;
-        console.warn('Rich draft keep-alive failed; continuing without further previews:', {
-          message: error?.description || error?.message || 'draft unavailable',
-        });
+        if (await isStopped()) {
+          stopped = true;
+          break;
+        }
+      } catch {
+        // A transient DB read failure must not discard the in-flight answer.
       }
-    }
 
-    if (answerBytes >= MAX_OUTPUT_BYTES) break;
+      buffer = (buffer + decoder.decode(chunk, { stream: true })).replace(/\r\n/g, '\n');
+      let boundary;
+      while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+        const frame = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        await consumeEvent(frame);
+      }
+
+      if (draftAvailable && Date.now() - lastDraftAt >= DRAFT_REFRESH_MS) {
+        lastDraftAt = Date.now();
+        try {
+          await onKeepAlive();
+        } catch (error) {
+          draftAvailable = false;
+          console.warn('Rich draft keep-alive failed; continuing without further previews:', {
+            message: error?.description || error?.message || 'draft unavailable',
+          });
+        }
+      }
+      if (answerBytes >= MAX_OUTPUT_BYTES) break;
+    }
+  } catch (cause) {
+    streamFailure = cause;
+    console.error('Sarvam SSE response body failed while streaming:', {
+      name: cause?.name || null,
+      code: cause?.code || null,
+      message: cause?.message || 'stream body read failed',
+      receivedBytes: answerBytes,
+      receivedCharacters: answer.length,
+    });
   }
 
   buffer = (buffer + decoder.decode()).replace(/\r\n/g, '\n');
-  if (!stopped && buffer.trim()) await consumeEvent(buffer);
+  if (!streamFailure && !stopped && buffer.trim()) await consumeEvent(buffer);
   if (stopped) return { stopped: true, content: answer, toolCalls: [], finishReason: 'stopped' };
+  if (streamFailure && !answer.trim() && !toolCalls.length) {
+    const error = new Error(streamFailure?.message || 'The Sarvam SSE connection closed before any response content arrived.');
+    error.name = streamFailure?.name || 'StreamTransportError';
+    error.code = streamFailure?.code || 'stream_transport_error';
+    error.status = 0;
+    error.cause = streamFailure;
+    error.providerMessage = 'The HTTP request was accepted, but the streaming response connection failed before content arrived.';
+    throw error;
+  }
 
   const completedToolCalls = toolCalls.filter((call) => call.id && call.function.name);
   if (!answer.trim() && !completedToolCalls.length) {
@@ -182,6 +211,11 @@ export async function streamSarvamCompletion({
     content: answer.trim(),
     toolCalls: completedToolCalls,
     finishReason,
-    incomplete: !finishReason || finishReason === 'length' || answerBytes >= MAX_OUTPUT_BYTES,
+    incomplete: !finishReason || finishReason === 'length' || answerBytes >= MAX_OUTPUT_BYTES || Boolean(streamFailure),
+    streamError: streamFailure ? {
+      code: streamFailure?.code || 'stream_transport_error',
+      message: streamFailure?.message || 'The streaming connection ended unexpectedly.',
+      name: streamFailure?.name || null,
+    } : null,
   };
 }
