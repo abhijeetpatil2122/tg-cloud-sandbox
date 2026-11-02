@@ -70,7 +70,7 @@ export async function streamSarvamCompletion({
 
   let buffer = '';
   let answer = '';
-  let nextDraftAt = DRAFT_STEP_CHARS;
+  let nextDraftAt = 1;
   let draftAvailable = true;
   let finishReason = null;
   const toolCalls = [];
