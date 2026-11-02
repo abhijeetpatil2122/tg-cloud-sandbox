@@ -7,8 +7,7 @@ export function startMessage(configured, webSearchEnabled) {
   if (!configured) {
     blocks.push(
       { type: 'divider' },
-      { type: 'paragraph', text: 'The assistant is not configured yet. Set the Sarvam API key with:' },
-      { type: 'preformatted', language: 'text', text: '/setkey YOUR_SARVAM_API_KEY' },
+      { type: 'paragraph', text: 'The assistant is not ready yet. The bot owner needs to finish its setup before it can answer.' },
     );
   } else {
     blocks.push(
@@ -20,8 +19,8 @@ export function startMessage(configured, webSearchEnabled) {
   blocks.push(
     { type: 'paragraph', text: webSearchEnabled
       ? 'Live web search is enabled for current facts and news.'
-      : 'Live web search is not configured yet. The bot owner can enable it with /setsearchkey.' },
-    { type: 'paragraph', text: 'Available commands: /help, /setkey, /setsearchkey, /reset' },
+      : 'Live web search is not configured yet.' },
+    { type: 'paragraph', text: 'Open the command menu for usage and setup options.' },
     { type: 'footer', text: 'Private chats only · Sarvam 105B' },
   );
   return { blocks };
