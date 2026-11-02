@@ -54,9 +54,14 @@ A GitHub Actions secret named SARVAM_API_KEY alone does not inject the key into 
 - Draft updates are ephemeral previews. Always call sendRichMessage with the complete final answer.
 - If a draft call fails, continue collecting the answer and still send the final message.
 - Use can_stop=true and keep_on_stop=true only with the active_generations table and stopped_message_generation handler deployed together.
-- The stop update finalizes the last stored partial immediately. The in-flight stream observes the SQLite stop state on its next received chunk and exits; do not claim the separate invocation can synchronously abort another invocation's upstream fetch.
+- The stop update finalizes the last stored partial with sendRichMessage. Telegram's draft is only a temporary preview; keep_on_stop does not make it permanent. Sending the Rich Message causes the preview to disappear while the permanent copy remains.
+- The main invocation must not delete a row already marked stopped; the stopped_message_generation handler owns final delivery and cleanup.
+- Serverless invocations may be terminated before finally runs. On the next user message, recover running/stopped rows older than 32 seconds, send any saved partial as a permanent Rich Message, and clear the stale lock. /reset must delete both history and active-generation rows.
+- Draft-preview failures must never abort model generation or prevent final sendRichMessage delivery. Persist the latest partial before attempting each preview.
+- Detect a missing finish_reason or finish_reason=length and clearly label the answer as incomplete; never silently present a truncated stream as a complete answer.
 - Allow only one active generation per Telegram user and reject text inputs longer than 12,000 characters.
-- Keep final content within Telegram Rich Message limits.
+- Keep final content within Telegram Rich Message limits. Current conservative caps are 28,000 JavaScript characters and 4,096 model output tokens; do not increase them without considering the Serverless execution window.
+- Use the Telegram AIActions custom-emoji set for task-specific tg-thinking states when getStickerSet is available; fall back to standard emoji if the set or custom emoji is unavailable.
 
 ## Data and privacy
 
@@ -75,8 +80,9 @@ A GitHub Actions secret named SARVAM_API_KEY alone does not inject the key into 
 - Repository: abhijeetpatil2122/tg-cloud-sandbox. Preserve this exact owner spelling.
 - Project path: bots/SarvamChatBot.
 - Manual workflow secret: TGCLOUD_TOKEN_SARVAMCHATBOT.
-- Use expected_app_id=FROM_TOKEN; the workflow derives and validates the app ID from the scoped CLI token.
-- Manual-only. Do not add this project to auto-deploy.
+- Auto-deploy workflow registry: bots/SarvamChatBot, app_id=FROM_TOKEN, secret_key=TGCLOUD_TOKEN_SARVAMCHATBOT, auto_deploy=true.
+- Both workflows validate the app ID encoded in the scoped CLI token. The auto-deploy workflow detects deployable changes on main and pushes only this bot's runtime modules.
+- Automatic and manual workflows never run migrations. Keep the manual status/deploy workflow available.
 - Never deploy or migrate unless the user explicitly asks.
 - Do not modify other bot projects.
 
@@ -97,5 +103,6 @@ A GitHub Actions secret named SARVAM_API_KEY alone does not inject the key into 
 - Test current-news search uses Tavily topic=news, a recent time window, source dates and clickable source URLs.
 - Configure Tavily using /setsearchkey after the schema migration.
 - Verify API key and user content never appear in logs.
-- Run workflow status before deploy; keep migration separate.
+- Run workflow status before a manual deploy; eligible pushes to main are handled by the auto-deploy workflow. Keep migrations separate.
+- Verify automatic deployment by checking the changed-bot detection, syntax validation, token/app-ID validation, targeted module push and final CLI status.
 - After deploy, apply the additive schema migration manually, configure /setkey, then test commands, streaming, final delivery, reset, group ignore and owner-only key rotation.
