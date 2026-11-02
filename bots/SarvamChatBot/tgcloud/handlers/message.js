@@ -270,8 +270,10 @@ export default async function (message) {
   }
 
   const draftId = Math.max(1, Number(message.message_id) || 1);
+  let generationCreated = false;
   try {
     await createGeneration({ chatId, draftId, userTgId });
+    generationCreated = true;
     await sendDraft(chatId, draftId, {
       html: '<tg-thinking>Thinking…</tg-thinking>',
     });
@@ -282,6 +284,13 @@ export default async function (message) {
       status: error?.status || null,
       message: error?.description || error?.message || 'upstream request failed',
     });
+
+    if (!generationCreated) {
+      try {
+        await sendRich(chatId, errorMessage('The bot could not initialize this response. The owner should deploy the latest schema and apply its additive database migration, then try again.'));
+      } catch {}
+      return;
+    }
 
     const status = Number(error?.status);
     let messageText = 'I could not generate a response right now. Please try again shortly.';
