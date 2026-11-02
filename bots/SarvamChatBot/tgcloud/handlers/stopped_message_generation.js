@@ -12,12 +12,26 @@ export default async function (payload) {
     if (generation?.status !== 'stopped') return;
 
     const partial = typeof generation.partialText === 'string' ? generation.partialText.trim() : '';
-    await api.sendRichMessage({
-      chat_id: chatId,
-      rich_message: partial
-        ? { markdown: partial }
-        : { blocks: [{ type: 'paragraph', text: 'Generation stopped.' }] },
-    });
+    const richMessage = partial
+      ? { markdown: partial }
+      : { blocks: [{ type: 'paragraph', text: 'Generation stopped.' }] };
+
+    try {
+      await api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
+    } catch (sendError) {
+      console.warn('Stopped draft Markdown could not be finalized; retrying as plain Rich Message:', {
+        message: sendError?.description || sendError?.message || 'Rich Markdown rejected',
+      });
+      await api.sendRichMessage({
+        chat_id: chatId,
+        rich_message: {
+          blocks: [{ type: 'paragraph', text: partial || 'Generation stopped.' }],
+        },
+      });
+    }
+
+    // sendRichMessage creates the permanent chat message. Telegram then removes
+    // the temporary draft preview; keep_on_stop alone cannot make it permanent.
     await deleteGeneration(chatId, draftId);
   } catch (error) {
     console.error('Could not finalize stopped generation:', {
