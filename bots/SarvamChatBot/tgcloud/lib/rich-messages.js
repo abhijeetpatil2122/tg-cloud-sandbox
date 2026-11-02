@@ -32,12 +32,12 @@ export function helpMessage(configured, webSearchEnabled) {
     blocks: [
       { type: 'heading', size: 2, text: 'How to use SarvamChatBot' },
       { type: 'list', items: [
-        { text: 'Send a message to chat with the AI.' },
-        { text: 'Use the Stop button on a streaming draft to stop generation.' },
-        { text: 'If a long answer is interrupted, send “continue” to carry on from the saved partial answer.' },
-        { text: 'Use /reset to clear your saved conversation history and release a stuck generation.' },
-        { text: 'The bot owner can use /setkey YOUR_SARVAM_API_KEY to configure or rotate Sarvam.' },
-        { text: 'The bot owner can use /setsearchkey YOUR_TAVILY_API_KEY to enable live web search.' },
+        { blocks: [{ type: 'paragraph', text: 'Send a message to chat with the AI.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Use the Stop button on a streaming draft to stop generation.' }] },
+        { blocks: [{ type: 'paragraph', text: 'If a long answer is interrupted, send “continue” to carry on from the saved partial answer.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Use /reset to clear your saved conversation history and release a stuck generation.' }] },
+        { blocks: [{ type: 'paragraph', text: 'The bot owner can use /setkey YOUR_SARVAM_API_KEY to configure or rotate Sarvam.' }] },
+        { blocks: [{ type: 'paragraph', text: 'The bot owner can use /setsearchkey YOUR_TAVILY_API_KEY to enable live web search.' }] },
       ] },
       { type: 'divider' },
       { type: 'paragraph', text: configured
@@ -53,9 +53,6 @@ export function helpMessage(configured, webSearchEnabled) {
 
 export function errorMessage(text) {
   return {
-    blocks: [
-      { type: 'paragraph', text },
-      { type: 'footer', text: 'Please try again in a moment.' },
-    ],
+    blocks: [{ type: 'paragraph', text }],
   };
 }
