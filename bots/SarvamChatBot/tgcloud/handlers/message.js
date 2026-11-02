@@ -183,44 +183,111 @@ function getNetworkFailureDetails(error) {
 
 async function runSarvamDiagnostic(apiKey) {
   const startedAt = Date.now();
+  let status = 0;
+  let code = null;
+  let providerMessage = null;
+  let requestId = null;
+  let retryAfter = null;
+  let receivedChunks = 0;
+  let receivedEvents = 0;
+  let receivedContent = false;
+  let done = false;
+  let streamFailure = null;
+
   try {
     const response = await fetch('https://api.sarvam.ai/v2/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'api-subscription-key': apiKey,
-        'Accept': 'application/json',
+        'Accept': 'text/event-stream',
       },
       body: JSON.stringify({
         model: 'sarvam-105b',
         messages: [{ role: 'user', content: 'Reply with OK.' }],
-        stream: false,
+        stream: true,
         temperature: 0,
-        max_tokens: 1,
+        max_tokens: 8,
       }),
     });
 
-    let body = null;
-    try { body = await response.json(); } catch {}
-    return {
-      ok: response.ok,
-      status: response.status,
-      code: body?.error?.code || body?.code || null,
-      requestId: body?.error?.request_id || body?.request_id
-        || response.headers?.get?.('x-request-id') || null,
-      retryAfter: response.headers?.get?.('retry-after') || null,
-      elapsedMs: Date.now() - startedAt,
-      model: MODEL_DIAGNOSTIC_NAME,
-    };
+    status = response.status;
+    retryAfter = response.headers?.get?.('retry-after') || null;
+    requestId = response.headers?.get?.('x-request-id') || null;
+
+    if (!response.ok) {
+      const rawBody = await response.text();
+      let body = null;
+      try { body = JSON.parse(rawBody); } catch {}
+      code = body?.error?.code || body?.code || null;
+      providerMessage = body?.error?.message || body?.message || rawBody.slice(0, 1200);
+      requestId = body?.error?.request_id || body?.request_id || requestId;
+    } else if (!response.body) {
+      streamFailure = { name: 'MissingResponseBody', message: 'Sarvam returned HTTP success without an SSE response body.' };
+    } else {
+      const decoder = new TextDecoder();
+      let buffer = '';
+      try {
+        for await (const chunk of response.body) {
+          receivedChunks += 1;
+          buffer += decoder.decode(chunk, { stream: true }).replace(/\r\n/g, '\n');
+          let boundary;
+          while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+            const frame = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+            const data = frame.split('\n')
+              .filter((line) => line.startsWith('data:'))
+              .map((line) => line.slice(5).trimStart())
+              .join('\n');
+            if (!data) continue;
+            if (data === '[DONE]') { done = true; continue; }
+            let event;
+            try { event = JSON.parse(data); } catch { continue; }
+            receivedEvents += 1;
+            if (event?.error) {
+              code = event.error.code || 'stream_error';
+              providerMessage = event.error.message || event.error.detail || 'Sarvam returned an error inside its SSE stream.';
+              requestId = event.error.request_id || requestId;
+              streamFailure = { name: 'SarvamStreamError', message: providerMessage };
+              break;
+            }
+            if (typeof event?.choices?.[0]?.delta?.content === 'string'
+              && event.choices[0].delta.content.length) receivedContent = true;
+          }
+          if (streamFailure || done) break;
+        }
+      } catch (error) {
+        streamFailure = {
+          name: error?.name || 'StreamTransportError',
+          code: error?.code || null,
+          message: error?.message || 'SSE response body read failed.',
+        };
+      }
+    }
   } catch (error) {
-    return {
-      ok: false,
-      status: 0,
-      elapsedMs: Date.now() - startedAt,
-      model: MODEL_DIAGNOSTIC_NAME,
-      networkFailure: getNetworkFailureDetails(error),
+    streamFailure = {
+      name: error?.name || 'FetchError',
+      code: error?.code || null,
+      message: error?.message || 'Could not establish the Sarvam connection.',
     };
   }
+
+  const transportCode = streamFailure?.code || (streamFailure ? 'stream_transport_error' : null);
+  return {
+    ok: status >= 200 && status < 300 && receivedChunks > 0 && !streamFailure,
+    status,
+    code: code || transportCode,
+    providerMessage: providerMessage || streamFailure?.message || null,
+    requestId,
+    retryAfter,
+    receivedChunks,
+    receivedEvents,
+    receivedContent,
+    done,
+    elapsedMs: Date.now() - startedAt,
+    model: MODEL_DIAGNOSTIC_NAME,
+    streamFailure,
+  };
 }
 
 const MODEL_DIAGNOSTIC_NAME = 'sarvam-105b';
@@ -229,13 +296,13 @@ function diagnosticSummary(result) {
   if (result.ok) {
     return {
       heading: 'Sarvam connection test passed',
-      detail: `The saved key was accepted and the model returned an HTTP success response in ${result.elapsedMs} ms.`,
-      metadata: `HTTP ${result.status} · ${result.model}`,
+      detail: `The saved key was accepted and the streaming response was read successfully in ${result.elapsedMs} ms.`,
+      metadata: `HTTP ${result.status} · ${result.model} · ${result.receivedChunks} chunks · [DONE]: ${result.done ? 'yes' : 'no'}`,
     };
   }
 
   const code = String(result.code || '').toLowerCase();
-  let detail = 'The diagnostic request failed before a successful response.';
+  let detail = result.providerMessage || 'The diagnostic request failed before a successful response.';
   if (result.status === 402 || code === 'insufficient_quota_error') {
     detail = 'Sarvam returned an out-of-credits response. This is a billing balance issue, not a connection issue.';
   } else if (result.status === 403 || code === 'invalid_api_key_error') {
@@ -254,7 +321,13 @@ function diagnosticSummary(result) {
     const cause = result.networkFailure?.find((item) => item.code || item.message);
     detail = cause
       ? `No HTTP response was received. Network failure: ${cause.code || cause.name || 'unknown'} — ${cause.message || 'no additional detail'}`
-      : 'No HTTP response was received. The Serverless runtime could not establish or complete the connection to Sarvam.';
+      : (result.providerMessage || 'No HTTP response was received. The Serverless runtime could not establish or complete the connection to Sarvam.');
+  }
+  if (result.status >= 200 && result.status < 300 && result.streamFailure) {
+    detail = `Sarvam accepted the request (HTTP ${result.status}), but the SSE stream failed: ${result.streamFailure.code || result.streamFailure.name || 'stream_transport_error'} — ${result.streamFailure.message}`;
+  } else if (result.providerMessage && result.status > 0) {
+    detail = `${result.code || 'provider_error'}: ${result.providerMessage}`;
+  }
   }
 
   const metadata = [
@@ -262,6 +335,8 @@ function diagnosticSummary(result) {
     result.code ? `Code: ${result.code}` : null,
     result.requestId ? `Request ID: ${result.requestId}` : null,
     result.retryAfter ? `Retry-After: ${result.retryAfter}` : null,
+    result.receivedChunks ? `SSE chunks: ${result.receivedChunks}` : null,
+    result.requestId ? `Request ID: ${result.requestId}` : null,
     `Elapsed: ${result.elapsedMs} ms`,
   ].filter(Boolean).join(' · ');
 
