@@ -9,6 +9,7 @@ import {
   isGenerationStopped,
   loadConversation,
   resetConversation,
+  recoverInterruptedGenerations,
   saveConversationTurn,
   saveGenerationPartial,
   saveSarvamKey,
@@ -35,13 +36,59 @@ async function sendRich(chatId, richMessage) {
 }
 
 async function sendDraft(chatId, draftId, richMessage) {
-  await api.sendRichMessageDraft({
-    chat_id: chatId,
-    draft_id: draftId,
-    rich_message: richMessage,
-    can_stop: true,
-    keep_on_stop: true,
-  });
+  try {
+    await api.sendRichMessageDraft({
+      chat_id: chatId,
+      draft_id: draftId,
+      rich_message: richMessage,
+      can_stop: true,
+      keep_on_stop: true,
+    });
+    return true;
+  } catch (error) {
+    // Drafts are only previews. A preview failure must never cancel the AI
+    // request or prevent its permanent sendRichMessage response.
+    console.warn('Rich draft update failed; continuing generation:', {
+      message: error?.description || error?.message || 'draft unavailable',
+    });
+    return false;
+  }
+}
+
+const THINKING_ACTIONS = {
+  thinking: { label: 'Thinking…', emojis: ['🧠', '💭'] },
+  coding: { label: 'Working on the code…', emojis: ['💻', '⌨️', '⚙️'] },
+  writing: { label: 'Preparing the response…', emojis: ['✍️', '📝'] },
+  analysis: { label: 'Analyzing…', emojis: ['📊', '🔬', '🧠'] },
+  design: { label: 'Working on the design…', emojis: ['🎨', '🖌️'] },
+  search: { label: 'Searching live sources…', emojis: ['🔎', '🔍', '🌐'] },
+};
+
+function detectThinkingAction(text) {
+  if (/\\b(code|coding|program|script|function|bot|api|debug|error|implement|build|deploy)\\b/i.test(text)) return 'coding';
+  if (/\\b(write|draft|rewrite|email|post|article|story|document|proposal)\\b/i.test(text)) return 'writing';
+  if (/\\b(analy[sz]e|analysis|compare|review|data|statistics|calculate|research)\\b/i.test(text)) return 'analysis';
+  if (/\\b(design|logo|mockup|layout|visual|image)\\b/i.test(text)) return 'design';
+  return 'thinking';
+}
+
+async function thinkingDraft(action) {
+  const config = THINKING_ACTIONS[action] || THINKING_ACTIONS.thinking;
+  const fallback = config.emojis[0];
+  try {
+    const stickerSet = await api.getStickerSet({ name: 'AIActions' });
+    const sticker = (stickerSet?.stickers || []).find((item) =>
+      config.emojis.includes(item.emoji) && item.custom_emoji_id,
+    );
+    if (sticker?.custom_emoji_id) {
+      return { html: `<tg-thinking><tg-emoji emoji-id="${sticker.custom_emoji_id}">${fallback}</tg-emoji> ${config.label}</tg-thinking>` };
+    }
+  } catch (error) {
+    console.warn('Could not load Telegram AI Actions emoji pack; using standard emoji:', {
+      message: error?.description || error?.message || 'sticker set unavailable',
+    });
+  }
+  return { html: `<tg-thinking>${fallback} ${config.label}</tg-thinking>` };
 }
 
 async function deliverFinal(chatId, answer) {
@@ -84,9 +131,7 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
 
   let answer = first.content;
   if (first.toolCalls.length) {
-    await sendDraft(chatId, draftId, {
-      html: '<tg-thinking>Searching live sources…</tg-thinking>',
-    });
+    await sendDraft(chatId, draftId, await thinkingDraft('search'));
 
     const toolCalls = first.toolCalls;
     const assistantToolMessage = {
@@ -266,6 +311,22 @@ export default async function (message) {
   }
 
   try {
+    const interrupted = await recoverInterruptedGenerations(userTgId);
+    for (const generation of interrupted) {
+      const partial = typeof generation.partialText === 'string'
+        ? generation.partialText.trim().slice(0, 27000)
+        : '';
+      if (partial) {
+        await deliverFinal(
+          chatId,
+          `${partial}\\n\\n_The previous generation was interrupted by the Serverless runtime. This is the recovered partial answer._`,
+        );
+      } else {
+        await sendRich(chatId, errorMessage('The previous response was interrupted before any answer text could be saved. You can send your question again.'));
+      }
+      await deleteGeneration(generation.chatId, generation.draftId);
+    }
+
     const active = await getActiveGenerationForUser(userTgId);
     if (active) {
       await sendRich(chatId, errorMessage('You already have an answer being generated. Wait for it to finish or press Stop on its draft before sending another question.'));
@@ -295,9 +356,7 @@ export default async function (message) {
   try {
     await createGeneration({ chatId, draftId, userTgId });
     generationCreated = true;
-    await sendDraft(chatId, draftId, {
-      html: '<tg-thinking>Thinking…</tg-thinking>',
-    });
+    await sendDraft(chatId, draftId, await thinkingDraft(detectThinkingAction(text)));
 
     await runAssistantTurn({ chatId, userTgId, draftId, text, settings, history });
   } catch (error) {
@@ -335,6 +394,11 @@ export default async function (message) {
       });
     }
   } finally {
-    try { await deleteGeneration(chatId, draftId); } catch {}
+    try {
+      const generation = await getGeneration(chatId, draftId);
+      // The stopped-message handler owns finalizing and deleting stopped rows.
+      // Keeping the row avoids racing that separate Serverless invocation.
+      if (generation?.status !== 'stopped') await deleteGeneration(chatId, draftId);
+    } catch {}
   }
 }
