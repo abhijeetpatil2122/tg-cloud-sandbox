@@ -129,7 +129,7 @@ async function deliverFinal(chatId, answer) {
   }
 }
 
-async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, history }) {
+async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, history, initialDraft }) {
   const messages = [
     { role: 'system', content: buildSystemPrompt({ webSearchEnabled: Boolean(settings.tavilyApiKey) }) },
     ...history,
@@ -137,11 +137,17 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
   ];
 
   const isStopped = () => isGenerationStopped(chatId, draftId);
+  let currentDraft = initialDraft || { html: '<tg-thinking>🧠 Thinking…</tg-thinking>' };
+  const onKeepAlive = async () => {
+    const sent = await sendDraft(chatId, draftId, currentDraft);
+    if (!sent) throw new Error('Rich draft keep-alive is unavailable.');
+  };
   const onDraft = async (partial) => {
     try { await saveGenerationPartial(chatId, draftId, partial); } catch (error) {
       console.warn('Could not persist the latest draft text:', { message: error?.message || 'database update failed' });
     }
-    const sent = await sendDraft(chatId, draftId, { markdown: partial });
+    currentDraft = { markdown: partial };
+    const sent = await sendDraft(chatId, draftId, currentDraft);
     if (!sent) throw new Error('Rich draft preview is unavailable.');
   };
 
@@ -150,6 +156,7 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
     messages,
     tools: settings.tavilyApiKey ? [WEB_SEARCH_TOOL] : null,
     onDraft,
+    onKeepAlive,
     isStopped,
   });
 
@@ -158,7 +165,8 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
   let answer = first.content;
   let incomplete = Boolean(first.incomplete);
   if (first.toolCalls.length) {
-    await sendDraft(chatId, draftId, await thinkingDraft('search'));
+    currentDraft = await thinkingDraft('search');
+    await sendDraft(chatId, draftId, currentDraft);
 
     const toolCalls = first.toolCalls;
     const assistantToolMessage = {
@@ -202,6 +210,7 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
       apiKey: settings.sarvamApiKey,
       messages: finalMessages,
       onDraft,
+      onKeepAlive,
       isStopped,
     });
     if (final.stopped) return { stopped: true };
@@ -404,9 +413,10 @@ export default async function (message) {
     generationCreated = true;
     await saveConversationUserMessage(userTgId, text);
     userMessageSaved = true;
-    await sendDraft(chatId, draftId, await thinkingDraft(detectThinkingAction(text)));
+    const initialDraft = await thinkingDraft(detectThinkingAction(text));
+    await sendDraft(chatId, draftId, initialDraft);
 
-    await runAssistantTurn({ chatId, userTgId, draftId, text, settings, history });
+    await runAssistantTurn({ chatId, userTgId, draftId, text, settings, history, initialDraft });
   } catch (error) {
     console.error('Sarvam response failed:', {
       status: error?.status || null,
