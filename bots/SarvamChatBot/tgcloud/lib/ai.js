@@ -12,7 +12,11 @@ function parseSseEvent(eventText) {
     .map((line) => line.slice(5).trimStart())
     .join('\n');
   if (!data || data === '[DONE]') return null;
-  try { return JSON.parse(data); } catch { return null; }
+  try { return JSON.parse(data); } catch {
+    const error = new Error('Sarvam returned an unreadable streaming event.');
+    error.code = 'invalid_sse_event';
+    throw error;
+  }
 }
 
 function addToolCallDelta(calls, deltaCalls) {
@@ -65,7 +69,11 @@ export async function streamSarvamCompletion({
   if (!response.ok) {
     const error = new Error('Sarvam request failed.');
     error.status = response.status;
-    try { await response.text(); } catch {}
+    try {
+      const body = await response.json();
+      error.code = body?.error?.code || body?.code || null;
+      error.requestId = body?.error?.request_id || body?.request_id || null;
+    } catch {}
     throw error;
   }
   if (!response.body) throw new Error('Sarvam returned no streaming response body.');
@@ -81,6 +89,12 @@ export async function streamSarvamCompletion({
   async function consumeEvent(eventText) {
     const event = parseSseEvent(eventText);
     if (!event) return;
+    if (event.error) {
+      const error = new Error('Sarvam reported a streaming error.');
+      error.code = event.error?.code || 'stream_error';
+      error.status = Number(event.error?.status) || null;
+      throw error;
+    }
     const choice = event?.choices?.[0];
     if (!choice) return; // Usage-only chunks have an empty choices array.
 
