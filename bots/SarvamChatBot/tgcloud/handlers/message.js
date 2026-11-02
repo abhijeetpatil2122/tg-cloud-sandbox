@@ -50,7 +50,7 @@ async function sendDraft(chatId, draftId, richMessage) {
     // with its standard Unicode fallback before disabling draft previews.
     if (typeof richMessage?.html === 'string' && richMessage.html.includes('<tg-emoji')) {
       const fallbackHtml = richMessage.html.replace(
-        /<tg-emoji[^>]*>([\\s\\S]*?)<\\/tg-emoji>/g,
+        /<tg-emoji[^>]*>([\s\S]*?)<\/tg-emoji>/g,
         '$1',
       );
       try {
