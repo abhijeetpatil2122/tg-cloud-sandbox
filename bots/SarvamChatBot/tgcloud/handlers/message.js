@@ -3,6 +3,7 @@ import {
   completeGeneration,
   createGeneration,
   deleteGeneration,
+  getActiveGenerationForUser,
   getBotSettings,
   getGeneration,
   isGenerationStopped,
@@ -256,6 +257,25 @@ export default async function (message) {
 
   if (!settings?.sarvamApiKey) {
     await sendRich(chatId, errorMessage('Sarvam is not configured yet. The bot owner must set the key using /setkey YOUR_SARVAM_API_KEY.'));
+    return;
+  }
+
+  if (text.length > 12000) {
+    await sendRich(chatId, errorMessage('That message is too long for one request. Please split it into smaller parts and send them separately.'));
+    return;
+  }
+
+  try {
+    const active = await getActiveGenerationForUser(userTgId);
+    if (active) {
+      await sendRich(chatId, errorMessage('You already have an answer being generated. Wait for it to finish or press Stop on its draft before sending another question.'));
+      return;
+    }
+  } catch (error) {
+    console.error('Could not check active generation state:', {
+      message: error?.description || error?.message || 'database read failed',
+    });
+    await sendRich(chatId, errorMessage('I could not check whether another answer is still running. Please try again shortly.'));
     return;
   }
 
