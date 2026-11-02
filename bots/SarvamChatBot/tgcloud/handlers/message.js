@@ -487,7 +487,8 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
   if (!answer?.trim()) throw new Error('Sarvam returned an empty answer.');
   if (incomplete) {
     const streamNote = first.streamError
-      ? 'Stream interrupted — ' + first.streamError.code + ': ' + first.streamError.message
+      ? 'Stream interrupted — ' + (first.streamError.status ? 'HTTP ' + first.streamError.status + ' · ' : '')
+        + first.streamError.code + ': ' + (first.streamError.providerMessage || first.streamError.message)
       : 'The response ended before Sarvam sent its normal completion marker.';
     answer = answer.trim() + '\n\n_' + streamNote + '. Ask me to continue from where it stopped._';
   }
