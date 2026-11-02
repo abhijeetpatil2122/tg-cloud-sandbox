@@ -8,14 +8,19 @@ const DRAFT_STEP_CHARS = 400;
 const DRAFT_REFRESH_MS = 10000;
 
 function parseSseEvent(eventText) {
-  const data = eventText.split(/\r?\n/)
+  const lines = eventText.split(/\r?\n/);
+  const data = lines
     .filter((line) => line.startsWith('data:'))
-    .map((line) => line.slice(5).trimStart())
+    .map((line) => line.slice(5).replace(/^ /, ''))
     .join('\n');
-  if (!data || data === '[DONE]') return null;
-  try { return JSON.parse(data); } catch {
+  if (!data) return null;
+  if (data.trim() === '[DONE]') return { __streamDone: true };
+  try {
+    return JSON.parse(data);
+  } catch {
     const error = new Error('Sarvam returned an unreadable streaming event.');
     error.code = 'invalid_sse_event';
+    error.providerMessage = data.slice(0, 1200);
     throw error;
   }
 }
@@ -34,6 +39,30 @@ function addToolCallDelta(calls, deltaCalls) {
     if (typeof item.function?.arguments === 'string') current.function.arguments += item.function.arguments;
     calls[index] = current;
   }
+}
+
+function extractText(value) {
+  if (typeof value === 'string') return value;
+  if (!Array.isArray(value)) return '';
+  return value.map((part) => {
+    if (typeof part === 'string') return part;
+    if (typeof part?.text === 'string') return part.text;
+    if (typeof part?.content === 'string') return part.content;
+    return '';
+  }).join('');
+}
+
+function extractChoiceText(choice) {
+  const delta = choice?.delta || {};
+  const deltaText = extractText(delta.content);
+  if (deltaText) return deltaText;
+
+  // Compatibility with providers that emit a complete message or legacy text
+  // field in a streamed choice instead of delta.content.
+  const messageText = extractText(choice?.message?.content);
+  if (messageText) return messageText;
+  if (typeof choice?.text === 'string') return choice.text;
+  return '';
 }
 
 export async function streamSarvamCompletion({
@@ -85,7 +114,12 @@ export async function streamSarvamCompletion({
     }
     throw error;
   }
-  if (!response.body) throw new Error('Sarvam returned no streaming response body.');
+  if (!response.body) {
+    const error = new Error('Sarvam returned no streaming response body.');
+    error.code = 'empty_stream_body';
+    error.status = response.status;
+    throw error;
+  }
 
   let buffer = '';
   let answer = '';
@@ -94,11 +128,46 @@ export async function streamSarvamCompletion({
   let draftAvailable = true;
   let finishReason = null;
   let lastDraftAt = Date.now();
+  let eventCount = 0;
+  let choiceCount = 0;
+  let sawDone = false;
   const toolCalls = [];
+
+  async function appendText(text) {
+    if (!text || answerBytes >= MAX_OUTPUT_BYTES) return;
+    let accepted = '';
+    for (const character of text) {
+      const characterBytes = textEncoder.encode(character).length;
+      if (answerBytes + characterBytes > MAX_OUTPUT_BYTES) break;
+      accepted += character;
+      answerBytes += characterBytes;
+    }
+    answer += accepted;
+    if (draftAvailable && accepted && (
+      answer.length >= nextDraftAt
+      || Date.now() - lastDraftAt >= DRAFT_REFRESH_MS
+    )) {
+      nextDraftAt = answer.length + DRAFT_STEP_CHARS;
+      lastDraftAt = Date.now();
+      try {
+        await onDraft(answer);
+      } catch (error) {
+        draftAvailable = false;
+        console.warn('Rich draft update failed; continuing without further previews:', {
+          message: error?.description || error?.message || 'draft unavailable',
+        });
+      }
+    }
+  }
 
   async function consumeEvent(eventText) {
     const event = parseSseEvent(eventText);
     if (!event) return;
+    eventCount += 1;
+    if (event.__streamDone) {
+      sawDone = true;
+      return;
+    }
     if (event.error) {
       const error = new Error('Sarvam reported a streaming error.');
       error.code = event.error?.code || 'stream_error';
@@ -108,38 +177,20 @@ export async function streamSarvamCompletion({
       error.requestId = event.error?.request_id || event.error?.requestId || null;
       throw error;
     }
-    const choice = event?.choices?.[0];
-    if (!choice) return; // Usage-only chunks have an empty choices array.
 
-    const delta = choice.delta || {};
-    if (typeof delta.content === 'string' && answerBytes < MAX_OUTPUT_BYTES) {
-      let accepted = '';
-      for (const character of delta.content) {
-        const characterBytes = textEncoder.encode(character).length;
-        if (answerBytes + characterBytes > MAX_OUTPUT_BYTES) break;
-        accepted += character;
-        answerBytes += characterBytes;
-      }
-      answer += accepted;
-      if (draftAvailable && accepted && (
-        answer.length >= nextDraftAt
-        || Date.now() - lastDraftAt >= DRAFT_REFRESH_MS
-      )) {
-        nextDraftAt = answer.length + DRAFT_STEP_CHARS;
-        lastDraftAt = Date.now();
-        try {
-          await onDraft(answer);
-        } catch (error) {
-          draftAvailable = false;
-          console.warn('Rich draft update failed; continuing without further previews:', {
-            message: error?.description || error?.message || 'draft unavailable',
-          });
-        }
-      }
+    // Some compatible streams place final text outside choices. Support these
+    // explicit text fields without treating metadata/usage as user-visible text.
+    if (typeof event.output_text === 'string') await appendText(event.output_text);
+    if (typeof event.response?.output_text === 'string') await appendText(event.response.output_text);
+
+    const choices = Array.isArray(event.choices) ? event.choices : [];
+    choiceCount += choices.length;
+    for (const choice of choices) {
+      await appendText(extractChoiceText(choice));
+      const delta = choice?.delta || {};
+      if (Array.isArray(delta.tool_calls)) addToolCallDelta(toolCalls, delta.tool_calls);
+      if (typeof choice?.finish_reason === 'string') finishReason = choice.finish_reason;
     }
-
-    if (Array.isArray(delta.tool_calls)) addToolCallDelta(toolCalls, delta.tool_calls);
-    if (typeof choice.finish_reason === 'string') finishReason = choice.finish_reason;
   }
 
   const decoder = new TextDecoder();
@@ -156,7 +207,10 @@ export async function streamSarvamCompletion({
         // A transient DB read failure must not discard the in-flight answer.
       }
 
-      buffer = (buffer + decoder.decode(chunk, { stream: true })).replace(/\r\n/g, '\n');
+      buffer += decoder.decode(chunk, { stream: true });
+      // Normalize complete CRLF sequences after appending, so a CRLF split
+      // across network chunks cannot corrupt the SSE frame boundary.
+      buffer = buffer.replace(/\r\n/g, '\n');
       let boundary;
       while ((boundary = buffer.indexOf('\n\n')) !== -1) {
         const frame = buffer.slice(0, boundary);
@@ -185,12 +239,18 @@ export async function streamSarvamCompletion({
       message: cause?.message || 'stream body read failed',
       receivedBytes: answerBytes,
       receivedCharacters: answer.length,
+      eventCount,
+      choiceCount,
+      finishReason,
+      sawDone,
     });
   }
 
-  buffer = (buffer + decoder.decode()).replace(/\r\n/g, '\n');
+  buffer += decoder.decode();
+  buffer = buffer.replace(/\r\n/g, '\n');
   if (!streamFailure && !stopped && buffer.trim()) await consumeEvent(buffer);
   if (stopped) return { stopped: true, content: answer, toolCalls: [], finishReason: 'stopped' };
+
   if (streamFailure && !answer.trim() && !toolCalls.length) {
     if (streamFailure.status || streamFailure.providerMessage) throw streamFailure;
     const error = new Error(streamFailure?.message || 'The Sarvam SSE connection closed before any response content arrived.');
@@ -199,12 +259,21 @@ export async function streamSarvamCompletion({
     error.status = 0;
     error.cause = streamFailure;
     error.providerMessage = 'The HTTP request was accepted, but the streaming response connection failed before content arrived.';
+    error.requestId = response.headers?.get?.('x-request-id') || null;
     throw error;
   }
 
   const completedToolCalls = toolCalls.filter((call) => call.id && call.function.name);
   if (!answer.trim() && !completedToolCalls.length) {
-    throw new Error('Sarvam completed without a text response or tool call.');
+    const error = new Error('Sarvam returned a successful HTTP response but the stream contained no usable text or tool call.');
+    error.code = 'empty_stream_response';
+    error.status = response.status;
+    error.providerMessage = 'No text or tool-call payload was found in the streamed response. '
+      + 'Events: ' + eventCount + '; choices: ' + choiceCount
+      + '; finish_reason: ' + (finishReason || 'not received')
+      + '; done_marker: ' + (sawDone ? 'received' : 'not received') + '.';
+    error.requestId = response.headers?.get?.('x-request-id') || null;
+    throw error;
   }
 
   return {
