@@ -214,6 +214,17 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
     answer = `${answer.trim()}\n\n_This response reached the model or runtime output boundary before a normal completion marker. Ask me to continue from where it stopped._`;
   }
 
+  // Save the full final text before claiming completion. If the Serverless
+  // invocation is terminated between the state transition and Telegram delivery,
+  // stale recovery can still send the complete answer on the next user message.
+  try {
+    await saveGenerationPartial(chatId, draftId, answer.trim());
+  } catch (error) {
+    console.warn('Could not checkpoint the final answer before delivery:', {
+      message: error?.message || 'database update failed',
+    });
+  }
+
   // Atomically claim completion. If the Stop update won the race, it has
   // already persisted the partial draft and this invocation must not duplicate it.
   const mayFinalize = await completeGeneration(chatId, draftId);
