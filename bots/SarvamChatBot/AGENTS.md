@@ -50,7 +50,7 @@ A GitHub Actions secret named SARVAM_API_KEY alone does not inject the key into 
 - Stream true; consume SSE frames incrementally and handle arbitrary chunk boundaries.
 - Ignore malformed/empty frames, usage-only chunks and [DONE].
 - Only display delta.content, never reasoning_content.
-- Throttle drafts by accumulated text length; draft_id must be a non-zero integer.
+- Throttle drafts by accumulated text length and elapsed time; current settings are 400 characters or 10 seconds on incoming stream chunks. Keep under Telegram's documented 40 draft/typing updates per chat per 30 seconds; draft_id must be a non-zero integer.
 - Draft updates are ephemeral previews. Always call sendRichMessage with the complete final answer.
 - If a draft call fails, continue collecting the answer and still send the final message.
 - Use can_stop=true and keep_on_stop=true only with the active_generations table and stopped_message_generation handler deployed together.
