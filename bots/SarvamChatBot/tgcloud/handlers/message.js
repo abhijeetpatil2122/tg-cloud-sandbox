@@ -328,12 +328,10 @@ function diagnosticSummary(result) {
   } else if (result.providerMessage && result.status > 0) {
     detail = `${result.code || 'provider_error'}: ${result.providerMessage}`;
   }
-  }
 
   const metadata = [
     result.status ? `HTTP ${result.status}` : 'No HTTP response',
     result.code ? `Code: ${result.code}` : null,
-    result.requestId ? `Request ID: ${result.requestId}` : null,
     result.retryAfter ? `Retry-After: ${result.retryAfter}` : null,
     result.receivedChunks ? `SSE chunks: ${result.receivedChunks}` : null,
     result.requestId ? `Request ID: ${result.requestId}` : null,
@@ -510,7 +508,10 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
 
   if (!answer?.trim()) throw new Error('Sarvam returned an empty answer.');
   if (incomplete) {
-    answer = `${answer.trim()}\n\n_This response reached the model or runtime output boundary before a normal completion marker. Ask me to continue from where it stopped._`;
+    const streamNote = first.streamError
+      ? 'Stream interrupted — ' + first.streamError.code + ': ' + first.streamError.message
+      : 'The response ended before Sarvam sent its normal completion marker.';
+    answer = answer.trim() + '\n\n_' + streamNote + '. Ask me to continue from where it stopped._';
   }
 
   // Save the full final text before claiming completion. If the Serverless
