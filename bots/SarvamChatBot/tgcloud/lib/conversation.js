@@ -58,6 +58,10 @@ export async function saveConversationTurn(userTgId, userText, assistantText) {
 export async function resetConversation(userTgId) {
   await db.delete(conversationMessages)
     .where(eq(conversationMessages.userTgId, userTgId)).run();
+  // A reset also releases any abandoned/in-flight generation for this user.
+  // The running invocation sees the missing row and exits on its next SSE chunk.
+  await db.delete(activeGenerations)
+    .where(eq(activeGenerations.userTgId, userTgId)).run();
 }
 
 export async function createGeneration({ chatId, draftId, userTgId }) {
@@ -113,6 +117,36 @@ export async function deleteGeneration(chatId, draftId) {
   await db.delete(activeGenerations)
     .where(and(eq(activeGenerations.chatId, chatId), eq(activeGenerations.draftId, draftId)))
     .run();
+}
+
+const GENERATION_STALE_AFTER_MS = 35000;
+
+export async function recoverInterruptedGenerations(userTgId) {
+  const rows = await db.select().from(activeGenerations)
+    .where(eq(activeGenerations.userTgId, userTgId)).all();
+  const now = Date.now();
+  const recovered = [];
+
+  for (const row of rows) {
+    const createdAt = row.createdAt instanceof Date
+      ? row.createdAt.getTime()
+      : new Date(row.createdAt).getTime();
+    const stale = !Number.isFinite(createdAt) || now - createdAt > GENERATION_STALE_AFTER_MS;
+
+    if (stale && (row.status === 'running' || row.status === 'stopped')) {
+      await db.update(activeGenerations).set({ status: 'interrupted' })
+        .where(and(
+          eq(activeGenerations.chatId, row.chatId),
+          eq(activeGenerations.draftId, row.draftId),
+          eq(activeGenerations.status, row.status),
+        )).run();
+      recovered.push({ ...row, status: 'interrupted' });
+    } else if (row.status === 'interrupted') {
+      recovered.push(row);
+    }
+  }
+
+  return recovered;
 }
 
 export async function getActiveGenerationForUser(userTgId) {
