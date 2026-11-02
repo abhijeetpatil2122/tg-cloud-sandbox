@@ -21,16 +21,47 @@ import { buildSystemPrompt } from '../lib/prompts.js';
 import { WEB_SEARCH_TOOL, runWebSearch } from '../lib/search.js';
 import { errorMessage, helpMessage, startMessage } from '../lib/rich-messages.js';
 
-function getCommand(text) {
-  if (typeof text !== 'string' || !text.startsWith('/')) return null;
-  return text.trim().split(/\s+/)[0].slice(1).split('@')[0].toLowerCase();
+function getCommand(message) {
+  const text = typeof message?.text === 'string' ? message.text.trim() : '';
+  if (!text.startsWith('/')) return null;
+
+  // Prefer Telegram's command entity when present; fall back to a strict
+  // leading-command parser for clients that omit entities.
+  const entity = (message.entities || []).find((item) =>
+    item.type === 'bot_command' && item.offset === 0,
+  );
+  const raw = entity
+    ? text.slice(0, entity.length)
+    : (text.match(/^\/[A-Za-z0-9_]+(?:@[A-Za-z0-9_]+)?/) || [])[0];
+  if (!raw) return null;
+
+  const [name, addressedBot] = raw.slice(1).split('@');
+  if (addressedBot && message.bot_username
+    && addressedBot.toLowerCase() !== message.bot_username.toLowerCase()) return null;
+  return name.toLowerCase();
 }
 
 function getCommandValue(text, command) {
   if (typeof text !== 'string') return '';
-  const pattern = new RegExp('^/' + command + '(?:@[A-Za-z0-9_]+)?\\s+([\\s\\S]+)$', 'i');
+  const pattern = new RegExp('^/' + command + '(?:@[A-Za-z0-9_]+)?(?:\\s+([\\s\\S]+))?$', 'i');
   const match = text.trim().match(pattern);
   return match?.[1]?.trim() || '';
+}
+
+async function ensureBotCommands() {
+  try {
+    await api.setMyCommands({
+      commands: [
+        { command: 'start', description: 'Start the assistant' },
+        { command: 'help', description: 'How to use the assistant' },
+        { command: 'reset', description: 'Clear your conversation' },
+      ],
+    });
+  } catch (error) {
+    console.warn('Could not refresh the Telegram command menu:', {
+      message: error?.description || error?.message || 'command registration unavailable',
+    });
+  }
 }
 async function sendRich(chatId, richMessage) {
   return await api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
@@ -261,15 +292,17 @@ export default async function (message) {
   if (!chatId || !userTgId || message.from?.is_bot) return;
 
   const text = typeof message.text === 'string' ? message.text.trim() : '';
-  const command = getCommand(text);
+  const command = getCommand(message);
 
   if (command === 'start') {
+    await ensureBotCommands();
     const settings = await getBotSettings();
     await sendRich(chatId, startMessage(Boolean(settings?.sarvamApiKey), Boolean(settings?.tavilyApiKey)));
     return;
   }
 
   if (command === 'help') {
+    await ensureBotCommands();
     const settings = await getBotSettings();
     await sendRich(chatId, helpMessage(Boolean(settings?.sarvamApiKey), Boolean(settings?.tavilyApiKey)));
     return;
