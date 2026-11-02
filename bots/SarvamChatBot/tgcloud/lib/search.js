@@ -49,7 +49,7 @@ export async function runWebSearch(apiKey, rawArgs) {
   const cleanDomains = (value) => Array.isArray(value)
     ? [...new Set(value.filter((domain) => typeof domain === 'string')
       .map((domain) => domain.trim().toLowerCase())
-      .filter((domain) => /^[a-z0-9.-]+$/.test(domain) && domain.length <= 253))].slice(0, 10)
+      .filter((domain) => /^(?:\\*\\.)?[a-z0-9.-]+$/.test(domain) && domain.length <= 253))].slice(0, 10)
     : [];
   const includeDomains = cleanDomains(args?.include_domains);
   const excludeDomains = cleanDomains(args?.exclude_domains);
