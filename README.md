@@ -18,7 +18,7 @@ Do not copy a project's `.tgcloud/` local state, CLI credentials, `node_modules/
 |---|---|---:|---|---|
 | `bots/BotZoneBot` | React/Vite Rich Message Editor Mini App with Serverless endpoints and Telegram CloudStorage | `8747772496` | `TGCLOUD_TOKEN` | Enabled on `main` |
 | `bots/RichDocsBot` | Inline search for Bot API methods/types and related error documentation, rendered as native Rich Messages | `8626465761` | `TGCLOUD_TOKEN_RICHDOCSBOT` | Enabled on `main` |
-| `bots/IdPullBot` | Telegram message inspector with private chunked reports, guest-mode Telegraph links, share keyboard, and aggregate stats | `8288436618` | `TGCLOUD_TOKEN_IDPULLBOT` | Manual-only during initial verification |
+| `bots/IdPullBot` | Telegram message inspector with private chunked reports, guest-mode Telegraph links, share keyboard, and aggregate stats | `8288436618` | `TGCLOUD_TOKEN_IDPULLBOT` | Enabled on `main` |
 | `bots/SarvamChatBot` | Sarvam AI private-chat assistant with recoverable streamed Rich Messages, task-aware Telegram thinking states, stoppable drafts, and optional Tavily live search | From scoped token | `TGCLOUD_TOKEN_SARVAMCHATBOT` | Enabled on `main` |
 
 IdPullBot remains manual-only until its first deployment and live Telegram behavior are verified. SarvamChatBot is registered for automatic deployment on `main` when deployable files under `bots/SarvamChatBot/` change. It remains limited to private chats and uses Tavily for optional live web/news search plus Telegram's stoppable Rich Message draft workflow. The automatic workflow does not run database migrations.
@@ -49,7 +49,7 @@ For projects without static hosting, deployment uses a targeted push of JavaScri
 
 The **Telegram Serverless Auto Deploy** workflow is triggered by pushes to `main` that touch `bots/**`. It detects projects with deployable changes, validates each detected project, checks JavaScript syntax, and builds a configured Mini App frontend. Only projects present in its explicit registry with `auto_deploy: true` are eligible for deployment.
 
-- BotZoneBot and RichDocsBot are enabled for automatic deployment. IdPullBot and SarvamChatBot remain manual-only; their first deployments and live behavior must be verified before any auto-deploy registration.
+- BotZoneBot, RichDocsBot, IdPullBot, TgRichBot and SarvamChatBot are registered for automatic deployment on `main`. Other projects remain manual-only until explicitly added to the registry.
 - Documentation-only edits are filtered out. Root-only changes do not match the workflow's `bots/**` trigger.
 - Non-static projects use targeted module pushes. Static Mini App projects build their frontend and use a full push, which can delete remote modules absent from the local project.
 - Automatic deployment never runs database migrations.
