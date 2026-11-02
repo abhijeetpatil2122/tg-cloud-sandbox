@@ -4,6 +4,7 @@ import {
   createGeneration,
   deleteGeneration,
   getBotSettings,
+  getGeneration,
   isGenerationStopped,
   loadConversation,
   resetConversation,
@@ -301,10 +302,12 @@ export default async function (message) {
     }
 
     try {
-      const stopped = await isGenerationStopped(chatId, draftId);
-      if (!stopped) {
+      const generation = await getGeneration(chatId, draftId);
+      if (generation?.status === 'running') {
         const mayFinalize = await completeGeneration(chatId, draftId);
         if (mayFinalize) await sendRich(chatId, errorMessage(messageText));
+      } else if (generation?.status === 'completed') {
+        await sendRich(chatId, errorMessage(messageText));
       }
     } catch (sendError) {
       console.error('Could not send the AI error response:', {
