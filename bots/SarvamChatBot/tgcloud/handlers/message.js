@@ -10,7 +10,8 @@ import {
   loadConversation,
   resetConversation,
   recoverInterruptedGenerations,
-  saveConversationTurn,
+  saveConversationAssistantMessage,
+  saveConversationUserMessage,
   saveGenerationPartial,
   saveSarvamKey,
   saveTavilyKey,
@@ -221,7 +222,7 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
   await deliverFinal(chatId, answer.trim());
 
   try {
-    await saveConversationTurn(userTgId, text, answer.trim());
+    await saveConversationAssistantMessage(userTgId, answer.trim());
   } catch (error) {
     console.warn('AI reply sent, but conversation history could not be saved:', {
       message: error?.description || error?.message || 'database write failed',
@@ -349,10 +350,13 @@ export default async function (message) {
       if (partial) {
         await deliverFinal(
           chatId,
-          `${partial}\n\n_The previous generation was interrupted by the Serverless runtime. This is the recovered partial answer._`,
+          `${partial}\n\n_The previous generation was interrupted by the Serverless runtime. This is the recovered partial answer. You can ask me to continue._`,
         );
+        await saveConversationAssistantMessage(userTgId, partial);
       } else {
-        await sendRich(chatId, errorMessage('The previous response was interrupted before any answer text could be saved. You can send your question again.'));
+        const recoveryNotice = 'The previous response was interrupted before any answer text could be saved. You can ask me to continue the original request.';
+        await sendRich(chatId, errorMessage(recoveryNotice));
+        await saveConversationAssistantMessage(userTgId, recoveryNotice);
       }
       await deleteGeneration(generation.chatId, generation.draftId);
     }
@@ -383,9 +387,12 @@ export default async function (message) {
 
   const draftId = Math.max(1, Number(message.message_id) || 1);
   let generationCreated = false;
+  let userMessageSaved = false;
   try {
     await createGeneration({ chatId, draftId, userTgId });
     generationCreated = true;
+    await saveConversationUserMessage(userTgId, text);
+    userMessageSaved = true;
     await sendDraft(chatId, draftId, await thinkingDraft(detectThinkingAction(text)));
 
     await runAssistantTurn({ chatId, userTgId, draftId, text, settings, history });
@@ -414,9 +421,13 @@ export default async function (message) {
       const generation = await getGeneration(chatId, draftId);
       if (generation?.status === 'running') {
         const mayFinalize = await completeGeneration(chatId, draftId);
-        if (mayFinalize) await sendRich(chatId, errorMessage(messageText));
+        if (mayFinalize) {
+          await sendRich(chatId, errorMessage(messageText));
+          if (userMessageSaved) await saveConversationAssistantMessage(userTgId, messageText);
+        }
       } else if (generation?.status === 'completed') {
         await sendRich(chatId, errorMessage(messageText));
+        if (userMessageSaved) await saveConversationAssistantMessage(userTgId, messageText);
       }
     } catch (sendError) {
       console.error('Could not send the AI error response:', {
