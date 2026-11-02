@@ -91,12 +91,15 @@ export async function runWebSearch(apiKey, rawArgs) {
   if (!response.ok) {
     const error = new Error('Live web search request failed.');
     error.status = response.status;
-    try { await response.text(); } catch {}
+    try {
+      const body = await response.json();
+      error.code = body?.error?.code || body?.code || null;
+    } catch {}
     throw error;
   }
 
   const data = await response.json();
-  const results = Array.isArray(data?.results) ? data.results.slice(0, 6) : [];
+  const results = Array.isArray(data?.results) ? data.results.slice(0, 8) : [];
   return {
     query,
     topic,
