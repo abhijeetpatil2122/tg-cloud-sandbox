@@ -9,7 +9,7 @@ A Telegram private-chat AI assistant powered by Sarvam 105B. It streams answers 
 - Rich Markdown drafts while generating and a complete Rich Message as the final answer.
 - Telegram Stop button using can_stop, keep_on_stop and the stopped_message_generation update; stopped partial answers are persisted with sendRichMessage.
 - Task-aware tg-thinking states use Telegram's recommended AIActions custom-emoji pack when available, with standard emoji fallbacks.
-- Stale generation recovery after a Serverless invocation has ended; /reset also clears any active or stuck generation lock.
+- Stale generation recovery after a Serverless invocation has ended; the original prompt and recovered partial are saved to history so sending “continue” resumes the answer. /reset also clears any active or stuck generation lock.
 - Output is capped conservatively at 28,000 characters (below the 32k Rich Message limit) and 4,096 model tokens. Truncated or incomplete streams are labelled rather than silently presented as complete.
 - Per-user conversation history and /reset.
 - Optional Tavily web_search function tool. The model decides when a lookup is necessary.
@@ -61,6 +61,7 @@ The current recovery, Stop, and thinking-state changes do not alter the database
 - /setkey YOUR_SARVAM_API_KEY — configure or rotate Sarvam.
 - /setsearchkey YOUR_TAVILY_API_KEY — configure or rotate live search.
 - /reset — clear the invoking user's conversation history and release any active or stuck generation.
+- If a response is recovered after a runtime interruption, send “continue” to resume from the saved prompt and partial answer.
 
 ## Accuracy and source handling
 
