@@ -1,13 +1,16 @@
 # SarvamChatBot
 
-A Telegram private-chat AI assistant powered by Sarvam 105B. It streams answers through Telegram Rich Message drafts, can stop generation from the Telegram Stop button, and uses Tavily live search for current facts and news when Sarvam decides it is needed.
+A Telegram private-chat AI assistant powered by Sarvam 105B. It streams answers through Telegram Rich Message drafts, finalizes stopped drafts as permanent Rich Messages, recovers interrupted generations, and uses Tavily live search for current facts and news when Sarvam decides it is needed.
 
 ## Current scope
 
 - Private chats only. Groups and Guest Mode are deliberately not handled.
 - Sarvam Chat Completions V2 (sarvam-105b) with SSE streaming.
 - Rich Markdown drafts while generating and a complete Rich Message as the final answer.
-- Telegram Stop button using can_stop, keep_on_stop and the stopped_message_generation update.
+- Telegram Stop button using can_stop, keep_on_stop and the stopped_message_generation update; stopped partial answers are persisted with sendRichMessage.
+- Task-aware tg-thinking states use Telegram's recommended AIActions custom-emoji pack when available, with standard emoji fallbacks.
+- Stale generation recovery after a Serverless invocation has ended; /reset also clears any active or stuck generation lock.
+- Output is capped conservatively at 28,000 characters (below the 32k Rich Message limit) and 4,096 model tokens. Truncated or incomplete streams are labelled rather than silently presented as complete.
 - Per-user conversation history and /reset.
 - Optional Tavily web_search function tool. The model decides when a lookup is necessary.
 - News searches use Tavily's news topic, a recent time window, publication dates and live page fetching. Final answers cite the returned source URLs.
@@ -42,12 +45,14 @@ Project path: bots/SarvamChatBot
 
 CLI token Actions secret: TGCLOUD_TOKEN_SARVAMCHATBOT
 
-Run Actions → Telegram Serverless CLI:
+Deployable changes under this project are detected by the repository's Telegram Serverless Auto Deploy workflow on pushes to main. The workflow validates the project, checks JavaScript syntax, verifies the scoped token's embedded app ID, then pushes only the bot's runtime modules. It does not run database migrations.
+
+For a manual status check or intentional manual deployment, use Actions → Telegram Serverless CLI with:
 - bot_path: bots/SarvamChatBot
 - expected_app_id: FROM_TOKEN
-- mode: status first, then deploy when ready
+- mode: status or deploy
 
-This update adds the optional tavily_api_key column to bot_settings and the new active_generations table. Deploy the schema, review and apply the additive database migration separately, then configure the Tavily key with /setsearchkey. The workflow never runs migrations.
+The current recovery, Stop, and thinking-state changes do not alter the database schema, so they require no new migration. The earlier tavily_api_key and active_generations migration remains part of the previously deployed feature.
 
 ## Commands
 
@@ -55,7 +60,7 @@ This update adds the optional tavily_api_key column to bot_settings and the new 
 - /help — usage and setup help.
 - /setkey YOUR_SARVAM_API_KEY — configure or rotate Sarvam.
 - /setsearchkey YOUR_TAVILY_API_KEY — configure or rotate live search.
-- /reset — clear the invoking user's conversation history.
+- /reset — clear the invoking user's conversation history and release any active or stuck generation.
 
 ## Accuracy and source handling
 
