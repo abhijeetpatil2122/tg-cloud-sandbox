@@ -21,7 +21,7 @@ Do not copy a project's `.tgcloud/` local state, CLI credentials, `node_modules/
 | `bots/IdPullBot` | Telegram message inspector with private chunked reports, guest-mode Telegraph links, share keyboard, and aggregate stats | `8288436618` | `TGCLOUD_TOKEN_IDPULLBOT` | Enabled on `main` |
 | `bots/SarvamChatBot` | Sarvam AI private-chat assistant with recoverable streamed Rich Messages, task-aware Telegram thinking states, stoppable drafts, and optional Tavily live search | From scoped token | `TGCLOUD_TOKEN_SARVAMCHATBOT` | Enabled on `main` |
 
-IdPullBot remains manual-only until its first deployment and live Telegram behavior are verified. SarvamChatBot is registered for automatic deployment on `main` when deployable files under `bots/SarvamChatBot/` change. It remains limited to private chats and uses Tavily for optional live web/news search plus Telegram's stoppable Rich Message draft workflow. The automatic workflow does not run database migrations.
+IdPullBot and SarvamChatBot are registered for automatic deployment on `main` when deployable files under `bots/SarvamChatBot/` change. It remains limited to private chats and uses Tavily for optional live web/news search plus Telegram's stoppable Rich Message draft workflow. The automatic workflow does not run database migrations.
 
 These entries describe the current workflow configuration, not defaults for future projects. A newly added project must remain manual-only until its token/app ID, project validation, and first intentional deployment have been checked and its auto-deploy registry entry is deliberately enabled.
 
