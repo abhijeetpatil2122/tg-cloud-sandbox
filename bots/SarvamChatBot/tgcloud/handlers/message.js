@@ -1,4 +1,4 @@
-import { api } from 'sdk';
+import { api, fetch } from 'sdk';
 import {
   completeGeneration,
   createGeneration,
@@ -164,6 +164,108 @@ async function thinkingDraft(action) {
     });
   }
   return { html: `<tg-thinking>${fallback} ${config.label}</tg-thinking>` };
+}
+
+
+function getNetworkFailureDetails(error) {
+  let current = error;
+  const chain = [];
+  for (let depth = 0; current && depth < 4; depth += 1) {
+    chain.push({
+      name: typeof current.name === 'string' ? current.name.slice(0, 80) : null,
+      code: typeof current.code === 'string' ? current.code.slice(0, 100) : null,
+      message: typeof current.message === 'string' ? current.message.slice(0, 240) : null,
+    });
+    current = current.cause;
+  }
+  return chain;
+}
+
+async function runSarvamDiagnostic(apiKey) {
+  const startedAt = Date.now();
+  try {
+    const response = await fetch('https://api.sarvam.ai/v2/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-subscription-key': apiKey,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sarvam-105b',
+        messages: [{ role: 'user', content: 'Reply with OK.' }],
+        stream: false,
+        temperature: 0,
+        max_tokens: 1,
+      }),
+    });
+
+    let body = null;
+    try { body = await response.json(); } catch {}
+    return {
+      ok: response.ok,
+      status: response.status,
+      code: body?.error?.code || body?.code || null,
+      requestId: body?.error?.request_id || body?.request_id
+        || response.headers?.get?.('x-request-id') || null,
+      retryAfter: response.headers?.get?.('retry-after') || null,
+      elapsedMs: Date.now() - startedAt,
+      model: MODEL_DIAGNOSTIC_NAME,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      elapsedMs: Date.now() - startedAt,
+      model: MODEL_DIAGNOSTIC_NAME,
+      networkFailure: getNetworkFailureDetails(error),
+    };
+  }
+}
+
+const MODEL_DIAGNOSTIC_NAME = 'sarvam-105b';
+
+function diagnosticSummary(result) {
+  if (result.ok) {
+    return {
+      heading: 'Sarvam connection test passed',
+      detail: `The saved key was accepted and the model returned an HTTP success response in ${result.elapsedMs} ms.`,
+      metadata: `HTTP ${result.status} · ${result.model}`,
+    };
+  }
+
+  const code = String(result.code || '').toLowerCase();
+  let detail = 'The diagnostic request failed before a successful response.';
+  if (result.status === 402 || code === 'insufficient_quota_error') {
+    detail = 'Sarvam returned an out-of-credits response. This is a billing balance issue, not a connection issue.';
+  } else if (result.status === 403 || code === 'invalid_api_key_error') {
+    detail = 'Sarvam rejected the saved API key. Check whether the key is valid and active.';
+  } else if (result.status === 429 && code === 'seat_budget_exhausted_error') {
+    detail = 'The organisation or seat spending budget is exhausted. Waiting will not clear this limit.';
+  } else if (result.status === 429 && code === 'model_rate_limit_exceeded_error') {
+    detail = 'The model or upstream capacity is rate-limited. This is not necessarily your account quota.';
+  } else if (result.status === 429 || result.status === 503 || code === 'rate_limit_exceeded_error') {
+    detail = 'Sarvam is rate-limiting requests or temporarily overloaded. Check Retry-After and retry after the indicated delay.';
+  } else if (result.status >= 500) {
+    detail = 'Sarvam returned a server-side or model-backend error. The request reached Sarvam, but the service failed.';
+  } else if (result.status > 0) {
+    detail = 'Sarvam received the request and rejected it. The HTTP status and error code below identify the cause.';
+  } else {
+    const cause = result.networkFailure?.find((item) => item.code || item.message);
+    detail = cause
+      ? `No HTTP response was received. Network failure: ${cause.code || cause.name || 'unknown'} — ${cause.message || 'no additional detail'}`
+      : 'No HTTP response was received. The Serverless runtime could not establish or complete the connection to Sarvam.';
+  }
+
+  const metadata = [
+    result.status ? `HTTP ${result.status}` : 'No HTTP response',
+    result.code ? `Code: ${result.code}` : null,
+    result.requestId ? `Request ID: ${result.requestId}` : null,
+    result.retryAfter ? `Retry-After: ${result.retryAfter}` : null,
+    `Elapsed: ${result.elapsedMs} ms`,
+  ].filter(Boolean).join(' · ');
+
+  return { heading: 'Sarvam connection test failed', detail, metadata };
 }
 
 function userFacingGenerationError(error) {
@@ -406,6 +508,38 @@ export default async function (message) {
     return;
   }
 
+  if (command === 'diagnose') {
+    const settings = await getBotSettings();
+    if (!settings?.sarvamApiKey) {
+      await sendRich(chatId, errorMessage('No Sarvam key is configured, so the connection test cannot run.'));
+      return;
+    }
+    if (Number(settings.ownerTgId) !== Number(userTgId)) {
+      await sendRich(chatId, errorMessage('Only the bot configuration owner can run the provider diagnostic.'));
+      return;
+    }
+
+    const result = await runSarvamDiagnostic(settings.sarvamApiKey);
+    const summary = diagnosticSummary(result);
+    console.info('Owner-triggered Sarvam diagnostic:', {
+      ok: result.ok,
+      status: result.status,
+      code: result.code || null,
+      requestId: result.requestId || null,
+      retryAfter: result.retryAfter || null,
+      elapsedMs: result.elapsedMs,
+      networkFailure: result.networkFailure || null,
+    });
+    await sendRich(chatId, {
+      blocks: [
+        { type: 'heading', size: 2, text: summary.heading },
+        { type: 'paragraph', text: summary.detail },
+        { type: 'footer', text: summary.metadata },
+      ],
+    });
+    return;
+  }
+
   if (command === 'setkey' || command === 'setsearchkey') {
     const apiKey = getCommandValue(text, command);
     try {
@@ -553,6 +687,8 @@ export default async function (message) {
       status: error?.status || error?.statusCode || null,
       code: error?.code || null,
       requestId: error?.requestId || null,
+      name: error?.name || null,
+      cause: getNetworkFailureDetails(error),
       message: error?.description || error?.message || 'upstream request failed',
     });
 
