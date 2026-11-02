@@ -131,7 +131,7 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
   if (first.stopped || await isStopped()) return { stopped: true };
 
   let answer = first.content;
-  let incomplete = first.finishReason === 'length' || !first.finishReason;
+  let incomplete = Boolean(first.incomplete);
   if (first.toolCalls.length) {
     await sendDraft(chatId, draftId, await thinkingDraft('search'));
 
@@ -181,12 +181,12 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
     });
     if (final.stopped) return { stopped: true };
     answer = final.content;
-    incomplete = final.finishReason === 'length' || !final.finishReason;
+    incomplete = Boolean(final.incomplete);
   }
 
   if (!answer?.trim()) throw new Error('Sarvam returned an empty answer.');
   if (incomplete) {
-    answer = `${answer.trim()}\\n\\n_This response reached the model or runtime output boundary before a normal completion marker. Ask me to continue from where it stopped._`;
+    answer = `${answer.trim()}\n\n_This response reached the model or runtime output boundary before a normal completion marker. Ask me to continue from where it stopped._`;
   }
 
   // Atomically claim completion. If the Stop update won the race, it has
