@@ -22,16 +22,26 @@ export default async function (payload) {
 
     try {
       await api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
-    } catch (sendError) {
-      console.warn('Stopped draft Markdown could not be finalized; retrying as plain Rich Message:', {
-        message: sendError?.description || sendError?.message || 'Rich Markdown rejected',
+    } catch (markdownError) {
+      console.warn('Stopped draft Markdown could not be finalized; retrying as Rich HTML:', {
+        message: markdownError?.description || markdownError?.message || 'Rich Markdown rejected',
       });
-      await api.sendRichMessage({
-        chat_id: chatId,
-        rich_message: {
-          blocks: [{ type: 'paragraph', text: partial || 'Generation stopped.' }],
-        },
-      });
+      try {
+        await api.sendRichMessage({
+          chat_id: chatId,
+          rich_message: { html: partial || '<p>Generation stopped.</p>' },
+        });
+      } catch (htmlError) {
+        console.warn('Stopped draft Rich HTML also failed; sending plain text:', {
+          message: htmlError?.description || htmlError?.message || 'Rich HTML rejected',
+        });
+        await api.sendRichMessage({
+          chat_id: chatId,
+          rich_message: {
+            blocks: [{ type: 'paragraph', text: (partial || 'Generation stopped.').replace(/<[^>]+>/g, '') }],
+          },
+        });
+      }
     }
 
     // sendRichMessage creates the permanent chat message. Telegram then removes
