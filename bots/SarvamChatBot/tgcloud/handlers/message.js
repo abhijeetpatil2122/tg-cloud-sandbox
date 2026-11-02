@@ -130,17 +130,17 @@ function detectThinkingAction(text) {
   const value = String(text || '').toLowerCase();
 
   // Prioritize explicit task intent over incidental keywords.
-  if (/\\b(debug|debugging|fix (?:this|the|my)|troubleshoot|stack trace|exception|bug|crash|not working|doesn.t work|error log)\\b/.test(value)) return 'debugging';
-  if (/\\b(search|look up|find current|latest|today|right now|news|recent update|verify (?:this|the)|source|citation|official docs)\\b/.test(value)) return 'search';
-  if (/\\b(code|coding|program|script|function|class|api|bot|webhook|database|sql|javascript|typescript|python|html|css|react|deploy|implementation|implement|build (?:a|an|the)|write (?:the )?code)\\b/.test(value)) return 'coding';
-  if (/\\b(translate|translation|transliterate|in hindi|in marathi|in tamil|in bengali|in gujarati|in telugu|in kannada|in malayalam)\\b/.test(value)) return 'translation';
-  if (/\\b(summarize|summarise|summary|tldr|key points|meeting notes|extract the main)\\b/.test(value)) return 'summary';
-  if (/\\b(calculate|calculation|solve|equation|integral|derivative|algebra|geometry|probability|statistics|formula|math|mathematics)\\b/.test(value)) return 'math';
-  if (/\\b(analy[sz]e|analysis|compare|comparison|evaluate|benchmark|pros and cons|review|interpret|trend|dataset|metrics)\\b/.test(value)) return 'analysis';
-  if (/\\b(design|logo|mockup|wireframe|ui|ux|layout|visual|colour palette|color palette|branding)\\b/.test(value)) return 'design';
-  if (/\\b(plan|planning|roadmap|itinerary|schedule|organize|organise|strategy|steps to|timeline)\\b/.test(value)) return 'planning';
-  if (/\\b(write|draft|rewrite|polish|proofread|email|post|article|story|document|proposal|caption|announcement|message)\\b/.test(value)) return 'writing';
-  if (/\\b(research|investigate|deep dive|explain in detail|sources for|study)\\b/.test(value)) return 'research';
+  if (/\b(debug|debugging|fix (?:this|the|my)|troubleshoot|stack trace|exception|bug|crash|not working|doesn.t work|error log)\b/.test(value)) return 'debugging';
+  if (/\b(search|look up|find current|latest|today|right now|news|recent update|verify (?:this|the)|source|citation|official docs)\b/.test(value)) return 'search';
+  if (/\b(code|coding|program|script|function|class|api|bot|webhook|database|sql|javascript|typescript|python|html|css|react|deploy|implementation|implement|build (?:a|an|the)|write (?:the )?code)\b/.test(value)) return 'coding';
+  if (/\b(translate|translation|transliterate|in hindi|in marathi|in tamil|in bengali|in gujarati|in telugu|in kannada|in malayalam)\b/.test(value)) return 'translation';
+  if (/\b(summarize|summarise|summary|tldr|key points|meeting notes|extract the main)\b/.test(value)) return 'summary';
+  if (/\b(calculate|calculation|solve|equation|integral|derivative|algebra|geometry|probability|statistics|formula|math|mathematics)\b/.test(value)) return 'math';
+  if (/\b(analy[sz]e|analysis|compare|comparison|evaluate|benchmark|pros and cons|review|interpret|trend|dataset|metrics)\b/.test(value)) return 'analysis';
+  if (/\b(design|logo|mockup|wireframe|ui|ux|layout|visual|colour palette|color palette|branding)\b/.test(value)) return 'design';
+  if (/\b(plan|planning|roadmap|itinerary|schedule|organize|organise|strategy|steps to|timeline)\b/.test(value)) return 'planning';
+  if (/\b(write|draft|rewrite|polish|proofread|email|post|article|story|document|proposal|caption|announcement|message)\b/.test(value)) return 'writing';
+  if (/\b(research|investigate|deep dive|explain in detail|sources for|study)\b/.test(value)) return 'research';
   return 'thinking';
 }
 
