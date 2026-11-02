@@ -54,6 +54,8 @@ A GitHub Actions secret named SARVAM_API_KEY alone does not inject the key into 
 - Draft updates are ephemeral previews. Always call sendRichMessage with the complete final answer.
 - If a draft call fails, continue collecting the answer and still send the final message.
 - Use can_stop=true and keep_on_stop=true only with the active_generations table and stopped_message_generation handler deployed together.
+- The stop update finalizes the last stored partial immediately. The in-flight stream observes the SQLite stop state on its next received chunk and exits; do not claim the separate invocation can synchronously abort another invocation's upstream fetch.
+- Allow only one active generation per Telegram user and reject text inputs longer than 12,000 characters.
 - Keep final content within Telegram Rich Message limits.
 
 ## Data and privacy
