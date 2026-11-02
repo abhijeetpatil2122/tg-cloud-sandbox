@@ -31,7 +31,8 @@ export async function runWebSearch(apiKey, rawArgs) {
     throw new Error('The search request was not valid JSON.');
   }
 
-  const query = safeText(args?.query?.trim(), 400);
+  const rawQuery = typeof args?.query === 'string' ? args.query.trim() : '';
+  const query = safeText(rawQuery, 400);
   if (query.length < 3) throw new Error('The search query is too short.');
 
   const topic = ['general', 'news', 'finance'].includes(args?.topic) ? args.topic : 'general';
