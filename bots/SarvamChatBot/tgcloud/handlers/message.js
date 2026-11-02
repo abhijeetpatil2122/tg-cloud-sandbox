@@ -66,7 +66,9 @@ async function runAssistantTurn({ chatId, userTgId, draftId, text, settings, his
 
   const isStopped = () => isGenerationStopped(chatId, draftId);
   const onDraft = async (partial) => {
-    await saveGenerationPartial(chatId, draftId, partial);
+    try { await saveGenerationPartial(chatId, draftId, partial); } catch (error) {
+      console.warn('Could not persist the latest draft text:', { message: error?.message || 'database update failed' });
+    }
     await sendDraft(chatId, draftId, { markdown: partial });
   };
 
