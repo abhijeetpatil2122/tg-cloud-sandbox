@@ -30,6 +30,18 @@ async function editPrompt(chatId, messageId, text, replyMarkup) {
   return api.editMessageText(params);
 }
 
+async function deleteUserMessage(message) {
+  if (!message?.chat?.id || !message?.message_id) return;
+  try { await api.deleteMessage({ chat_id: message.chat.id, message_id: message.message_id }); }
+  catch (error) { console.warn('Could not remove a submitted review message', error?.description || error?.message || error); }
+}
+
+function withBack(keyboard = null) {
+  const rows = keyboard?.inline_keyboard ? keyboard.inline_keyboard.map(row => [...row]) : [];
+  rows.push([{ text: '‹ Back', callback_data: 'rv:back' }, { text: 'Cancel review', callback_data: 'rv:cancel', style: 'danger' }]);
+  return { inline_keyboard: rows };
+}
+
 async function sendRich(chatId, richMessage, replyMarkup) {
   const params = { chat_id: chatId, rich_message: richMessage };
   if (replyMarkup) params.reply_markup = replyMarkup;
@@ -70,7 +82,7 @@ async function showHelp(chatId, userId) {
 async function promptStep(chatId, draft, text, keyboard = null) {
   const messageId = draft.data.promptMessageId;
   if (messageId) return editPrompt(chatId, messageId, text, keyboard);
-  const sent = await api.sendMessage({ chat_id: chatId, text, ...(keyboard ? { reply_markup: keyboard } : {}) });
+  const sent = await api.sendMessage({ chat_id: chatId, text, reply_markup: withBack(keyboard) });
   draft.data.promptMessageId = sent.message_id;
   await saveDraft(draft.userId, chatId, draft.step, draft.data);
   return sent;
@@ -83,6 +95,7 @@ async function showCategoryPicker(chatId, userId) {
       text: item.label, callback_data: `rv:category:${item.key}`,
     })));
   }
+  rows.push([{ text: 'Cancel review', callback_data: 'rv:cancel', style: 'danger' }]);
   const sent = await api.sendMessage({ chat_id: chatId, text: 'Choose the category for your review:', reply_markup: { inline_keyboard: rows } });
   await saveDraft(userId, chatId, 'category', { promptMessageId: sent.message_id });
 }
@@ -149,6 +162,7 @@ async function handleDraftInput(message, draft) {
   if (draft.step === 'title' || draft.step === 'edit_title') {
     if (text.length < 2 || text.length > 160) return editPrompt(chatId, data.promptMessageId, 'Please send a title between 2 and 160 characters.');
     data.title = text;
+    await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     return transition(message, draft, 'year', 'Send the release year (for example, 2024).');
   }
@@ -157,6 +171,7 @@ async function handleDraftInput(message, draft) {
     const maxYear = new Date().getUTCFullYear() + 5;
     if (!/^\d{4}$/.test(text) || !Number.isInteger(year) || year < 1888 || year > maxYear) return editPrompt(chatId, data.promptMessageId, `Please send a valid four-digit year between 1888 and ${maxYear}.`);
     data.year = year;
+    await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     if (data.categoryKey === 'tv_shows') return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] });
     return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard());
@@ -168,19 +183,29 @@ async function handleDraftInput(message, draft) {
       if (!/^\d{1,2}$/.test(text) || !Number.isInteger(season) || season < 1 || season > 99) return editPrompt(chatId, data.promptMessageId, 'Send a season number from 1 to 99, or tap Skip season.');
       data.season = season;
     }
+    await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard());
   }
   if (draft.step === 'review_text' || draft.step === 'edit_text') {
     if (text.length < 20 || text.length > 3000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 3000 characters for your review.');
     data.reviewText = text;
+    await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     return transition(message, draft, 'poster', 'Send a poster photo, or skip this step.', { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] });
   }
   if (draft.step === 'poster' || draft.step === 'edit_poster') {
-    if (Array.isArray(message.photo) && message.photo.length) data.posterFileId = message.photo[message.photo.length - 1].file_id;
-    else if (text.toLowerCase() === '/skip') data.posterFileId = null;
-    else return editPrompt(chatId, data.promptMessageId, 'Please send a photo as the poster, or tap Skip poster.');
+    if (Array.isArray(message.photo) && message.photo.length) {
+      data.posterFileId = message.photo[message.photo.length - 1].file_id;
+      data.posterUrl = null;
+    } else if (/^https:\/\//i.test(text) && /\.(?:jpe?g|png|webp)(?:[?#].*)?$/i.test(text)) {
+      data.posterFileId = null;
+      data.posterUrl = text;
+    } else if (text.toLowerCase() === '/skip') {
+      data.posterFileId = null;
+      data.posterUrl = null;
+    } else return editPrompt(chatId, data.promptMessageId, 'Send a poster photo, a direct HTTPS image link ending in .jpg, .jpeg, .png or .webp, or tap Skip poster.', withBack({ inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] }));
+    await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     return transition(message, draft, 'spoiler', 'Does your review contain spoilers?', spoilerKeyboard());
   }
