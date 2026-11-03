@@ -40,7 +40,7 @@ export async function publishReview(userId, draft) {
   const inserted = await db.insert(reviews).values({
     reviewNumber, authorId: userId, authorName, categoryKey: data.categoryKey,
     title: data.title, year: data.year, season: data.season ?? null, rating: data.rating,
-    reviewText: data.reviewText, posterFileId: data.posterFileId ?? null,
+    reviewText: data.reviewText, posterFileId: data.posterFileId ?? data.posterUrl ?? data.posterMedia ?? null,
     hasSpoilers: Boolean(data.hasSpoilers), status: 'publishing',
     chatId: config.chatId, topicId: mapping.topicId, createdAt: new Date(),
   }).returning().run();
@@ -53,8 +53,14 @@ export async function publishReview(userId, draft) {
       rich_message: buildReviewRichMessage({ ...data, authorName }, reviewNumber, false),
       reply_markup: buildReviewKeyboard(data, 'published'),
     });
-    const chat = await api.getChat({ chat_id: config.chatId });
-    const link = makeMessageLink(config.chatId, sent.message_id, mapping.topicId, chat.username);
+    let username = null;
+    try {
+      const chat = await api.getChat({ chat_id: config.chatId });
+      username = chat?.username || null;
+    } catch (error) {
+      console.warn('Could not resolve the public forum username; using the private chat link format.', error?.description || error?.message || error);
+    }
+    const link = makeMessageLink(config.chatId, sent.message_id, mapping.topicId, username);
     await db.update(reviews).set({
       status: 'published', messageId: sent.message_id, messageLink: link, publishedAt: new Date(),
     }).where(eq(reviews.id, reviewRecord.id)).run();
