@@ -34,7 +34,7 @@ export default async function (message) {
   }
 
   if (command === '/disconnect') {
-    await disconnectForum(message);
+    await disconnectForum(message, args[0]);
     return;
   }
 
@@ -68,7 +68,7 @@ export default async function (message) {
         '/connect — connect this forum (run as the group creator)',
         '/settopic category_key — map the current topic to a category',
         '/settings — show the topic mapping status',
-        '/disconnect — disable forum publishing'
+        '/disconnect confirm — disable forum publishing'
       ].join('\n')
     });
   }
