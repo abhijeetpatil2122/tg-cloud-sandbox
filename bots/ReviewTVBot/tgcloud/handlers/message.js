@@ -130,7 +130,7 @@ async function startReview(message) {
       season: 'Send the season number, or tap Skip season.',
       rating: 'Choose your rating from 1 to 10.',
       review_text: 'Write your review in 20–3000 characters.',
-      poster: 'Send a poster photo, or skip this step.',
+      poster: 'Send a poster photo or a direct HTTPS image URL, or skip this step.',
       spoiler: 'Does your review contain spoilers?',
     };
     const keyboards = {
@@ -192,7 +192,7 @@ async function handleDraftInput(message, draft) {
     data.reviewText = text;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'poster', 'Send a poster photo, or skip this step.', { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] });
+    return transition(message, draft, 'poster', 'Send a poster photo or a direct HTTPS image URL, or skip this step.', { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] });
   }
   if (draft.step === 'poster' || draft.step === 'edit_poster') {
     if (Array.isArray(message.photo) && message.photo.length) {
