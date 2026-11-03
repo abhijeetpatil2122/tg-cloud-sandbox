@@ -151,7 +151,7 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - Run syntax checks and review CLI status/diff.
 - Obtain explicit approval for migration and first deployment.
 - Live-test in Telegram.
-- Consider auto-deploy only after a stable first release and explicit approval.
+- Automatic deployment is already enabled for deployable changes on `main`; keep migrations approval-gated and verify the first project-specific deployment before considering further rollout changes.
 
 ## Test checklist
 - Every category routes to exactly its configured topic.
