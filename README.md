@@ -20,6 +20,7 @@ Do not copy a project's `.tgcloud/` local state, CLI credentials, `node_modules/
 | `bots/RichDocsBot` | Inline search for Bot API methods/types and related error documentation, rendered as native Rich Messages | `8626465761` | `TGCLOUD_TOKEN_RICHDOCSBOT` | Enabled on `main` |
 | `bots/IdPullBot` | Telegram message inspector with private chunked reports, guest-mode Telegraph links, share keyboard, and aggregate stats | `8288436618` | `TGCLOUD_TOKEN_IDPULLBOT` | Enabled on `main` |
 | `bots/SarvamChatBot` | Sarvam AI private-chat assistant with recoverable streamed Rich Messages, task-aware Telegram thinking states, stoppable drafts, and optional Tavily live search | From scoped token | `TGCLOUD_TOKEN_SARVAMCHATBOT` | Enabled on `main` |
+| `bots/ReviewTVBot` | Movie, TV show, and anime review submissions with category-topic forum publishing | From scoped token | `TGCLOUD_TOKEN_REVIEWTVBOT` | Manual-only (setup) |
 
 IdPullBot and SarvamChatBot are registered for automatic deployment on `main` when deployable files under `bots/SarvamChatBot/` change. It remains limited to private chats and uses Tavily for optional live web/news search plus Telegram's stoppable Rich Message draft workflow. The automatic workflow does not run database migrations.
 
