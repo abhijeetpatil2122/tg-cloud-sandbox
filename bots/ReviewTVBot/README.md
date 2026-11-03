@@ -35,9 +35,9 @@ There is no admin approval queue. The author's final confirmation authorizes pub
 - `/settopic` — configure a category topic.
 - `/settings` — view configuration.
 - `/stats` — private statistics.
-- `/disconnect` — disable the destination.
+- `/disconnect confirm` — disable the destination after confirmation.
 
-Owner actions are restricted by a trusted configured Telegram user ID.
+Owner actions are restricted to the Telegram creator of the connected forum supergroup. `/connect` verifies the caller against `getChatAdministrators`; later owner commands check the saved creator ID.
 
 ## Initial setup
 
@@ -46,7 +46,7 @@ Owner actions are restricted by a trusted configured Telegram user ID.
 3. Add it to GitHub repository Actions secrets as `TGCLOUD_TOKEN_REVIEWTVBOT`.
 4. Create a supergroup, enable Topics, add the bot as administrator, and grant required text/media permissions.
 5. Create the six topics listed above.
-6. Configure the trusted owner ID and each topic ID through the owner-only setup flow when implemented.
+6. After the forum setup code is deployed and its database schema is migrated, send `/connect` in the supergroup as its creator. Then open each topic and send `/settopic` followed by its category key (for example, `/settopic hollywood_movies`). The bot captures the topic ID from the update, so you do not need to copy IDs manually.
 
 The Serverless CLI token is different from the ordinary Bot API token. Never commit either token or place them in source code.
 
