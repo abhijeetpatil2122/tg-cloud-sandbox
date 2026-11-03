@@ -26,7 +26,7 @@ async function setCommandMenus() {
 
 async function editPrompt(chatId, messageId, text, replyMarkup) {
   const params = { chat_id: chatId, message_id: messageId, text };
-  if (replyMarkup) params.reply_markup = replyMarkup;
+  params.reply_markup = replyMarkup || { inline_keyboard: [] };
   return api.editMessageText(params);
 }
 
@@ -140,7 +140,7 @@ async function startReview(message) {
       poster: { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] },
       spoiler: { inline_keyboard: [[{text:'Contains spoilers',callback_data:'rv:spoiler:yes',style:'danger'},{text:'No spoilers',callback_data:'rv:spoiler:no',style:'success'}]] },
     };
-    await editPrompt(message.chat.id, existing.data.promptMessageId, prompts[existing.step] || 'Continue your review.', keyboards[existing.step]);
+    await editPrompt(message.chat.id, existing.data.promptMessageId, prompts[existing.step] || 'Continue your review.', withBack(keyboards[existing.step]));
     return;
   }
   await showCategoryPicker(message.chat.id, message.from.id);
@@ -198,13 +198,13 @@ async function handleDraftInput(message, draft) {
     if (Array.isArray(message.photo) && message.photo.length) {
       data.posterFileId = message.photo[message.photo.length - 1].file_id;
       data.posterUrl = null;
-    } else if (/^https:\/\//i.test(text) && /\.(?:jpe?g|png|webp)(?:[?#].*)?$/i.test(text)) {
+    } else if (/^https:\/\/\S+$/i.test(text)) {
       data.posterFileId = null;
       data.posterUrl = text;
     } else if (text.toLowerCase() === '/skip') {
       data.posterFileId = null;
       data.posterUrl = null;
-    } else return editPrompt(chatId, data.promptMessageId, 'Send a poster photo, a direct HTTPS image link ending in .jpg, .jpeg, .png or .webp, or tap Skip poster.', withBack({ inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] }));
+    } else return editPrompt(chatId, data.promptMessageId, 'Send a poster photo or a direct HTTPS image URL, or tap Skip poster.', withBack({ inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] }));
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     return transition(message, draft, 'spoiler', 'Does your review contain spoilers?', spoilerKeyboard());
