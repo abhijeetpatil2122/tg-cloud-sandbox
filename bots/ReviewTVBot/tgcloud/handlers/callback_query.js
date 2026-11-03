@@ -70,7 +70,7 @@ function errorForUser(error) {
   if (/not enough rights|administrator|chat not found|thread|topic/i.test(raw)) return 'The bot cannot post to the selected community topic. Please ask an administrator to check its forum permissions and topic mapping.';
   if (/photo|file|media|wrong file/i.test(raw)) return 'Telegram could not use that poster. Edit the poster and try a Telegram photo or a public direct HTTPS image link.';
   if (/database|SQLITE|constraint|no such table/i.test(raw)) return 'The review database is not ready for publishing. Please contact the bot administrator.';
-  return 'Telegram could not publish this review right now. Your draft is saved; please try again shortly.';
+  return 'Telegram could not publish this review right now.';
 }
 
 export default async function (query) {
