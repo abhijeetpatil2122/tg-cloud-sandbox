@@ -261,10 +261,14 @@ export default async function (query) {
         await deleteDraft(userId);
         await editPrompt(chat.id, data.promptMessageId,
           `Your review has been published successfully.\n\nReview #${String(result.reviewNumber).padStart(3, '0')} · ${result.category.label}\n${result.link}`);
-        await api.sendMessage({
-          chat_id: userId,
-          text: `Your review is now live in ${result.category.label}.\n\nOpen it here: ${result.link}`,
-        });
+        try {
+          await api.sendMessage({
+            chat_id: userId,
+            text: `Your review is now live in ${result.category.label}.\\n\\nOpen it here: ${result.link}`,
+          });
+        } catch (notifyError) {
+          console.warn('Review was published, but the author notification could not be delivered.', notifyError?.description || notifyError?.message || notifyError);
+        }
       } catch (error) {
         console.error('Review publishing failed', {
           message: error?.message,
