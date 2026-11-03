@@ -56,6 +56,6 @@ The initial Serverless scaffold and forum-configuration modules have been deploy
 
 GitHub Actions automatic deployment is enabled for deployable changes under `bots/ReviewTVBot/` pushed to `main`. Pull requests run validation only. Database migrations are never part of automatic deployment and require separate review and approval.
 
-The review-submission wizard, preview/edit flow, and publishing are still under development.
+The first review-submission wizard implementation is on the `feature/reviewtvbot-phase3` branch for validation. It captures category, title, year, optional TV season, rating, review text, optional poster, and spoiler status, and persists the draft between updates. Preview/edit and publishing remain the next phases.
 
 See [AGENTS.md](./AGENTS.md) for the complete architecture, roadmap, security rules, test checklist, and deployment requirements.

@@ -16,3 +16,13 @@ export const categoryTopics = table('category_topics', {
   configuredBy: integer('configured_by').notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
+
+// One active draft per Telegram user. The wizard validates every transition.
+export const reviewDrafts = table('review_drafts', {
+  userId: integer('user_id').primaryKey(),
+  chatId: integer('chat_id').notNull(),
+  step: text('step').notNull(),
+  payload: text('payload').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
