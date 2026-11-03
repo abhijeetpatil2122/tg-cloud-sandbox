@@ -93,7 +93,7 @@ Plan for:
 - community_config: one connected forum chat ID/title/enabled status and trusted owner ID.
 - category_topics: category key, forum chat ID, topic ID, configured timestamp.
 - reviews: review ID, author ID, category, title, year, optional season, rating, text, optional Telegram poster file ID, spoiler flag, status, timestamps, published message IDs/link.
-- drafts/user_sessions: user ID, current step, draft payload, expiry/update timestamps.
+- review_drafts: one active draft per Telegram user, current wizard step, serialized validated payload, and timestamps.
 - Optional aggregate counters for owner stats; avoid storing raw activity unnecessarily.
 
 Use documented `sdk/db` schema/query APIs and appropriate integer handling for Telegram IDs. Validate relationships in application code where necessary. Drafts are user-scoped and persist across update invocations. No background timer assumptions.
@@ -113,15 +113,9 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 
 ## Implementation roadmap
 ### Phase 1 — Repository/project setup (completed)
-
-### Phase 1 — Repository/project setup
-- Use the current official `npm create @tgcloud/bot ReviewTVBot` scaffold.
-- Inspect generated files and preserve current CLI conventions.
-- Put project at `bots/ReviewTVBot/`.
-- Add this `AGENTS.md` and a user-facing `README.md`.
-- Add the dedicated token mapping to the manual workflow.
-- Keep automatic deployment disabled until the first deployment and live tests are verified.
-- Validate structure and syntax; no deployment.
+- Project scaffold, repository documentation, manual workflow secret mapping, first deployment, and successful CLI status verification are complete.
+- Verified Serverless app ID: `8789022672`.
+- Keep all bot files under `bots/ReviewTVBot/`.
 
 ### Phase 2 — Forum configuration (code deployed; database migration and live setup pending)
 - Establish trusted owner identity from the Telegram group creator verified during `/connect`.
@@ -129,11 +123,13 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - Configure/verify all six category topic IDs.
 - Implement owner-only settings and diagnostics.
 
-### Phase 3 — Database and wizard
-- Design schema and review it before migration.
-- Persist drafts/sessions.
+### Phase 3 — Database and wizard (implementation in progress on feature branch)
+- Add the `review_drafts` table; migration remains approval-gated.
+- Persist one active draft per user across Serverless invocations.
 - Implement category-first wizard and all review fields.
-- Add cancellation, validation, and recoverable navigation.
+- Add cancellation and field validation.
+- Validate callback ownership and private-chat scope.
+- Complete branch validation before merging to `main`; merge will trigger automatic deployment.
 
 ### Phase 4 — Preview/edit
 - Preview using the same renderer as publication.
@@ -175,8 +171,6 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - No token, `.tgcloud/`, `node_modules/`, `.env`, or local state is committed.
 
 ## Deployment
-- GitHub Actions secret: `TGCLOUD_TOKEN_REVIEWTVBOT`.
-- Manual workflow path: `bots/ReviewTVBot`.
 - Verified Serverless app ID: `8789022672`.
 - GitHub Actions secret: `TGCLOUD_TOKEN_REVIEWTVBOT`.
 - Manual workflow path: `bots/ReviewTVBot`.
