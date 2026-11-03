@@ -17,7 +17,6 @@ export const categoryTopics = table('category_topics', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
 
-// One active draft per Telegram user. The wizard validates every transition.
 export const reviewDrafts = table('review_drafts', {
   userId: integer('user_id').primaryKey(),
   chatId: integer('chat_id').notNull(),
@@ -25,4 +24,31 @@ export const reviewDrafts = table('review_drafts', {
   payload: text('payload').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+export const topicCounters = table('topic_counters', {
+  categoryKey: text('category_key').primaryKey(),
+  lastNumber: integer('last_number').notNull().default(0),
+});
+
+export const reviews = table('reviews', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  reviewNumber: integer('review_number').notNull(),
+  authorId: integer('author_id').notNull(),
+  authorName: text('author_name').notNull(),
+  categoryKey: text('category_key').notNull(),
+  title: text('title').notNull(),
+  year: integer('year').notNull(),
+  season: integer('season'),
+  rating: integer('rating').notNull(),
+  reviewText: text('review_text').notNull(),
+  posterFileId: text('poster_file_id'),
+  hasSpoilers: boolean('has_spoilers').notNull().default(false),
+  status: text('status').notNull(),
+  chatId: integer('chat_id').notNull(),
+  topicId: integer('topic_id').notNull(),
+  messageId: integer('message_id'),
+  messageLink: text('message_link'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  publishedAt: integer('published_at', { mode: 'timestamp' }),
 });

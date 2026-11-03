@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { communityConfig, categoryTopics } from '../schema.js';
-import { categories, getCategory } from './config.js';
+import { categories, getCategory, isAdmin } from './config.js';
 
 const CONFIG_ID = 1;
 
@@ -155,8 +155,8 @@ export async function showSettings(message) {
     await sendToMessageContext(message, 'ReviewTVBot has not been connected to a forum yet. Run /connect as the forum creator.');
     return;
   }
-  if (message.from?.id !== config.ownerId) {
-    await sendToMessageContext(message, 'This command is available only to the configured forum owner.');
+  if (!isAdmin(message.from?.id) && message.from?.id !== config.ownerId) {
+    await sendToMessageContext(message, 'This command is available only to a configured administrator.');
     return;
   }
 
@@ -183,8 +183,8 @@ export async function showSettings(message) {
 
 export async function disconnectForum(message, confirmation) {
   const config = await getConfig();
-  if (!config || message.from?.id !== config.ownerId) {
-    await sendToMessageContext(message, 'Only the configured forum owner can disconnect the destination.');
+  if (!config || (!isAdmin(message.from?.id) && message.from?.id !== config.ownerId)) {
+    await sendToMessageContext(message, 'This command is available only to a configured administrator.');
     return;
   }
   if (confirmation !== 'confirm') {
