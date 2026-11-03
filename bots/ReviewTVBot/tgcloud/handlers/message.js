@@ -146,8 +146,10 @@ async function startReview(message) {
   await showCategoryPicker(message.chat.id, message.from.id);
 }
 
-async function transition(message, draft, nextStep, prompt, keyboard = null) {
-  const data = { ...draft.data };
+async function transition(message, draft, nextStep, prompt, keyboard = null, nextData = draft.data) {
+  // Persist the updated values collected from this message before advancing the wizard.
+  // Cloning draft.data here silently discarded every newly entered field.
+  const data = { ...nextData };
   await saveDraft(message.from.id, message.chat.id, nextStep, data);
   await editPrompt(message.chat.id, data.promptMessageId, prompt, withBack(keyboard));
 }
@@ -164,7 +166,7 @@ async function handleDraftInput(message, draft) {
     data.title = text;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'year', 'Send the release year (for example, 2024).');
+    return transition(message, draft, 'year', 'Send the release year (for example, 2024).', null, data);
   }
   if (draft.step === 'year' || draft.step === 'edit_year') {
     const year = Number(text);
@@ -173,8 +175,8 @@ async function handleDraftInput(message, draft) {
     data.year = year;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    if (data.categoryKey === 'tv_shows') return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] });
-    return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard());
+    if (data.categoryKey === 'tv_shows') return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }, data);
+    return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard(), data);
   }
   if (draft.step === 'season' || draft.step === 'edit_season') {
     if (text.toLowerCase() === '/skip') data.season = null;
@@ -192,7 +194,7 @@ async function handleDraftInput(message, draft) {
     data.reviewText = text;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'poster', 'Send a poster photo or a direct HTTPS image URL, or skip this step.', { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] });
+    return transition(message, draft, 'poster', 'Send a poster photo or a direct HTTPS image URL, or skip this step.', { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] }, data);
   }
   if (draft.step === 'poster' || draft.step === 'edit_poster') {
     if (Array.isArray(message.photo) && message.photo.length) {
@@ -207,7 +209,7 @@ async function handleDraftInput(message, draft) {
     } else return editPrompt(chatId, data.promptMessageId, 'Send a poster photo or a direct HTTPS image URL, or tap Skip poster.', withBack({ inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] }));
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'spoiler', 'Does your review contain spoilers?', spoilerKeyboard());
+    return transition(message, draft, 'spoiler', 'Does your review contain spoilers?', spoilerKeyboard(), data);
   }
   if (draft.step === 'complete') return showPreview(chatId, draft);
 }
