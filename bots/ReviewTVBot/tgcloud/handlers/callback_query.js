@@ -40,11 +40,7 @@ export default async function(query) {
     if(prefix!=='rv') { await answer(query.id,'This button is not recognized.'); return; }
     if(action==='howto') {
       await answer(query.id);
-      await api.sendRichMessage({chat_id:chat.id,rich_message:{blocks:[
-        {type:'heading',size:1,text:'HOW TO POST A REVIEW'},
-        {type:'paragraph',text:'Send /howtouse for the full step-by-step guide, then tap /review to begin.'},
-        {type:'footer',text:'Your review is never published without your confirmation.'},
-      ]}});
+      await api.sendRichMessage({chat_id:chat.id,rich_message:buildHowToRichMessage()});
       return;
     }
     if(action==='start') {

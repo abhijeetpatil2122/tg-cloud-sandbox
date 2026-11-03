@@ -60,7 +60,7 @@ export async function publishReview(userId, draft) {
     }).where(eq(reviews.id, reviewRecord.id)).run();
     return { reviewNumber, link, messageId: sent.message_id, category };
   } catch (error) {
-    await db.update(reviews).set({ status: 'failed' }).where(eq(reviews.id, inserted.id)).run();
+    await db.update(reviews).set({ status: 'failed' }).where(eq(reviews.id, reviewRecord.id)).run();
     throw error;
   }
 }
