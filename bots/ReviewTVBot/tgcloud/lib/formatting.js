@@ -48,10 +48,15 @@ export function buildReviewKeyboard(data, mode = 'preview') {
       ],
     ] };
   }
-  return { inline_keyboard: [[
-    { text: `★ ${data.rating}/10`, callback_data: 'rv:noop', style: 'success', disabled: true },
-    ...(data.hasSpoilers ? [{ text: 'SPOILER', callback_data: 'rv:noop', style: 'danger', disabled: true }] : []),
-  ]] };
+  const category = categories.find((item) => item.key === data.categoryKey);
+  return { inline_keyboard: [
+    [{ text: data.hasSpoilers ? 'SPOILER REVIEW' : `★ ${data.rating}/10`, callback_data: 'rv:noop', style: data.hasSpoilers ? 'danger' : 'success', disabled: true }],
+    [
+      { text: category?.label ?? 'Review', callback_data: 'rv:noop', style: 'primary', disabled: true },
+      { text: String(data.year), callback_data: 'rv:noop', style: 'primary', disabled: true },
+      ...(data.season ? [{ text: `Season ${data.season}`, callback_data: 'rv:noop', style: 'primary', disabled: true }] : []),
+    ],
+  ] };
 }
 
 export function buildEditKeyboard() {

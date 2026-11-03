@@ -1,4 +1,6 @@
-import { api } from 'sdk';
+import { api, db } from 'sdk';
+import { and, eq } from 'sdk/db';
+import { reviewDrafts } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
 import { getCategory } from '../lib/config.js';
 import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage } from '../lib/formatting.js';
@@ -114,7 +116,9 @@ export default async function(query) {
       return editPrompt(chat.id,data.promptMessageId,'Your review draft has been cancelled.',null);
     }
     if(action==='publish' && draft.step==='complete') {
-      await saveDraft(userId,chat.id,'publishing',data);
+      const claim = await db.update(reviewDrafts).set({ step: 'publishing', updatedAt: new Date() })
+        .where(and(eq(reviewDrafts.userId, userId), eq(reviewDrafts.step, 'complete'))).run();
+      if (!claim.rowsAffected) { await answer(query.id, 'This review is already being processed.'); return; }
       await answer(query.id,'Publishing your review…');
       try {
         const result=await publishReview(userId,{...draft,step:'complete',data});
