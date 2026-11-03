@@ -1,9 +1,13 @@
-import { api } from 'sdk';
+import { api, db } from 'sdk';
+import { eq } from 'sdk/db';
+import { reviews } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
+import { categories, publicCommands, adminCommands, isAdmin } from '../lib/config.js';
 import {
-  sendCategoryPicker, askTitle, askYear, askSeason, askRating, askReviewText,
-  askPoster, askSpoilers, sendDraftComplete,
-} from '../lib/review-flow.js';
+  buildHelpRichMessage, buildHowToRichMessage, buildReviewRichMessage,
+  buildReviewKeyboard, buildEditKeyboard,
+} from '../lib/formatting.js';
+import { publishReview } from '../lib/publishing.js';
 import {
   connectForum, setCategoryTopic, showSettings, disconnectForum,
 } from '../lib/forum.js';
@@ -13,179 +17,289 @@ function parseCommand(text) {
   return { command: rawCommand.split('@', 1)[0].toLowerCase(), args };
 }
 
+async function setCommandMenus() {
+  await api.setMyCommands({ commands: publicCommands, scope: { type: 'default' } });
+  for (const userId of [8469987057, 1314643983]) {
+    await api.setMyCommands({ commands: adminCommands, scope: { type: 'chat', chat_id: userId } });
+  }
+}
+
+async function editPrompt(chatId, messageId, text, replyMarkup) {
+  const params = { chat_id: chatId, message_id: messageId, text };
+  if (replyMarkup) params.reply_markup = replyMarkup;
+  return api.editMessageText(params);
+}
+
+async function sendRich(chatId, richMessage, replyMarkup) {
+  const params = { chat_id: chatId, rich_message: richMessage };
+  if (replyMarkup) params.reply_markup = replyMarkup;
+  return api.sendRichMessage(params);
+}
+
+async function showWelcome(message) {
+  const user = message.from ?? {};
+  const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || 'there';
+  const rich = { blocks: [
+    { type: 'heading', size: 1, text: `Welcome, ${fullName}!` },
+    { type: 'paragraph', text: 'Welcome to ReviewTVBot — a community for honest reviews of movies, TV shows, and anime.' },
+    { type: 'paragraph', text: 'Write your review, add a rating and poster, preview the final card, and publish it to the right community topic.' },
+    { type: 'divider' },
+    { type: 'paragraph', text: [{ type: 'bold', text: 'Ready to share your opinion?' }, ' Start with /review or learn the steps with /howtouse.'] },
+    { type: 'footer', text: 'For commands and help, use /help.' },
+  ] };
+  await sendRich(message.chat.id, rich, { inline_keyboard: [[
+    { text: 'Write a review', callback_data: 'rv:start', style: 'success' },
+    { text: 'How to use', callback_data: 'rv:howto' },
+  ]] });
+}
+
+async function showHowTo(chatId) {
+  await sendRich(chatId, buildHowToRichMessage(), {
+    inline_keyboard: [[{ text: 'Start a review', callback_data: 'rv:start', style: 'success' }]],
+  });
+}
+
+async function showHelp(chatId, userId) {
+  const rich = buildHelpRichMessage();
+  if (isAdmin(userId)) rich.blocks.splice(rich.blocks.length - 1, 0, {type:'divider'}, {type:'heading',size:3,text:'Private admin commands'}, {type:'list',items:[{blocks:[{type:'paragraph',text:'/admin — Open the admin panel'}]},{blocks:[{type:'paragraph',text:'/stats — View review statistics'}]},{blocks:[{type:'paragraph',text:'/settings — View forum configuration'}]},{blocks:[{type:'paragraph',text:'/connect, /settopic, /disconnect — Manage the forum'}]}]});
+  await sendRich(chatId, rich, {
+    inline_keyboard: [[{ text: 'How to use', callback_data: 'rv:howto' }]],
+  });
+}
+
+async function promptStep(chatId, draft, text, keyboard = null) {
+  const messageId = draft.data.promptMessageId;
+  if (messageId) return editPrompt(chatId, messageId, text, keyboard);
+  const sent = await api.sendMessage({ chat_id: chatId, text, ...(keyboard ? { reply_markup: keyboard } : {}) });
+  draft.data.promptMessageId = sent.message_id;
+  await saveDraft(draft.userId, chatId, draft.step, draft.data);
+  return sent;
+}
+
+async function showCategoryPicker(chatId, userId) {
+  const rows = [];
+  for (let i = 0; i < categories.length; i += 2) {
+    rows.push(categories.slice(i, i + 2).map((item) => ({
+      text: item.label, callback_data: `rv:category:${item.key}`,
+    })));
+  }
+  const sent = await api.sendMessage({ chat_id: chatId, text: 'Choose the category for your review:', reply_markup: { inline_keyboard: rows } });
+  await saveDraft(userId, chatId, 'category', { promptMessageId: sent.message_id });
+}
+
+async function showPreview(chatId, draft) {
+  const data = { ...draft.data, authorName: draft.data.authorName || 'Telegram user' };
+  const params = {
+    chat_id: chatId,
+    message_id: data.promptMessageId,
+    rich_message: buildReviewRichMessage(data, null, true),
+    reply_markup: buildReviewKeyboard(data, 'preview'),
+  };
+  await api.editMessageText(params);
+}
+
 async function startReview(message) {
   if (message.chat.type !== 'private' || !message.from?.id) {
-    await api.sendMessage({ chat_id: message.chat.id, text: 'Please start your review in a private chat with @ReviewTvBot.' });
+    await api.sendMessage({ chat_id: message.chat.id, text: 'Please submit reviews in your private chat with the bot.' });
     return;
   }
   const existing = await getDraft(message.from.id);
   if (existing) {
-    await api.sendMessage({
-      chat_id: message.chat.id,
-      text: 'You already have an active review draft. I have resumed it at your last saved step.',
-    });
+    if (existing.step === 'complete') return showPreview(message.chat.id, existing);
+    if (existing.step === 'publishing') {
+      await api.sendMessage({ chat_id: message.chat.id, text: 'Your review is currently being published. Please wait a moment.' });
+      return;
+    }
     const prompts = {
-      title: askTitle,
-      year: askYear,
-      season: askSeason,
-      rating: askRating,
-      review_text: askReviewText,
-      poster: askPoster,
-      spoiler: askSpoilers,
+      category: 'Choose the category for your review:',
+      title: 'Send the movie, show, or anime title.',
+      year: 'Send the release year (for example, 2024).',
+      season: 'Send the season number, or tap Skip season.',
+      rating: 'Choose your rating from 1 to 10.',
+      review_text: 'Write your review in 20–3000 characters.',
+      poster: 'Send a poster photo, or skip this step.',
+      spoiler: 'Does your review contain spoilers?',
     };
-    if (prompts[existing.step]) await prompts[existing.step](message.chat.id);
-    else if (existing.step === 'complete') await sendDraftComplete(message.chat.id, existing.data);
+    const keyboards = {
+      category: { inline_keyboard: categories.reduce((rows, item, i) => { const r=Math.floor(i/2); rows[r] ||= []; rows[r].push({text:item.label,callback_data:`rv:category:${item.key}`}); return rows; },[]) },
+      season: { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] },
+      rating: { inline_keyboard: [[1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})) , [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`}))] },
+      poster: { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] },
+      spoiler: { inline_keyboard: [[{text:'Contains spoilers',callback_data:'rv:spoiler:yes',style:'danger'},{text:'No spoilers',callback_data:'rv:spoiler:no',style:'success'}]] },
+    };
+    await editPrompt(message.chat.id, existing.data.promptMessageId, prompts[existing.step] || 'Continue your review.', keyboards[existing.step]);
     return;
   }
-  await sendCategoryPicker(message.chat.id);
+  await showCategoryPicker(message.chat.id, message.from.id);
+}
+
+async function transition(message, draft, nextStep, prompt, keyboard = null) {
+  const data = { ...draft.data };
+  await saveDraft(message.from.id, message.chat.id, nextStep, data);
+  await editPrompt(message.chat.id, data.promptMessageId, prompt, keyboard);
 }
 
 async function handleDraftInput(message, draft) {
-  const chatId = message.chat.id;
-  const userId = message.from.id;
   const text = typeof message.text === 'string' ? message.text.trim() : '';
   const data = { ...draft.data };
+  const userId = message.from.id;
+  const chatId = message.chat.id;
+  const editing = draft.step.startsWith('edit_');
 
-  if (draft.step === 'title') {
-    if (text.length < 2 || text.length > 160) {
-      await api.sendMessage({ chat_id: chatId, text: 'Please send a title between 2 and 160 characters.' });
-      return;
-    }
+  if (draft.step === 'title' || draft.step === 'edit_title') {
+    if (text.length < 2 || text.length > 160) return editPrompt(chatId, data.promptMessageId, 'Please send a title between 2 and 160 characters.');
     data.title = text;
-    await saveDraft(userId, chatId, 'year', data);
-    await askYear(chatId);
-    return;
+    if (editing) return saveAndPreview(userId, chatId, data);
+    return transition(message, draft, 'year', 'Send the release year (for example, 2024).');
   }
-
-  if (draft.step === 'year') {
+  if (draft.step === 'year' || draft.step === 'edit_year') {
     const year = Number(text);
     const maxYear = new Date().getUTCFullYear() + 5;
-    if (!/^\d{4}$/.test(text) || !Number.isInteger(year) || year < 1888 || year > maxYear) {
-      await api.sendMessage({ chat_id: chatId, text: `Please send a valid four-digit year between 1888 and ${maxYear}.` });
-      return;
-    }
+    if (!/^\d{4}$/.test(text) || !Number.isInteger(year) || year < 1888 || year > maxYear) return editPrompt(chatId, data.promptMessageId, `Please send a valid four-digit year between 1888 and ${maxYear}.`);
     data.year = year;
-    if (data.categoryKey === 'tv_shows') {
-      await saveDraft(userId, chatId, 'season', data);
-      await askSeason(chatId);
-    } else {
-      await saveDraft(userId, chatId, 'rating', data);
-      await askRating(chatId);
-    }
-    return;
+    if (editing) return saveAndPreview(userId, chatId, data);
+    if (data.categoryKey === 'tv_shows') return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] });
+    return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard());
   }
-
-  if (draft.step === 'season') {
+  if (draft.step === 'season' || draft.step === 'edit_season') {
     if (text.toLowerCase() === '/skip') data.season = null;
     else {
       const season = Number(text);
-      if (!/^\d{1,2}$/.test(text) || !Number.isInteger(season) || season < 1 || season > 99) {
-        await api.sendMessage({ chat_id: chatId, text: 'Send a season number from 1 to 99, or tap Skip season.' });
-        return;
-      }
+      if (!/^\d{1,2}$/.test(text) || !Number.isInteger(season) || season < 1 || season > 99) return editPrompt(chatId, data.promptMessageId, 'Send a season number from 1 to 99, or tap Skip season.');
       data.season = season;
     }
-    await saveDraft(userId, chatId, 'rating', data);
-    await askRating(chatId);
-    return;
+    if (editing) return saveAndPreview(userId, chatId, data);
+    return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard());
   }
-
-  if (draft.step === 'review_text') {
-    if (text.length < 20 || text.length > 3000) {
-      await api.sendMessage({ chat_id: chatId, text: 'Please write between 20 and 3000 characters for your review.' });
-      return;
-    }
+  if (draft.step === 'review_text' || draft.step === 'edit_text') {
+    if (text.length < 20 || text.length > 3000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 3000 characters for your review.');
     data.reviewText = text;
-    await saveDraft(userId, chatId, 'poster', data);
-    await askPoster(chatId);
-    return;
+    if (editing) return saveAndPreview(userId, chatId, data);
+    return transition(message, draft, 'poster', 'Send a poster photo, or skip this step.', { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] });
   }
+  if (draft.step === 'poster' || draft.step === 'edit_poster') {
+    if (Array.isArray(message.photo) && message.photo.length) data.posterFileId = message.photo[message.photo.length - 1].file_id;
+    else if (text.toLowerCase() === '/skip') data.posterFileId = null;
+    else return editPrompt(chatId, data.promptMessageId, 'Please send a photo as the poster, or tap Skip poster.');
+    if (editing) return saveAndPreview(userId, chatId, data);
+    return transition(message, draft, 'spoiler', 'Does your review contain spoilers?', spoilerKeyboard());
+  }
+  if (draft.step === 'complete') return showPreview(chatId, draft);
+}
 
-  if (draft.step === 'poster') {
-    if (Array.isArray(message.photo) && message.photo.length > 0) {
-      data.posterFileId = message.photo[message.photo.length - 1].file_id;
-    } else if (text.toLowerCase() === '/skip') data.posterFileId = null;
-    else {
-      await api.sendMessage({ chat_id: chatId, text: 'Please send a photo as the poster, or tap Skip poster.' });
-      return;
-    }
-    await saveDraft(userId, chatId, 'spoiler', data);
-    await askSpoilers(chatId);
-    return;
-  }
+function ratingKeyboard() {
+  return { inline_keyboard: [
+    [1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})),
+    [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})),
+  ] };
+}
+function spoilerKeyboard() {
+  return { inline_keyboard: [[
+    { text: 'Contains spoilers', callback_data: 'rv:spoiler:yes', style: 'danger' },
+    { text: 'No spoilers', callback_data: 'rv:spoiler:no', style: 'success' },
+  ]] };
+}
+async function saveAndPreview(userId, chatId, data) {
+  await saveDraft(userId, chatId, 'complete', data);
+  const draft = await getDraft(userId);
+  return showPreview(chatId, draft);
+}
 
-  if (draft.step === 'complete') {
-    await api.sendMessage({ chat_id: chatId, text: 'Your draft is complete. Preview and publishing will be available in the next phase. Use /cancel to discard it.' });
+async function listMyReviews(chatId, userId) {
+  const rows = await db.select().from(reviews).where(eq(reviews.authorId, userId)).all();
+  const published = rows.filter((row) => row.status === 'published').sort((a,b) => b.id-a.id).slice(0,10);
+  if (!published.length) return api.sendMessage({ chat_id: chatId, text: 'You have not published a review yet. Send /review when you are ready.' });
+  const blocks = [{type:'heading',size:2,text:'YOUR REVIEWS'}];
+  for (const item of published) {
+    blocks.push({type:'paragraph',text:[{type:'bold',text:`${item.title} (${item.year})`}, ` — ${item.rating}/10`]});
+    if (item.messageLink) blocks.push({type:'paragraph',text:{type:'url',text:'Open published review',url:item.messageLink}});
   }
+  blocks.push({type:'footer',text:'Showing your 10 most recent published reviews.'});
+  return api.sendRichMessage({chat_id:chatId,rich_message:{blocks}});
+}
+
+async function showAdmin(chatId, userId, command) {
+  if (!isAdmin(userId)) return;
+  if (command === '/admin') {
+    return sendRich(chatId,{blocks:[
+      {type:'heading',size:1,text:'ReviewTVBot Admin'},
+      {type:'paragraph',text:'Private maintenance and review statistics.'},
+      {type:'list',items:[
+        {blocks:[{type:'paragraph',text:'/stats — review totals and category counts'}]},
+        {blocks:[{type:'paragraph',text:'/settings — forum and topic status'}]},
+      ]},
+      {type:'footer',text:'This panel is private to authorized administrators.'},
+    ]});
+  }
+  if (command === '/stats') {
+    const all = await db.select().from(reviews).all();
+    const published = all.filter(row=>row.status==='published');
+    const lines = categories.map(c=>`${c.label}: ${published.filter(r=>r.categoryKey===c.key).length}`);
+    return sendRich(chatId,{blocks:[
+      {type:'heading',size:1,text:'Review statistics'},
+      {type:'paragraph',text:`Total published: ${published.length}\nDraft/failed records: ${all.length-published.length}`},
+      {type:'divider'},
+      ...lines.map(line=>({type:'paragraph',text:line})),
+      {type:'footer',text:'Counts are based on saved review records.'},
+    ]});
+  }
+  if (command === '/settings') return showSettings({chat:{id:chatId},from:{id:userId}});
 }
 
 export default async function (message) {
   if (!message?.chat?.id) return;
   const text = typeof message.text === 'string' ? message.text : '';
-
   try {
     if (text.startsWith('/')) {
       const { command, args } = parseCommand(text);
-      if (command === '/connect') return await connectForum(message);
-      if (command === '/settopic') return await setCategoryTopic(message, args[0] ?? '');
-      if (command === '/settings') return await showSettings(message);
-      if (command === '/disconnect') return await disconnectForum(message, args[0]);
+      const userId = message.from?.id;
       if (command === '/start') {
-        await api.sendMessage({
-          chat_id: message.chat.id,
-          text: 'Welcome to ReviewTVBot.\n\nUse /review to submit a movie, TV show, or anime review. Your draft is saved as you go, and nothing is published without your final confirmation.',
-        });
+        await setCommandMenus();
+        await showWelcome(message);
         return;
       }
-      if (command === '/review') return await startReview(message);
+      if (command === '/help') return showHelp(message.chat.id,message.from?.id);
+      if (command === '/howtouse') return showHowTo(message.chat.id);
+      if (command === '/review') return startReview(message);
       if (command === '/cancel') {
-        if (message.chat.type !== 'private' || !message.from?.id) return;
-        const draft = await getDraft(message.from.id);
-        if (!draft) {
-          await api.sendMessage({ chat_id: message.chat.id, text: 'You do not have an active review draft.' });
-          return;
-        }
-        await deleteDraft(message.from.id);
-        await api.sendMessage({ chat_id: message.chat.id, text: 'Your review draft has been discarded. Send /review to start again.' });
-        return;
+        if (message.chat.type !== 'private' || !userId) return;
+        const draft = await getDraft(userId);
+        if (!draft) return api.sendMessage({chat_id:message.chat.id,text:'You do not have an active review draft.'});
+        await deleteDraft(userId);
+        return editPrompt(message.chat.id,draft.data.promptMessageId,'Your review draft has been cancelled.',null);
       }
       if (command === '/myreviews') {
-        await api.sendMessage({ chat_id: message.chat.id, text: 'Your published review history will be available in a later phase.' });
-        return;
+        if (message.chat.type !== 'private' || !userId) return;
+        return listMyReviews(message.chat.id,userId);
       }
-      if (command === '/help') {
-        await api.sendMessage({
-          chat_id: message.chat.id,
-          text: [
-            'ReviewTVBot help', '',
-            'Member commands:',
-            '/review — start a review in private chat',
-            '/cancel — discard your active draft',
-            '/myreviews — view published reviews (coming later)', '',
-            'Forum owner commands:',
-            '/connect — connect this forum (run as the group creator)',
-            '/settopic category_key — map the current topic to a category',
-            '/settings — show the topic mapping status',
-            '/disconnect confirm — disable forum publishing',
-          ].join('\n'),
-        });
-        return;
+      if (['/admin','/stats'].includes(command)) {
+        if (message.chat.type !== 'private' || !isAdmin(userId)) return;
+        return showAdmin(message.chat.id,userId,command);
+      }
+      if (command === '/settings') {
+        if (message.chat.type !== 'private' || !isAdmin(userId)) return;
+        return showAdmin(message.chat.id,userId,command);
+      }
+      if (command === '/connect') {
+        if (!isAdmin(userId)) return;
+        return connectForum(message);
+      }
+      if (command === '/settopic') {
+        if (!isAdmin(userId)) return;
+        return setCategoryTopic(message,args[0] ?? '');
+      }
+      if (command === '/disconnect') {
+        if (message.chat.type !== 'private' || !isAdmin(userId)) return;
+        return disconnectForum({chat:{id:message.chat.id},from:{id:userId}},args[0]);
       }
       if (command !== '/skip') return;
     }
-
     if (message.chat.type !== 'private' || !message.from?.id) return;
     const draft = await getDraft(message.from.id);
-    if (draft && draft.chatId === message.chat.id) await handleDraftInput(message, draft);
+    if (draft && draft.chatId === message.chat.id) await handleDraftInput(message,draft);
   } catch (error) {
-    console.error('ReviewTVBot message handler failed', error);
-    try {
-      await api.sendMessage({
-        chat_id: message.chat.id,
-        text: 'Sorry, that action could not be completed. Please try again. If the problem continues, contact the bot owner.',
-      });
-    } catch (sendError) {
-      console.error('ReviewTVBot could not send its fallback error message', sendError);
-    }
+    console.error('ReviewTVBot message handler failed',error);
+    try { await api.sendMessage({chat_id:message.chat.id,text:'Sorry, I could not complete that step. Please try again. Your saved draft is safe.'}); }
+    catch (sendError) { console.error('ReviewTVBot fallback send failed',sendError); }
   }
 }
