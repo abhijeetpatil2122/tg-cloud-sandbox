@@ -160,7 +160,7 @@ async function handleDraftInput(message, draft) {
   const editing = draft.step.startsWith('edit_');
 
   if (draft.step === 'title' || draft.step === 'edit_title') {
-    if (text.length < 2 || text.length > 160) return editPrompt(chatId, data.promptMessageId, 'Please send a title between 2 and 160 characters.');
+    if (text.length < 2 || text.length > 160) return editPrompt(chatId, data.promptMessageId, 'Please send a title between 2 and 160 characters.', withBack());
     data.title = text;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
@@ -169,7 +169,7 @@ async function handleDraftInput(message, draft) {
   if (draft.step === 'year' || draft.step === 'edit_year') {
     const year = Number(text);
     const maxYear = new Date().getUTCFullYear() + 5;
-    if (!/^\d{4}$/.test(text) || !Number.isInteger(year) || year < 1888 || year > maxYear) return editPrompt(chatId, data.promptMessageId, `Please send a valid four-digit year between 1888 and ${maxYear}.`);
+    if (!/^\d{4}$/.test(text) || !Number.isInteger(year) || year < 1888 || year > maxYear) return editPrompt(chatId, data.promptMessageId, `Please send a valid four-digit year between 1888 and ${maxYear}.`, withBack());
     data.year = year;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
@@ -180,7 +180,7 @@ async function handleDraftInput(message, draft) {
     if (text.toLowerCase() === '/skip') data.season = null;
     else {
       const season = Number(text);
-      if (!/^\d{1,2}$/.test(text) || !Number.isInteger(season) || season < 1 || season > 99) return editPrompt(chatId, data.promptMessageId, 'Send a season number from 1 to 99, or tap Skip season.');
+      if (!/^\d{1,2}$/.test(text) || !Number.isInteger(season) || season < 1 || season > 99) return editPrompt(chatId, data.promptMessageId, 'Send a season number from 1 to 99, or tap Skip season.', withBack({ inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }));
       data.season = season;
     }
     await deleteUserMessage(message);
@@ -188,7 +188,7 @@ async function handleDraftInput(message, draft) {
     return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard());
   }
   if (draft.step === 'review_text' || draft.step === 'edit_text') {
-    if (text.length < 20 || text.length > 3000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 3000 characters for your review.');
+    if (text.length < 20 || text.length > 3000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 3000 characters for your review.', withBack());
     data.reviewText = text;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
