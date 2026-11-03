@@ -1,9 +1,42 @@
 import { api } from 'sdk';
+import {
+  connectForum,
+  setCategoryTopic,
+  showSettings,
+  disconnectForum,
+} from '../lib/forum.js';
+
+function parseCommand(text) {
+  const [rawCommand, ...args] = text.trim().split(/\s+/);
+  const command = rawCommand.split('@', 1)[0].toLowerCase();
+  return { command, args };
+}
 
 export default async function (message) {
   if (!message?.chat?.id || typeof message.text !== 'string') return;
 
-  const command = message.text.trim().split(/\s+/, 1)[0].split('@', 1)[0].toLowerCase();
+  const { command, args } = parseCommand(message.text);
+  if (!command.startsWith('/')) return;
+
+  if (command === '/connect') {
+    await connectForum(message);
+    return;
+  }
+
+  if (command === '/settopic') {
+    await setCategoryTopic(message, args[0] ?? '');
+    return;
+  }
+
+  if (command === '/settings') {
+    await showSettings(message);
+    return;
+  }
+
+  if (command === '/disconnect') {
+    await disconnectForum(message);
+    return;
+  }
 
   if (command === '/start') {
     await api.sendMessage({
@@ -11,10 +44,10 @@ export default async function (message) {
       text: [
         'Welcome to ReviewTVBot.',
         '',
-        'You will be able to submit reviews for movies, TV shows, and anime.',
+        'Submit reviews for movies, TV shows, and anime.',
         'Choose a category, write your review, preview it, and confirm before it is published.',
         '',
-        'Review submissions are being prepared. Please check back soon.'
+        'Review submission is being prepared. The forum owner can use /settings to check the destination setup.'
       ].join('\n')
     });
     return;
@@ -26,9 +59,16 @@ export default async function (message) {
       text: [
         'ReviewTVBot help',
         '',
-        'Use /review to start a review once submissions are enabled.',
-        'Use /myreviews to view your published reviews.',
-        'Use /cancel to cancel an active draft.'
+        'Member commands:',
+        '/review — start a review (submission flow is coming next)',
+        '/myreviews — view your published reviews (coming next)',
+        '/cancel — cancel a draft (coming next)',
+        '',
+        'Forum owner commands:',
+        '/connect — connect this forum (run as the group creator)',
+        '/settopic category_key — map the current topic to a category',
+        '/settings — show the topic mapping status',
+        '/disconnect — disable forum publishing'
       ].join('\n')
     });
   }
