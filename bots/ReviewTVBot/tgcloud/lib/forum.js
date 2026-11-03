@@ -181,10 +181,17 @@ export async function showSettings(message) {
   );
 }
 
-export async function disconnectForum(message) {
+export async function disconnectForum(message, confirmation) {
   const config = await getConfig();
   if (!config || message.from?.id !== config.ownerId) {
     await sendToMessageContext(message, 'Only the configured forum owner can disconnect the destination.');
+    return;
+  }
+  if (confirmation !== 'confirm') {
+    await sendToMessageContext(
+      message,
+      'This will pause all review publishing. Existing topic mappings will be kept. To continue, send /disconnect confirm.'
+    );
     return;
   }
 
