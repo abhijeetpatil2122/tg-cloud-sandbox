@@ -14,8 +14,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   if (posterMedia) {
     blocks.push({
       type: 'photo',
-      photo: { type: 'photo', media: posterMedia },
-      ...(data.hasSpoilers ? { has_spoiler: true } : {}),
+      photo: { type: 'photo', media: posterMedia, ...(data.hasSpoilers ? { has_spoiler: true } : {}) },
     });
   }
   blocks.push(
