@@ -122,8 +122,8 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - Validate structure and syntax; no deployment.
 
 ### Phase 2 — Forum configuration
-- Establish trusted owner identity.
-- Connect and validate forum supergroup and permissions.
+- Establish trusted owner identity from the Telegram group creator verified during `/connect`.
+- Connect and validate the forum supergroup and bot administrator status.
 - Configure/verify all six category topic IDs.
 - Implement owner-only settings and diagnostics.
 
