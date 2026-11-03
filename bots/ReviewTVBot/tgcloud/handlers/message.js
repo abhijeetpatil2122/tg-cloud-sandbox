@@ -49,7 +49,7 @@ export default async function (message) {
           'Choose a category, write your review, preview it, and confirm before it is published.',
           '',
           'Review submission is being prepared. The forum owner can use /settings to check the destination setup.'
-        ].join('\\n')
+        ].join('\n')
       });
       return;
     }
@@ -70,7 +70,7 @@ export default async function (message) {
           '/settopic category_key — map the current topic to a category',
           '/settings — show the topic mapping status',
           '/disconnect confirm — disable forum publishing'
-        ].join('\\n')
+        ].join('\n')
       });
     }
   } catch (error) {
