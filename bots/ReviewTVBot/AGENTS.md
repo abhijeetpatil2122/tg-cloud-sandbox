@@ -58,6 +58,8 @@ Use a consistent, clean layout: category/title heading, release year and optiona
 Escape/safely construct user text so it cannot inject Rich Message formatting or links. Spoiler text must actually be protected; a warning label alone is insufficient.
 
 ## Forum setup and owner controls
+After `/connect`, configure topics by sending `/settopic <category_key>` from inside each matching forum topic. The handler reads `message.message_thread_id` from that command update and stores it against the selected category. This avoids manually copying numeric topic IDs.
+
 Suggested owner-only commands:
 - `/connect`: connect/verify the current forum supergroup.
 - `/settopic <category>`: configure a category's topic ID using a documented topic-context flow.
@@ -67,7 +69,7 @@ Suggested owner-only commands:
 
 Validate that the destination is a supergroup with forum topics enabled and that the bot has the permissions required to send text and media. Verify each configured topic belongs to the connected group. Do not invent an API method for retrieving topic IDs; inspect current update fields and Bot API methods. If needed, capture `message_thread_id` from a documented update generated inside the target topic.
 
-Owner identity must be established through a trusted, private configuration/bootstrap mechanism. Never let the first person who sends `/connect` become owner. Check owner authorization server-side on every admin action; hiding commands from help is not authorization.
+Owner bootstrap for the initial single-forum setup is based on Telegram's authoritative group creator identity: `/connect` is accepted only when the caller's `from.id` matches the `creator` returned by `getChatAdministrators` for that supergroup. Persist that creator ID as the configured owner. Never let an arbitrary first caller or an ordinary administrator become owner. Check the persisted owner ID server-side on every later admin action; hiding commands from help is not authorization.
 
 ## Proposed runtime layout
 Adapt to the actual current official scaffold. Keep only modules that are used:
