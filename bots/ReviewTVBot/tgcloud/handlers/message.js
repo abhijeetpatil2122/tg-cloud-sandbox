@@ -1,8 +1,8 @@
 import { api } from 'sdk';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
 import {
-  sendCategoryPicker, askYear, askSeason, askRating, askReviewText,
-  askPoster, askSpoilers,
+  sendCategoryPicker, askTitle, askYear, askSeason, askRating, askReviewText,
+  askPoster, askSpoilers, sendDraftComplete,
 } from '../lib/review-flow.js';
 import {
   connectForum, setCategoryTopic, showSettings, disconnectForum,
@@ -22,8 +22,19 @@ async function startReview(message) {
   if (existing) {
     await api.sendMessage({
       chat_id: message.chat.id,
-      text: 'You already have an active review draft. Continue with your next answer, or send /cancel to discard it and start again.',
+      text: 'You already have an active review draft. I have resumed it at your last saved step.',
     });
+    const prompts = {
+      title: askTitle,
+      year: askYear,
+      season: askSeason,
+      rating: askRating,
+      review_text: askReviewText,
+      poster: askPoster,
+      spoiler: askSpoilers,
+    };
+    if (prompts[existing.step]) await prompts[existing.step](message.chat.id);
+    else if (existing.step === 'complete') await sendDraftComplete(message.chat.id, existing.data);
     return;
   }
   await sendCategoryPicker(message.chat.id);
