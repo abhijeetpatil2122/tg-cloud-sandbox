@@ -52,6 +52,10 @@ The Serverless CLI token is different from the ordinary Bot API token. Never com
 
 ## Project status
 
-This initial phase establishes the product plan and repository documentation. Runtime handlers, schema, and publishing are subsequent phases. No deployment or database migration is performed by this documentation setup.
+The initial Serverless scaffold and forum-configuration modules have been deployed to app `8789022672`. The deployed schema currently declares `community_config` and `category_topics`, but those tables are not available until the separate database migration is applied. Forum setup commands must not be used until migration succeeds.
+
+GitHub Actions automatic deployment is enabled for deployable changes under `bots/ReviewTVBot/` pushed to `main`. Pull requests run validation only. Database migrations are never part of automatic deployment and require separate review and approval.
+
+The review-submission wizard, preview/edit flow, and publishing are still under development.
 
 See [AGENTS.md](./AGENTS.md) for the complete architecture, roadmap, security rules, test checklist, and deployment requirements.
