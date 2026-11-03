@@ -20,9 +20,9 @@ Do not copy a project's `.tgcloud/` local state, CLI credentials, `node_modules/
 | `bots/RichDocsBot` | Inline search for Bot API methods/types and related error documentation, rendered as native Rich Messages | `8626465761` | `TGCLOUD_TOKEN_RICHDOCSBOT` | Enabled on `main` |
 | `bots/IdPullBot` | Telegram message inspector with private chunked reports, guest-mode Telegraph links, share keyboard, and aggregate stats | `8288436618` | `TGCLOUD_TOKEN_IDPULLBOT` | Enabled on `main` |
 | `bots/SarvamChatBot` | Sarvam AI private-chat assistant with recoverable streamed Rich Messages, task-aware Telegram thinking states, stoppable drafts, and optional Tavily live search | From scoped token | `TGCLOUD_TOKEN_SARVAMCHATBOT` | Enabled on `main` |
-| `bots/ReviewTVBot` | Movie, TV show, and anime review submissions with category-topic forum publishing | From scoped token | `TGCLOUD_TOKEN_REVIEWTVBOT` | Manual-only (setup) |
+| `bots/ReviewTVBot` | Movie, TV show, and anime review submissions with category-topic forum publishing | `8789022672` | `TGCLOUD_TOKEN_REVIEWTVBOT` | Enabled on `main` |
 
-IdPullBot and SarvamChatBot are registered for automatic deployment on `main` when deployable files under `bots/SarvamChatBot/` change. It remains limited to private chats and uses Tavily for optional live web/news search plus Telegram's stoppable Rich Message draft workflow. The automatic workflow does not run database migrations.
+IdPullBot, SarvamChatBot, and ReviewTVBot are registered for automatic deployment on `main` when their respective deployable project files change. ReviewTVBot uses app `8789022672`; its wizard and forum setup code are separate from the other bots. The automatic workflow does not run database migrations.
 
 These entries describe the current workflow configuration, not defaults for future projects. A newly added project must remain manual-only until its token/app ID, project validation, and first intentional deployment have been checked and its auto-deploy registry entry is deliberately enabled.
 
@@ -50,7 +50,7 @@ For projects without static hosting, deployment uses a targeted push of JavaScri
 
 The **Telegram Serverless Auto Deploy** workflow is triggered by pushes to `main` that touch `bots/**`. It detects projects with deployable changes, validates each detected project, checks JavaScript syntax, and builds a configured Mini App frontend. Only projects present in its explicit registry with `auto_deploy: true` are eligible for deployment.
 
-- BotZoneBot, RichDocsBot, IdPullBot, TgRichBot and SarvamChatBot are registered for automatic deployment on `main`. Other projects remain manual-only until explicitly added to the registry.
+- BotZoneBot, RichDocsBot, IdPullBot, TgRichBot, SarvamChatBot, and ReviewTVBot are registered for automatic deployment on `main`. Other projects remain manual-only until explicitly added to the registry.
 - Documentation-only edits are filtered out. Root-only changes do not match the workflow's `bots/**` trigger.
 - Non-static projects use targeted module pushes. Static Mini App projects build their frontend and use a full push, which can delete remote modules absent from the local project.
 - Automatic deployment never runs database migrations.
