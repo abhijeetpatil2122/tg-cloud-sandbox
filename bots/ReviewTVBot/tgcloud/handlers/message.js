@@ -149,7 +149,7 @@ async function startReview(message) {
 async function transition(message, draft, nextStep, prompt, keyboard = null) {
   const data = { ...draft.data };
   await saveDraft(message.from.id, message.chat.id, nextStep, data);
-  await editPrompt(message.chat.id, data.promptMessageId, prompt, keyboard);
+  await editPrompt(message.chat.id, data.promptMessageId, prompt, withBack(keyboard));
 }
 
 async function handleDraftInput(message, draft) {
