@@ -10,10 +10,12 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   const blocks = [
     heading('MOVIE REVIEW', 2),
   ];
-  if (data.posterFileId) {
+  const posterMedia = data.posterMedia || data.posterFileId || data.posterUrl;
+  if (posterMedia) {
     blocks.push({
       type: 'photo',
-      photo: { media: data.posterFileId, has_spoiler: Boolean(data.hasSpoilers) },
+      photo: { type: 'photo', media: posterMedia },
+      ...(data.hasSpoilers ? { has_spoiler: true } : {}),
     });
   }
   blocks.push(
