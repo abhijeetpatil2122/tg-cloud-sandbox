@@ -112,16 +112,18 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - Store only data required for review publication and history.
 
 ## Implementation roadmap
+### Phase 1 — Repository/project setup (completed)
+
 ### Phase 1 — Repository/project setup
 - Use the current official `npm create @tgcloud/bot ReviewTVBot` scaffold.
 - Inspect generated files and preserve current CLI conventions.
 - Put project at `bots/ReviewTVBot/`.
 - Add this `AGENTS.md` and a user-facing `README.md`.
-- Add the dedicated token mapping to the manual workflow only.
-- Do not add ReviewTVBot to the auto-deploy registry yet.
+- Add the dedicated token mapping to the manual workflow.
+- Keep automatic deployment disabled until the first deployment and live tests are verified.
 - Validate structure and syntax; no deployment.
 
-### Phase 2 — Forum configuration
+### Phase 2 — Forum configuration (code deployed; database migration and live setup pending)
 - Establish trusted owner identity from the Telegram group creator verified during `/connect`.
 - Connect and validate the forum supergroup and bot administrator status.
 - Configure/verify all six category topic IDs.
@@ -175,8 +177,11 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 ## Deployment
 - GitHub Actions secret: `TGCLOUD_TOKEN_REVIEWTVBOT`.
 - Manual workflow path: `bots/ReviewTVBot`.
-- Use `FROM_TOKEN` until the exact app ID is intentionally recorded; derive it only from the selected scoped token.
-- Keep manual-only until first deployment and live tests are verified.
+- Verified Serverless app ID: `8789022672`.
+- GitHub Actions secret: `TGCLOUD_TOKEN_REVIEWTVBOT`.
+- Manual workflow path: `bots/ReviewTVBot`.
+- Automatic deployment is enabled on `main` for deployable changes under this project. Pull requests validate only; they do not deploy.
+- Automatic deployment never applies database migrations. Review and explicitly authorize migrations separately.
 - Status is not deployment. Never deploy or migrate without explicit authorization.
 
 ## Official references
