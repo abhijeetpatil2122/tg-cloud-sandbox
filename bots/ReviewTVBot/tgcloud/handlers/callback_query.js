@@ -284,14 +284,20 @@ export default async function (query) {
       return editPrompt(chat.id,data.promptMessageId,'Optionally send the genre or genres, or tap Skip genre.',withBack({inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]}));
     }
     if(action==='media'&&['done','skip'].includes(value)&&['media','edit_media'].includes(draft.step)){
-      if(value==='skip')data.media=[];
-      data.media=Array.isArray(data.media)?data.media:[];
+      // Re-read after album updates: each Telegram photo arrives in its own
+      // Serverless invocation, so the initial callback snapshot may be stale.
+      const latestDraft=await getDraft(userId);
+      const latestData={...(latestDraft?.data||data)};
+      if(value==='skip')latestData.media=[];
+      latestData.media=Array.isArray(latestData.media)?latestData.media:[];
+      latestData.mediaMode='slideshow';
       await answer(query.id);
-      data.mediaMode='slideshow';
-      if(draft.step==='edit_media'){await saveDraft(userId,chat.id,'complete',data);await answer(query.id);return preview(chat.id,await getDraft(userId));}
-      await saveDraft(userId,chat.id,'spoiler',data);
-      await answer(query.id);
-      return editPrompt(chat.id,data.promptMessageId,'Does your review contain spoilers?',withBack(spoilerKeyboard()));
+      if(draft.step==='edit_media'){
+        await saveDraft(userId,chat.id,'complete',latestData);
+        return preview(chat.id,await getDraft(userId));
+      }
+      await saveDraft(userId,chat.id,'spoiler',latestData);
+      return editPrompt(chat.id,latestData.promptMessageId,'Does your review contain spoilers?',withBack(spoilerKeyboard()));
     }
 
     if (action === 'spoiler' && ['spoiler', 'edit_spoiler'].includes(draft.step) && ['yes', 'no'].includes(value)) {
