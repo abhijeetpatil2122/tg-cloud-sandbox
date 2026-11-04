@@ -2,7 +2,7 @@ import { categories } from './config.js';
 
 const plain = (text) => String(text ?? '');
 const heading = (text, size = 2) => ({ type: 'heading', size, text: plain(text) });
-const paragraph = (text) => ({ type: 'paragraph', text: plain(text) });
+const paragraph = (text) => ({ type: 'paragraph', text });
 const footer = (text) => ({ type: 'footer', text: plain(text) });
 
 export function buildReviewRichMessage(data, reviewNumber = null, preview = false) {
@@ -24,7 +24,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
       String(data.year),
       data.season ? `Season ${data.season}` : null,
     ].filter(Boolean).join('  •  ')),
-    paragraph(data.hasSpoilers ? {type:'spoiler',text:`★ ${plain(data.rating)}/10   •   SPOILERS`} : `★ ${plain(data.rating)}/10`),
+    paragraph(`★ ${plain(data.rating)}/10`),
     { type: 'divider' },
     heading('Review', 3),
     {
@@ -36,6 +36,20 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
     { type: 'divider' },
     footer(`Reviewed by ${plain(data.authorName || 'Telegram user')}   •   ${preview ? 'Preview' : `Review #${String(reviewNumber).padStart(3, '0')}`}`),
   );
+  if (!preview) {
+    const buttons = [
+      { text: `★ ${plain(data.rating)}/10`, style: 'success', disabled: {} },
+    ];
+    if (data.hasSpoilers) {
+      buttons.push({ text: 'SPOILER', style: 'danger', disabled: {} });
+    }
+    buttons.push({
+      text: `Review #${String(reviewNumber).padStart(3, '0')}`,
+      style: 'primary',
+      disabled: {},
+    });
+    blocks.push({ type: 'buttons', buttons, align: 'right' });
+  }
   return { blocks };
 }
 
