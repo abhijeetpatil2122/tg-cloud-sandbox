@@ -49,3 +49,10 @@ export async function appendDraftMedia(userId, chatId, items) {
   )).run();
   return Boolean(result.rowsAffected);
 }
+
+
+/**
+ * Media appends are one small SQLite statement per photo; normal wizard steps
+ * do not use that path. A stale publishing state is recovered by the handlers
+ * after 2 minutes if Telegram's remote media fetch interrupted an invocation.
+ */
