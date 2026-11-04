@@ -124,9 +124,8 @@ async function startReview(message) {
       season: 'Send the season number, or tap Skip season.',
       rating: 'Choose your rating from 1 to 10.',
       review_text: 'Write your review in 20–3000 characters.',
-      media: 'Send photos or direct HTTPS image URLs one at a time. Tap Done when finished, or Skip photos.',
-      edit_media: 'Send replacement photos or direct HTTPS image URLs one at a time. Tap Done when finished.',
-      media_layout: 'Choose how to display your photos.',
+      media: 'Send one or more photos, or paste direct HTTPS image links separated by commas. Tap Done when finished, or Skip photos.',
+      edit_media: 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.',
       spoiler: 'Does your review contain spoilers?',
     };
     const keyboards = {
@@ -138,7 +137,6 @@ async function startReview(message) {
       edit_year: {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]},
       media: { inline_keyboard: [[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]] },
       edit_media: {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},
-      media_layout: {inline_keyboard:[[{text:'Single image',callback_data:'rv:mediamode:single'},{text:'Slideshow',callback_data:'rv:mediamode:slideshow',style:'success'}]]},
       spoiler: { inline_keyboard: [[{text:'Contains spoilers',callback_data:'rv:spoiler:yes',style:'danger'},{text:'No spoilers',callback_data:'rv:spoiler:no',style:'success'}]] },
     };
     await editPrompt(message.chat.id, existing.data.promptMessageId, prompts[existing.step] || 'Continue your review.', withBack(keyboards[existing.step]));
@@ -203,18 +201,25 @@ async function handleDraftInput(message, draft) {
     await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
     data.media=[];data.mediaMode='single';
-    return transition(message,draft,'media','Send photos or direct HTTPS image URLs one at a time. Tap Done when finished, or Skip photos.',{inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},data);
+    return transition(message,draft,'media','Send one or more photos, or paste direct HTTPS image links separated by commas. Tap Done when finished, or Skip photos.',{inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},data);
   }
   if(draft.step==='media'||draft.step==='edit_media'){
-    const item=Array.isArray(message.photo)&&message.photo.length?{type:'photo',media:message.photo[message.photo.length-1].file_id}:/^https:\/\/\S+$/i.test(text)?{type:'photo',media:text}:null;
-    if(!item)return editPrompt(chatId,data.promptMessageId,'Send a Telegram photo or direct HTTPS image URL. Send each image separately, then tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
-    data.media=Array.isArray(data.media)?data.media:[];if(data.media.length>=10)return editPrompt(chatId,data.promptMessageId,'You can add up to 10 images. Tap Done to continue.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
-    data.media.push(item);await deleteUserMessage(message);await saveDraft(userId,chatId,draft.step,data);
-    return editPrompt(chatId,data.promptMessageId,`Added image ${data.media.length}/10. Send another, or tap Done.`,withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+    const photo=Array.isArray(message.photo)&&message.photo.length
+      ? [{type:'photo',media:message.photo[message.photo.length-1].file_id}]
+      : null;
+    const links=text.split(',').map(link=>link.trim()).filter(Boolean);
+    const validLinks=links.length>0&&links.every(link=>/^https:\/\/[^\\s,]+$/i.test(link));
+    const items=photo||(validLinks?links.map(link=>({type:'photo',media:link})):null);
+    if(!items)return editPrompt(chatId,data.promptMessageId,'Send a Telegram photo, or paste direct HTTPS image links separated by commas. Each link must be a public direct image URL. Tap Done when finished.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+    data.media=Array.isArray(data.media)?data.media:[];
+    if(data.media.length+items.length>10)return editPrompt(chatId,data.promptMessageId,'You can add up to 10 images in total. Your existing images are unchanged; send fewer links or tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
+    data.media.push(...items);data.mediaMode='slideshow';
+    await deleteUserMessage(message);await saveDraft(userId,chatId,draft.step,data);
+    return editPrompt(chatId,data.promptMessageId,`Added ${items.length} image${items.length===1?'':'s'} (${data.media.length}/10). Send more photos or comma-separated links, or tap Done.`,withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
   }
   if(draft.step==='poster'||draft.step==='edit_poster'){
     if(Array.isArray(message.photo)&&message.photo.length)data.media=[{type:'photo',media:message.photo[message.photo.length-1].file_id}];else if(/^https:\/\/\S+$/i.test(text))data.media=[{type:'photo',media:text}];else if(text.toLowerCase()==='/skip')data.media=[];else return editPrompt(chatId,data.promptMessageId,'Send a photo or direct HTTPS image URL, or skip.',withBack());
-    data.mediaMode='single';await deleteUserMessage(message);if(editing)return saveAndPreview(userId,chatId,data);return transition(message,draft,'spoiler','Does your review contain spoilers?',spoilerKeyboard(),data);
+    data.mediaMode='slideshow';await deleteUserMessage(message);if(editing)return saveAndPreview(userId,chatId,data);return transition(message,draft,'spoiler','Does your review contain spoilers?',spoilerKeyboard(),data);
   }
   if (draft.step === 'complete') return showPreview(chatId, draft);
 }
