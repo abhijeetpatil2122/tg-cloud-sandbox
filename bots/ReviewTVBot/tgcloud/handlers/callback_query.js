@@ -3,7 +3,7 @@ import { and, eq } from 'sdk/db';
 import { reviewDrafts, reviews, communityConfig, categoryTopics } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
 import { categories, getCategory, isAdmin } from '../lib/config.js';
-import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage } from '../lib/formatting.js';
+import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage, buildMyReviewsRichMessage } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 
 async function answer(id, text) {
@@ -68,7 +68,7 @@ function errorForUser(error) {
   const raw = String(error?.description || error?.message || error || '').replace(/\s+/g, ' ').trim();
   if (/not connected|publishing topic|category/i.test(raw)) return 'This category is not connected to a publishing topic yet. Please contact the bot administrator.';
   if (/not enough rights|administrator|chat not found|thread|topic/i.test(raw)) return 'The bot cannot post to the selected community topic. Please ask an administrator to check its forum permissions and topic mapping.';
-  if (/photo|file|media|wrong file/i.test(raw)) return 'Telegram could not use that poster. Edit the poster and try a Telegram photo or a public direct HTTPS image link.';
+  if (/photo|file|media|wrong file/i.test(raw)) return 'Telegram could not use one of those images. Edit the photos and try a Telegram photo or a public direct HTTPS image link.';
   if (/database|SQLITE|constraint|no such table/i.test(raw)) return 'The review database is not ready for publishing. Please contact the bot administrator.';
   return 'Telegram could not publish this review right now.';
 }
@@ -128,7 +128,7 @@ export default async function (query) {
       const items=published.slice(safe*size,(safe+1)*size);
       const blocks=[
         {type:'heading',size:2,text:'YOUR REVIEWS'},
-        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title} (${item.year})`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
+        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title}${item.year ? ` (${item.year})` : ''}`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
         {type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`},
       ];
       const nav=[];if(safe>0)nav.push({text:'‹ Previous',callback_data:`rv:reviews:${safe-1}`});if(safe+1<count)nav.push({text:'Next ›',callback_data:`rv:reviews:${safe+1}`});
@@ -200,14 +200,14 @@ export default async function (query) {
       const previous = {
         title: ['category', 'Choose the category for your review:', categoryKeyboard()],
         year: ['title', 'Send the movie, show, or anime title.', null],
-        genre: ['year', 'Send the release year (for example, 2024).', null],
+        genre: ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
         season: ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         rating: data.categoryKey === 'tv_shows'
           ? ['season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
           : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         review_text: ['rating', 'Choose your rating from 1 to 10.', ratingKeyboard()],
-        poster: ['review_text', 'Write your review in 20–3000 characters.', null],
-        spoiler: ['poster', 'Send a poster photo, a direct HTTPS image link, or skip this step.', { inline_keyboard: [[{ text: 'Skip poster', callback_data: 'rv:poster:skip' }]] }],
+        media: ['review_text', 'Write your review in 20–3000 characters.', null],
+        spoiler: ['media', 'Send photos or direct HTTPS image URLs, or tap Skip photos.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
       if (!previous) return preview(chat.id, { ...draft, step: 'complete' });
       await saveDraft(userId, chat.id, previous[0], data);
@@ -256,16 +256,27 @@ export default async function (query) {
       return editPrompt(chat.id, data.promptMessageId, 'Write your review in 20–3000 characters.', withBack());
     }
 
-    if (action === 'poster' && value === 'skip' && ['poster', 'edit_poster'].includes(draft.step)) {
-      data.posterFileId = null;
-      data.posterUrl = null;
+    if(action==='year'&&value==='skip'&&['year','edit_year'].includes(draft.step)){
+      data.year=null;await answer(query.id);
+      if(draft.step==='edit_year'){await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
+      await saveDraft(userId,chat.id,'genre',data);
+      return editPrompt(chat.id,data.promptMessageId,'Optionally send the genre or genres, or tap Skip genre.',withBack({inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]}));
+    }
+    if(action==='media'&&['done','skip'].includes(value)&&['media','edit_media'].includes(draft.step)){
+      if(value==='skip')data.media=[];
+      data.media=Array.isArray(data.media)?data.media:[];
       await answer(query.id);
-      if (draft.step === 'edit_poster') {
-        await saveDraft(userId, chat.id, 'complete', data);
-        return preview(chat.id, await getDraft(userId));
-      }
-      await saveDraft(userId, chat.id, 'spoiler', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Does your review contain spoilers?', withBack(spoilerKeyboard()));
+      if(data.media.length>1){await saveDraft(userId,chat.id,'media_layout',data);return editPrompt(chat.id,data.promptMessageId,'How should these photos appear in your review?',withBack({inline_keyboard:[[{text:'Single image',callback_data:'rv:mediamode:single'},{text:'Slideshow',callback_data:'rv:mediamode:slideshow',style:'success'}]]}));}
+      data.mediaMode='single';
+      if(draft.step==='edit_media'){await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
+      await saveDraft(userId,chat.id,'spoiler',data);
+      return editPrompt(chat.id,data.promptMessageId,'Does your review contain spoilers?',withBack(spoilerKeyboard()));
+    }
+    if(action==='mediamode'&&['single','slideshow'].includes(value)&&draft.step==='media_layout'){
+      data.mediaMode=value;await answer(query.id);
+      if(data.editingMedia){delete data.editingMedia;await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
+      await saveDraft(userId,chat.id,'spoiler',data);
+      return editPrompt(chat.id,data.promptMessageId,'Does your review contain spoilers?',withBack(spoilerKeyboard()));
     }
 
     if (action === 'spoiler' && ['spoiler', 'edit_spoiler'].includes(draft.step) && ['yes', 'no'].includes(value)) {
@@ -288,7 +299,7 @@ export default async function (query) {
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
         rating: ['edit_rating', 'Choose the corrected rating.'],
         text: ['edit_text', 'Send the corrected review text.'],
-        poster: ['edit_poster', 'Send a new poster photo or a direct HTTPS image link, or skip.'],
+        media: ['edit_media', 'Send photos or direct HTTPS image URLs one at a time. Tap Done when finished.'],
         spoiler: ['edit_spoiler', 'Choose the spoiler setting.'],
       };
       const selected = steps[value];
@@ -300,7 +311,7 @@ export default async function (query) {
       await answer(query.id);
       const keyboard = value === 'rating' ? ratingKeyboard()
         : value === 'genre' ? { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }
-        : value === 'poster' ? { inline_keyboard: [[{ text: 'Remove poster', callback_data: 'rv:poster:skip' }]] }
+        : value === 'media' ? {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}
         : value === 'spoiler' ? spoilerKeyboard()
         : value === 'season' ? { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }
         : null;
@@ -332,13 +343,13 @@ export default async function (query) {
         await api.editMessageText({
           chat_id: chat.id,
           message_id: data.promptMessageId,
-          rich_message: { blocks: [
-            { type: 'heading', size: 2, text: '✅ Review posted!' },
-            { type: 'paragraph', text: `Your review is now live in ${result.category.label}.` },
-            { type: 'paragraph', text: { type: 'url', text: 'Open your published review', url: result.link } },
-            { type: 'footer', text: `Review #${String(result.reviewNumber).padStart(3, '0')}` },
-          ] },
-          reply_markup: { inline_keyboard: [] },
+          rich_message:{blocks:[
+            {type:'heading',size:2,text:'Review published'},
+            {type:'paragraph',text:['Your review has been published in ',{type:'bold',text:result.topicName||result.category.label},'.']},
+            {type:'paragraph',text:{type:'button',button:{text:'View published review',url:result.link,style:'success'}}},
+            {type:'footer',text:`Review #${String(result.reviewNumber).padStart(3,'0')}`},
+          ]},
+          reply_markup:{inline_keyboard:[[{text:'My Reviews',callback_data:'rv:reviews:0'}]]},
         });
       } catch (error) {
         console.error('Review publishing failed', {
