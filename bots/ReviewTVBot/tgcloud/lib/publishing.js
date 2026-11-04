@@ -39,8 +39,8 @@ export async function publishReview(userId, draft) {
 
   const inserted = await db.insert(reviews).values({
     reviewNumber, authorId: userId, authorName, categoryKey: data.categoryKey,
-    title: data.title, year: data.year, season: data.season ?? null, rating: data.rating,
-    reviewText: data.reviewText, posterFileId: data.posterFileId ?? data.posterUrl ?? data.posterMedia ?? null,
+    title: data.title, year: data.year || 0, season: data.season ?? null, rating: data.rating,
+    reviewText: data.reviewText, posterFileId: data.media?.length ? JSON.stringify({version:1,media:data.media,mediaMode:data.mediaMode||'single'}) : (data.posterFileId ?? data.posterUrl ?? data.posterMedia ?? null),
     hasSpoilers: Boolean(data.hasSpoilers), status: 'publishing',
     chatId: config.chatId, topicId: mapping.topicId, createdAt: new Date(),
   }).returning().run();
@@ -63,7 +63,7 @@ export async function publishReview(userId, draft) {
     await db.update(reviews).set({
       status: 'published', messageId: sent.message_id, messageLink: link, publishedAt: new Date(),
     }).where(eq(reviews.id, reviewRecord.id)).run();
-    return { reviewNumber, link, messageId: sent.message_id, category };
+    return { reviewNumber, link, messageId: sent.message_id, category, topicName: category.label };
   } catch (error) {
     await db.update(reviews).set({ status: 'failed' }).where(eq(reviews.id, reviewRecord.id)).run();
     throw error;
