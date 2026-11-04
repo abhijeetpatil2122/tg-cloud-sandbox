@@ -90,7 +90,12 @@ export default async function (query) {
     }
     if (action === 'howto') {
       await answer(query.id);
-      await api.sendRichMessage({ chat_id: chat.id, rich_message: buildHowToRichMessage() });
+      await api.editMessageText({
+        chat_id: chat.id,
+        message_id: query.message.message_id,
+        rich_message: buildHowToRichMessage(),
+        reply_markup: { inline_keyboard: [[{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] },
+      });
       return;
     }
     if (action === 'noop') {
@@ -101,16 +106,16 @@ export default async function (query) {
     const draft = await getDraft(userId);
     if (action === 'start') {
       if (draft && draft.step !== 'complete') {
-        await answer(query.id, 'You already have a review in progress. Resume it or cancel it first.');
+        await answer(query.id, 'You already have a review in progress. Resume it with /review or cancel it first.');
         return;
       }
+      if (draft?.step === 'complete') {
+        await answer(query.id, 'You already have a completed draft. Opening its preview.');
+        return preview(chat.id, draft);
+      }
       await answer(query.id);
-      const sent = await api.sendMessage({
-        chat_id: chat.id,
-        text: 'Choose the category for your review:',
-        reply_markup: categoryKeyboard(),
-      });
-      await saveDraft(userId, chat.id, 'category', { promptMessageId: sent.message_id });
+      await saveDraft(userId, chat.id, 'category', { promptMessageId: query.message.message_id });
+      await editPrompt(chat.id, query.message.message_id, 'Choose the category for your review:', categoryKeyboard());
       return;
     }
 
