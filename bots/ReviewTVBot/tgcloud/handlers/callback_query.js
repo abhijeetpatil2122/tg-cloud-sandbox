@@ -360,7 +360,7 @@ export default async function (query) {
     }
 
     if (action === 'publish' && draft?.step === 'publishing') {
-      await answer(query.id, 'Your review is still being processed. If it remains stuck, send /review again in about two minutes to recover the saved draft.');
+      await answer(query.id, 'Your review is currently being published. Please wait a moment. If it gets stuck, send /cancel to cancel this draft, then use /review to start again.');
       return;
     }
 
