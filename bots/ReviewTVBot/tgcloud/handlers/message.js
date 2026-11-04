@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { reviews } from '../schema.js';
-import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
+import { getDraft, saveDraft, deleteDraft, appendDraftMedia } from '../lib/sessions.js';
 import { categories, isAdmin } from '../lib/config.js';
 import {
   buildHelpRichMessage, buildHowToRichMessage, buildReviewRichMessage,
@@ -208,14 +208,19 @@ async function handleDraftInput(message, draft) {
       ? [{type:'photo',media:message.photo[message.photo.length-1].file_id}]
       : null;
     const links=text.split(',').map(link=>link.trim()).filter(Boolean);
-    const validLinks=links.length>0&&links.every(link=>/^https:\/\/[^\\s,]+$/i.test(link));
+    const validLinks=links.length>0&&links.every(link=>/^https:\/\/[^\s,]+$/i.test(link));
     const items=photo||(validLinks?links.map(link=>({type:'photo',media:link})):null);
-    if(!items)return editPrompt(chatId,data.promptMessageId,'Send a Telegram photo, or paste direct HTTPS image links separated by commas. Each link must be a public direct image URL. Tap Done when finished.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
-    data.media=Array.isArray(data.media)?data.media:[];
-    if(data.media.length+items.length>10)return editPrompt(chatId,data.promptMessageId,'You can add up to 10 images in total. Your existing images are unchanged; send fewer links or tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
-    data.media.push(...items);data.mediaMode='slideshow';
-    await deleteUserMessage(message);await saveDraft(userId,chatId,draft.step,data);
-    return editPrompt(chatId,data.promptMessageId,`Added ${items.length} image${items.length===1?'':'s'} (${data.media.length}/10). Send more photos or comma-separated links, or tap Done.`,withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+    if(!items)return editPrompt(chatId,data.promptMessageId,'Send Telegram photos (albums are supported), or paste direct HTTPS image links separated by commas. You can add up to 10 images, then tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+    const appended=await appendDraftMedia(userId,chatId,items);
+    if(!appended){
+      const latest=await getDraft(userId);
+      const count=Array.isArray(latest?.data?.media)?latest.data.media.length:0;
+      return editPrompt(chatId,data.promptMessageId,count>=10?'You can add up to 10 images. Tap Done to continue.':'This review is no longer accepting images. Send /review to resume.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
+    }
+    // Telegram delivers each album photo as a separate update. Append atomically
+    // and leave the prompt untouched so concurrent album updates cannot overwrite
+    // one another or race multiple edits of the same prompt message.
+    return;
   }
   if(draft.step==='poster'||draft.step==='edit_poster'){
     if(Array.isArray(message.photo)&&message.photo.length)data.media=[{type:'photo',media:message.photo[message.photo.length-1].file_id}];else if(/^https:\/\/\S+$/i.test(text))data.media=[{type:'photo',media:text}];else if(text.toLowerCase()==='/skip')data.media=[];else return editPrompt(chatId,data.promptMessageId,'Send a photo or direct HTTPS image URL, or skip.',withBack());
@@ -272,6 +277,7 @@ async function showAdmin(chatId, userId, command) {
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/disconnect'},' — Disable the connected review forum']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/resetdb'},' — Temporarily clear test reviews, drafts, and numbering (confirmation required)']}]},
       ]},
       {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
     ]},{inline_keyboard:[[
@@ -354,6 +360,10 @@ export default async function (message) {
       if (command === '/settings') {
         if (message.chat.type !== 'private' || !isAdmin(userId)) return;
         return showAdmin(message.chat.id,userId,command);
+      }
+      if (command === '/resetdb') {
+        if (message.chat.type !== 'private' || !isAdmin(userId)) return;
+        return api.sendMessage({chat_id:message.chat.id,text:'⚠️ Reset ReviewTVBot test data? This permanently deletes all saved reviews, active drafts, and review-number counters. Forum connection and category-topic settings will be preserved. Existing Telegram posts in the forum will NOT be deleted.',reply_markup:{inline_keyboard:[[{text:'Yes, clear test data',callback_data:'rv:resetdb:confirm',style:'danger'},{text:'Cancel',callback_data:'rv:resetdb:cancel'}]]}});
       }
       if (command === '/connect') {
         if (!isAdmin(userId)) return;
