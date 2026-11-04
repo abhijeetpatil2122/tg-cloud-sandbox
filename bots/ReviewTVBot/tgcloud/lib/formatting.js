@@ -9,15 +9,14 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   const blocks = [
     heading(data.categoryKey === 'tv_shows' ? 'SERIES REVIEW' : 'MOVIE REVIEW', 2),
   ];
-  const posterMedia = data.posterMedia || data.posterFileId || data.posterUrl;
-  if (posterMedia) {
-    blocks.push({
-      type: 'photo',
-      photo: { type: 'photo', media: posterMedia, ...(data.hasSpoilers ? { has_spoiler: true } : {}) },
-    });
-  }
+  const legacyMedia=data.posterMedia||data.posterFileId||data.posterUrl;
+  const media=Array.isArray(data.media)?data.media:(legacyMedia?[{type:'photo',media:legacyMedia}]:[]);
+  const selectedMedia=data.mediaMode==='single'?media.slice(0,1):media;
+  const photoBlock=item=>({type:'photo',photo:{type:'photo',media:item.media,...(data.hasSpoilers?{has_spoiler:true}:{})}});
+  if(selectedMedia.length===1)blocks.push(photoBlock(selectedMedia[0]));
+  else if(selectedMedia.length>1)blocks.push({type:'slideshow',blocks:selectedMedia.map(photoBlock)});
   blocks.push(
-    heading(`${plain(data.title)} (${plain(data.year)})`, 1),
+    heading(`${plain(data.title)}${data.year ? ` (${plain(data.year)})` : ''}`, 1),
     ...(data.genre ? [paragraph(plain(data.genre))] : []),
     ...(data.categoryKey === 'tv_shows' && data.season ? [paragraph(`Season ${plain(data.season)}`)] : []),
     paragraph([
@@ -53,7 +52,7 @@ export function buildReviewKeyboard(data, mode = 'preview') {
     [{ text: data.hasSpoilers ? 'SPOILER REVIEW' : `★ ${data.rating}/10`, callback_data: 'rv:noop', style: data.hasSpoilers ? 'danger' : 'success', disabled: true }],
     [
       { text: category?.label ?? 'Review', callback_data: 'rv:noop', style: 'primary', disabled: true },
-      { text: String(data.year), callback_data: 'rv:noop', style: 'primary', disabled: true },
+      ...(data.year ? [{text:String(data.year),callback_data:'rv:noop',style:'primary',disabled:true}] : []),
       ...(data.season ? [{ text: `Season ${data.season}`, callback_data: 'rv:noop', style: 'primary', disabled: true }] : []),
     ],
   ] };
@@ -62,7 +61,7 @@ export function buildReviewKeyboard(data, mode = 'preview') {
 export function buildEditKeyboard() {
   const fields = [
     ['title', 'Title'], ['year', 'Year'], ['genre', 'Genre'], ['season', 'Season'],
-    ['rating', 'Rating'], ['text', 'Review text'], ['poster', 'Poster'], ['spoiler', 'Spoilers'],
+    ['rating', 'Rating'], ['text', 'Review text'], ['media', 'Photos'], ['spoiler', 'Spoilers'],
   ];
   return { inline_keyboard: [
     ...fields.map(([key, label]) => [{ text: label, callback_data: `rv:edit:${key}` }]),
@@ -98,6 +97,8 @@ export function buildHowToRichMessage() {
     categoryKey: 'tv_shows',
     title: 'Game of Thrones',
     year: 2011,
+    media:[{type:'photo',media:'https://image.zaw-myo.workers.dev/image/47bc8568-311f-4e70-aef5-d01cd80eac92'},{type:'photo',media:'https://image.zaw-myo.workers.dev/image/531b99d8-c963-4886-b578-546b82a88337'}],
+    mediaMode:'slideshow',
     genre: 'Fantasy, Drama',
     season: 8,
     rating: 9,
@@ -110,9 +111,9 @@ export function buildHowToRichMessage() {
     paragraph('Posting is simple. Start a review and follow the prompts — your draft is saved as you go, and nothing is published until you confirm it.'),
     { type: 'list', items: [
       { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose the review category.')] },
-      { value: 2, type: '1', blocks: [paragraph('Enter the title and release year. Add a genre if you want; series reviews can also include a season number.')] },
+      { value: 2, type: '1', blocks: [paragraph('Enter the title and release year, or skip the year if unsure. Add a genre if you want; series reviews can also include a season number.')] },
       { value: 3, type: '1', blocks: [paragraph('Choose a rating from 1–10, then write your review in your own words.')] },
-      { value: 4, type: '1', blocks: [paragraph('Add a poster or skip it, choose the spoiler setting, check your preview, and tap Publish review.')] },
+      { value: 4, type: '1', blocks: [paragraph('Add one or more photos (or skip), choose single-image or slideshow display when adding multiple photos, set spoilers, review the preview, and publish.')] },
     ] },
     { type: 'details', summary: 'See an example of a published series review', blocks: sample.blocks },
   ] };
@@ -125,7 +126,7 @@ export function buildMyReviewsRichMessage(items, page, pageCount, total) {
     blocks: [{
       type: 'paragraph',
       text: [
-        { type: 'bold', text: `${plain(item.title)} (${plain(item.year)})` },
+        { type: 'bold', text: `${plain(item.title)}${item.year ? ` (${plain(item.year)})` : ''}` },
         ' ',
         ...(item.messageLink
           ? [{ type: 'button', button: { text: `★ ${plain(item.rating)}/10`, url: item.messageLink, style: 'success' } }]
