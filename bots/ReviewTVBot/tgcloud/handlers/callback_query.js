@@ -125,9 +125,12 @@ export default async function (query) {
       const published=rows.filter(row=>row.status==='published').sort((a,b)=>b.id-a.id);
       const size=10,count=Math.ceil(published.length/size),safe=Math.min(page,Math.max(0,count-1));
       if(!count){await answer(query.id,'No published reviews found.');return;}
-      const items=published.slice(safe*size,(safe+1)*size),blocks=[{type:'heading',size:2,text:'YOUR REVIEWS'}];
-      for(const item of items) blocks.push({type:'paragraph',text:[{type:'bold',text:`${item.title} (${item.year})`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]});
-      blocks.push({type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`});
+      const items=published.slice(safe*size,(safe+1)*size);
+      const blocks=[
+        {type:'heading',size:2,text:'YOUR REVIEWS'},
+        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title} (${item.year})`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
+        {type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`},
+      ];
       const nav=[];if(safe>0)nav.push({text:'‹ Previous',callback_data:`rv:reviews:${safe-1}`});if(safe+1<count)nav.push({text:'Next ›',callback_data:`rv:reviews:${safe+1}`});
       await answer(query.id);
       return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:nav.length?[nav]:[] }});
