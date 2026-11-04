@@ -359,7 +359,12 @@ export default async function (query) {
       return editPrompt(chat.id, data.promptMessageId, 'Your review draft has been cancelled.');
     }
 
-    if (action === 'publish' && draft.step === 'complete') {
+    if (action === 'publish' && draft?.step === 'publishing') {
+      await answer(query.id, 'Your review is still being processed. If it remains stuck, send /review again in about two minutes to recover the saved draft.');
+      return;
+    }
+
+    if (action === 'publish' && draft?.step === 'complete') {
       const claim = await db.update(reviewDrafts).set({ step: 'publishing', updatedAt: new Date() })
         .where(and(eq(reviewDrafts.userId, userId), eq(reviewDrafts.step, 'complete'))).run();
       if (!claim.rowsAffected) {
