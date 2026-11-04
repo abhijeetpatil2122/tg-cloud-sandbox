@@ -1,8 +1,8 @@
 import { api, db } from 'sdk';
 import { and, eq } from 'sdk/db';
-import { reviewDrafts } from '../schema.js';
+import { reviewDrafts, reviews, communityConfig, categoryTopics } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
-import { categories, getCategory } from '../lib/config.js';
+import { categories, getCategory, isAdmin } from '../lib/config.js';
 import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 
@@ -87,6 +87,46 @@ export default async function (query) {
     if (prefix !== 'rv') {
       await answer(query.id, 'This button is not recognized.');
       return;
+    }
+
+    if (action === 'admin') {
+      if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
+      await answer(query.id);
+      if (value === 'home') return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[
+        {type:'heading',size:1,text:'ReviewTVBot Admin'},
+        {type:'paragraph',text:'Private administration and publishing controls.'},
+        {type:'list',items:[
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'Statistics'},' — Review totals and category breakdown']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'Settings'},' — Forum connection and topic mappings']}]},
+        ]},
+        {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
+      ]},reply_markup:{inline_keyboard:[[{text:'Statistics',callback_data:'rv:admin:stats'},{text:'Settings',callback_data:'rv:admin:settings'}]]}});
+      if (value === 'stats') {
+        const all=await db.select().from(reviews).all(); const published=all.filter(row=>row.status==='published');
+        const cells=[[{text:'Category',is_header:true},{text:'Published',is_header:true}],...categories.map(c=>[{text:c.label},{text:String(published.filter(r=>r.categoryKey===c.key).length)}]),[{text:'Total published'},{text:String(published.length)}],[{text:'Draft / failed'},{text:String(all.length-published.length)}]];
+        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[{type:'heading',size:1,text:'Review statistics'},{type:'table',cells,is_bordered:true,is_striped:true,is_compact:true},{type:'footer',text:'Counts are based on saved review records.'}]},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}});
+      }
+      if (value === 'settings') {
+        const config=await db.select().from(communityConfig).get(); const mappings=await db.select().from(categoryTopics).all();
+        const blocks=[{type:'heading',size:1,text:'Forum settings'}];
+        if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
+        else blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum'},' ',config.chatTitle]},{type:'paragraph',text:[{type:'bold',text:'Chat ID'},' ',String(config.chatId)]},{type:'paragraph',text:[{type:'bold',text:'Status'},' ',config.enabled?'Connected':'Disconnected']},{type:'divider'},{type:'heading',size:3,text:'Category topics'},{type:'list',items:categories.map(category=>{const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};})},{type:'paragraph',text:'Topic commands: /connect, /settopic category_key, /disconnect.'});
+        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}});
+      }
+    }
+    if (action === 'reviews') {
+      const page=Number(value);
+      if(!Number.isInteger(page)||page<0){await answer(query.id,'Invalid page.');return;}
+      const rows=await db.select().from(reviews).where(eq(reviews.authorId,userId)).all();
+      const published=rows.filter(row=>row.status==='published').sort((a,b)=>b.id-a.id);
+      const size=10,count=Math.ceil(published.length/size),safe=Math.min(page,Math.max(0,count-1));
+      if(!count){await answer(query.id,'No published reviews found.');return;}
+      const items=published.slice(safe*size,(safe+1)*size),blocks=[{type:'heading',size:2,text:'YOUR REVIEWS'}];
+      for(const item of items) blocks.push({type:'paragraph',text:[{type:'bold',text:`${item.title} (${item.year})`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]});
+      blocks.push({type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`});
+      const nav=[];if(safe>0)nav.push({text:'‹ Previous',callback_data:`rv:reviews:${safe-1}`});if(safe+1<count)nav.push({text:'Next ›',callback_data:`rv:reviews:${safe+1}`});
+      await answer(query.id);
+      return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:nav.length?[nav]:[] }});
     }
     if (action === 'howto') {
       await answer(query.id);
