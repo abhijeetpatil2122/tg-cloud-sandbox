@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { eq, sql } from 'sdk/db';
 import { categoryTopics, communityConfig, reviews, topicCounters } from '../schema.js';
 import { getCategory } from './config.js';
-import { buildReviewRichMessage, buildReviewKeyboard } from './formatting.js';
+import { buildReviewRichMessage } from './formatting.js';
 
 const CONFIG_ID = 1;
 
@@ -51,7 +51,6 @@ export async function publishReview(userId, draft) {
       chat_id: config.chatId,
       message_thread_id: mapping.topicId,
       rich_message: buildReviewRichMessage({ ...data, authorName }, reviewNumber, false),
-      reply_markup: buildReviewKeyboard(data, 'published'),
     });
     let username = null;
     try {
