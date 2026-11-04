@@ -122,20 +122,23 @@ export function buildHowToRichMessage() {
 }
 
 export function buildMyReviewsRichMessage(items, page, pageCount, total) {
-  const blocks = [heading('YOUR REVIEWS', 2)];
-  for (const item of items) {
-    blocks.push({
-      type: 'list',
-      items: [{ value: page * 10 + items.indexOf(item) + 1, type: '1', blocks: [{
+  const listItems = items.map((item, index) => ({
+    value: page * 10 + index + 1,
+    type: '1',
+    blocks: [{
       type: 'paragraph',
       text: [
         { type: 'bold', text: `${plain(item.title)} (${plain(item.year)})` },
         ' ',
-        ...(item.messageLink ? [{ type: 'button', button: { text: `★ ${plain(item.rating)}/10`, url: item.messageLink, style: 'success' } }] : [{ type: 'bold', text: `★ ${plain(item.rating)}/10` }]),
+        ...(item.messageLink
+          ? [{ type: 'button', button: { text: `★ ${plain(item.rating)}/10`, url: item.messageLink, style: 'success' } }]
+          : [{ type: 'bold', text: `★ ${plain(item.rating)}/10` }]),
       ],
-    }] }],
-    });
-  }
-  blocks.push(footer(`Showing ${page * 10 + 1}–${page * 10 + items.length} of ${total} published reviews • Page ${page + 1}/${pageCount}`));
-  return { blocks };
+    }],
+  }));
+  return { blocks: [
+    heading('YOUR REVIEWS', 2),
+    { type: 'list', items: listItems },
+    footer(`Showing ${page * 10 + 1}–${page * 10 + items.length} of ${total} published reviews • Page ${page + 1}/${pageCount}`),
+  ] };
 }
