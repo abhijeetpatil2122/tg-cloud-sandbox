@@ -63,7 +63,7 @@ export async function publishReview(userId, draft) {
     await db.update(reviews).set({
       status: 'published', messageId: sent.message_id, messageLink: link, publishedAt: new Date(),
     }).where(eq(reviews.id, reviewRecord.id)).run();
-    return { reviewNumber, link, messageId: sent.message_id, category, topicName: config.chatTitle || category.label };
+    return { reviewNumber, link, messageId: sent.message_id, category, topicName: category.label };
   } catch (error) {
     await db.update(reviews).set({ status: 'failed' }).where(eq(reviews.id, reviewRecord.id)).run();
     throw error;
