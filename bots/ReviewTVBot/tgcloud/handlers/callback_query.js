@@ -207,7 +207,6 @@ export default async function (query) {
           : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         review_text: ['rating', 'Choose your rating from 1 to 10.', ratingKeyboard()],
         media: ['review_text', 'Write your review in 20–3000 characters.', null],
-        media_layout: ['media', 'Choose how to display your photos.', {inline_keyboard:[[{text:'Single image',callback_data:'rv:mediamode:single'},{text:'Slideshow',callback_data:'rv:mediamode:slideshow',style:'success'}]]}],
         spoiler: ['media', 'Send photos or direct HTTPS image URLs, or tap Skip photos.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
       if (!previous) return preview(chat.id, { ...draft, step: 'complete' });
@@ -267,16 +266,10 @@ export default async function (query) {
       if(value==='skip')data.media=[];
       data.media=Array.isArray(data.media)?data.media:[];
       await answer(query.id);
-      if(data.media.length>1){if(draft.step==='edit_media')data.editingMedia=true;await saveDraft(userId,chat.id,'media_layout',data);return editPrompt(chat.id,data.promptMessageId,'How should these photos appear in your review?',withBack({inline_keyboard:[[{text:'Single image',callback_data:'rv:mediamode:single'},{text:'Slideshow',callback_data:'rv:mediamode:slideshow',style:'success'}]]}));}
-      data.mediaMode='single';
-      if(draft.step==='edit_media'){await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
+      data.mediaMode='slideshow';
+      if(draft.step==='edit_media'){await saveDraft(userId,chat.id,'complete',data);await answer(query.id);return preview(chat.id,await getDraft(userId));}
       await saveDraft(userId,chat.id,'spoiler',data);
-      return editPrompt(chat.id,data.promptMessageId,'Does your review contain spoilers?',withBack(spoilerKeyboard()));
-    }
-    if(action==='mediamode'&&['single','slideshow'].includes(value)&&draft.step==='media_layout'){
-      data.mediaMode=value;await answer(query.id);
-      if(data.editingMedia){delete data.editingMedia;await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
-      await saveDraft(userId,chat.id,'spoiler',data);
+      await answer(query.id);
       return editPrompt(chat.id,data.promptMessageId,'Does your review contain spoilers?',withBack(spoilerKeyboard()));
     }
 
@@ -300,7 +293,7 @@ export default async function (query) {
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
         rating: ['edit_rating', 'Choose the corrected rating.'],
         text: ['edit_text', 'Send the corrected review text.'],
-        media: ['edit_media', 'Send photos or direct HTTPS image URLs one at a time. Tap Done when finished.'],
+        media: ['edit_media', 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.'],
         spoiler: ['edit_spoiler', 'Choose the spoiler setting.'],
       };
       const selected = steps[value];
@@ -308,8 +301,7 @@ export default async function (query) {
         await answer(query.id, 'Unknown field.');
         return;
       }
-      if (value === 'media') { data.media = []; data.mediaMode = 'single'; }
-      if (value === 'media') { data.media = []; data.mediaMode = 'single'; }
+      if (value === 'media') { data.media = []; data.mediaMode = 'slideshow'; }
       await saveDraft(userId, chat.id, selected[0], data);
       await answer(query.id);
       const keyboard = value === 'rating' ? ratingKeyboard()

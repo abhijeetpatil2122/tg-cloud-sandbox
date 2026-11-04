@@ -7,7 +7,7 @@ const footer = (text) => ({ type: 'footer', text: plain(text) });
 
 export function buildReviewRichMessage(data, reviewNumber = null, preview = false) {
   const blocks = [
-    heading(data.categoryKey === 'tv_shows' ? 'SERIES REVIEW' : 'MOVIE REVIEW', 2),
+    heading(data.categoryKey === 'anime' ? 'ANIME REVIEW' : data.categoryKey === 'tv_shows' ? 'TV SHOW REVIEW' : 'MOVIE REVIEW', 2),
   ];
   const legacyMedia=data.posterMedia||data.posterFileId||data.posterUrl;
   const media=Array.isArray(data.media)?data.media:(legacyMedia?[{type:'photo',media:legacyMedia}]:[]);
@@ -113,7 +113,7 @@ export function buildHowToRichMessage() {
       { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose the review category.')] },
       { value: 2, type: '1', blocks: [paragraph('Enter the title and release year, or skip the year if unsure. Add a genre if you want; series reviews can also include a season number.')] },
       { value: 3, type: '1', blocks: [paragraph('Choose a rating from 1–10, then write your review in your own words.')] },
-      { value: 4, type: '1', blocks: [paragraph('Add one or more photos (or skip), choose single-image or slideshow display when adding multiple photos, set spoilers, review the preview, and publish.')] },
+      { value: 4, type: '1', blocks: [paragraph('Add one or more photos, or paste multiple direct HTTPS image links separated by commas (or skip), set spoilers, review the preview, and publish.')] },
     ] },
     { type: 'details', summary: 'See an example of a published series review', blocks: sample.blocks },
   ] };
