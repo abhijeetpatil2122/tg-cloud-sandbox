@@ -124,6 +124,7 @@ async function startReview(message) {
       rating: 'Choose your rating from 1 to 10.',
       review_text: 'Write your review in 20–3000 characters.',
       media: 'Send photos or direct HTTPS image URLs one at a time. Tap Done when finished, or Skip photos.',
+      media_layout: 'Choose how to display your photos.',
       spoiler: 'Does your review contain spoilers?',
     };
     const keyboards = {
@@ -133,6 +134,7 @@ async function startReview(message) {
       rating: { inline_keyboard: [[1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})) , [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`}))] },
       year: { inline_keyboard: [[{text:'Skip year',callback_data:'rv:year:skip'}]] },
       media: { inline_keyboard: [[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]] },
+      media_layout: {inline_keyboard:[[{text:'Single image',callback_data:'rv:mediamode:single'},{text:'Slideshow',callback_data:'rv:mediamode:slideshow',style:'success'}]]},
       spoiler: { inline_keyboard: [[{text:'Contains spoilers',callback_data:'rv:spoiler:yes',style:'danger'},{text:'No spoilers',callback_data:'rv:spoiler:no',style:'success'}]] },
     };
     await editPrompt(message.chat.id, existing.data.promptMessageId, prompts[existing.step] || 'Continue your review.', withBack(keyboards[existing.step]));
