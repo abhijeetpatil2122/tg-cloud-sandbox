@@ -96,8 +96,12 @@ export default async function (query) {
         {type:'heading',size:1,text:'ReviewTVBot Admin'},
         {type:'paragraph',text:'Private administration and publishing controls.'},
         {type:'list',items:[
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'Statistics'},' — Review totals and category breakdown']}]},
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'Settings'},' — Forum connection and topic mappings']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/admin'},' — Open this administration panel']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/stats'},' — View review totals and category statistics']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settings'},' — View forum connection and topic mappings']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/disconnect'},' — Disable the connected review forum']}]},
         ]},
         {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
       ]},reply_markup:{inline_keyboard:[[{text:'Statistics',callback_data:'rv:admin:stats'},{text:'Settings',callback_data:'rv:admin:settings'}]]}});
@@ -110,7 +114,7 @@ export default async function (query) {
         const config=await db.select().from(communityConfig).get(); const mappings=await db.select().from(categoryTopics).all();
         const blocks=[{type:'heading',size:1,text:'Forum settings'}];
         if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
-        else blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum'},' ',config.chatTitle]},{type:'paragraph',text:[{type:'bold',text:'Chat ID'},' ',String(config.chatId)]},{type:'paragraph',text:[{type:'bold',text:'Status'},' ',config.enabled?'Connected':'Disconnected']},{type:'divider'},{type:'heading',size:3,text:'Category topics'},{type:'list',items:categories.map(category=>{const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};})},{type:'paragraph',text:'Topic commands: /connect, /settopic category_key, /disconnect.'});
+        else blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},{type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'monospace',text:String(config.chatId)}]},{type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},{type:'divider'},{type:'heading',size:3,text:'Category topics'},{type:'list',items:categories.map(category=>{const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};})});
         return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}});
       }
     }
@@ -121,9 +125,12 @@ export default async function (query) {
       const published=rows.filter(row=>row.status==='published').sort((a,b)=>b.id-a.id);
       const size=10,count=Math.ceil(published.length/size),safe=Math.min(page,Math.max(0,count-1));
       if(!count){await answer(query.id,'No published reviews found.');return;}
-      const items=published.slice(safe*size,(safe+1)*size),blocks=[{type:'heading',size:2,text:'YOUR REVIEWS'}];
-      for(const item of items) blocks.push({type:'paragraph',text:[{type:'bold',text:`${item.title} (${item.year})`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]});
-      blocks.push({type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`});
+      const items=published.slice(safe*size,(safe+1)*size);
+      const blocks=[
+        {type:'heading',size:2,text:'YOUR REVIEWS'},
+        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title} (${item.year})`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
+        {type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`},
+      ];
       const nav=[];if(safe>0)nav.push({text:'‹ Previous',callback_data:`rv:reviews:${safe-1}`});if(safe+1<count)nav.push({text:'Next ›',callback_data:`rv:reviews:${safe+1}`});
       await answer(query.id);
       return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:nav.length?[nav]:[] }});

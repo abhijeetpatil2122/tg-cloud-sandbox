@@ -260,8 +260,12 @@ async function showAdmin(chatId, userId, command) {
       {type:'heading',size:1,text:'ReviewTVBot Admin'},
       {type:'paragraph',text:'Private administration and publishing controls.'},
       {type:'list',items:[
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'Statistics'},' — Review totals and category breakdown']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'Settings'},' — Forum connection and topic mappings']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/admin'},' — Open this administration panel']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/stats'},' — View review totals and category statistics']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settings'},' — View forum connection and topic mappings']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/disconnect'},' — Disable the connected review forum']}]},
       ]},
       {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
     ]},{inline_keyboard:[[
@@ -297,16 +301,16 @@ async function showAdminSettings(chatId, messageId = null) {
   const blocks=[{type:'heading',size:1,text:'Forum settings'}];
   if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
   else {
-    blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum'},' ',config.chatTitle]},
-      {type:'paragraph',text:[{type:'bold',text:'Chat ID'},' ',String(config.chatId)]},
-      {type:'paragraph',text:[{type:'bold',text:'Status'},' ',config.enabled?'Connected':'Disconnected']},
+    blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},
+      {type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'monospace',text:String(config.chatId)}]},
+      {type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},
       {type:'divider'},
       {type:'heading',size:3,text:'Category topics'},
       {type:'list',items:categories.map(category=>{
         const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);
         return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};
       })},
-      {type:'paragraph',text:'To connect or manage topics, use /connect, /settopic category_key, or /disconnect in the appropriate forum context.'});
+      );
   }
   const params={chat_id:chatId,rich_message:{blocks},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}};
   if(messageId){params.message_id=messageId;return api.editMessageText(params);}
