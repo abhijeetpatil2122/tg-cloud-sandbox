@@ -2,12 +2,13 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { reviews } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
-import { categories, publicCommands, adminCommands, isAdmin } from '../lib/config.js';
+import { categories, isAdmin } from '../lib/config.js';
 import {
   buildHelpRichMessage, buildHowToRichMessage, buildReviewRichMessage,
-  buildReviewKeyboard, buildEditKeyboard,
+  buildReviewKeyboard, buildEditKeyboard, buildMyReviewsRichMessage,
 } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
+import { communityConfig, categoryTopics } from '../schema.js';
 import {
   connectForum, setCategoryTopic, showSettings, disconnectForum,
 } from '../lib/forum.js';
@@ -15,13 +16,6 @@ import {
 function parseCommand(text) {
   const [rawCommand, ...args] = text.trim().split(/\s+/);
   return { command: rawCommand.split('@', 1)[0].toLowerCase(), args };
-}
-
-async function setCommandMenus() {
-  await api.setMyCommands({ commands: publicCommands, scope: { type: 'default' } });
-  for (const userId of [8469987057, 1314643983]) {
-    await api.setMyCommands({ commands: adminCommands, scope: { type: 'chat', chat_id: userId } });
-  }
 }
 
 async function editPrompt(chatId, messageId, text, replyMarkup) {
@@ -71,8 +65,7 @@ async function showHowTo(chatId) {
 }
 
 async function showHelp(chatId, userId) {
-  const rich = buildHelpRichMessage();
-  if (isAdmin(userId)) rich.blocks.splice(rich.blocks.length - 1, 0, {type:'divider'}, {type:'heading',size:3,text:'Private admin commands'}, {type:'list',items:[{blocks:[{type:'paragraph',text:'/admin — Open the admin panel'}]},{blocks:[{type:'paragraph',text:'/stats — View review statistics'}]},{blocks:[{type:'paragraph',text:'/settings — View forum configuration'}]},{blocks:[{type:'paragraph',text:'/connect, /settopic, /disconnect — Manage the forum'}]}]});
+  const rich = buildHelpRichMessage(isAdmin(userId));
   await sendRich(chatId, rich, {
     inline_keyboard: [[{ text: 'How to use', callback_data: 'rv:howto' }]],
   });
@@ -243,17 +236,21 @@ async function saveAndPreview(userId, chatId, data) {
   return showPreview(chatId, draft);
 }
 
-async function listMyReviews(chatId, userId) {
+async function listMyReviews(chatId, userId, page = 0, messageId = null) {
   const rows = await db.select().from(reviews).where(eq(reviews.authorId, userId)).all();
-  const published = rows.filter((row) => row.status === 'published').sort((a,b) => b.id-a.id).slice(0,10);
+  const published = rows.filter(row => row.status === 'published').sort((a,b) => b.id-a.id);
   if (!published.length) return api.sendMessage({ chat_id: chatId, text: 'You have not published a review yet. Send /review when you are ready.' });
-  const blocks = [{type:'heading',size:2,text:'YOUR REVIEWS'}];
-  for (const item of published) {
-    blocks.push({type:'paragraph',text:[{type:'bold',text:`${item.title} (${item.year})`}, ` — ${item.rating}/10`]});
-    if (item.messageLink) blocks.push({type:'paragraph',text:{type:'url',text:'Open published review',url:item.messageLink}});
-  }
-  blocks.push({type:'footer',text:'Showing your 10 most recent published reviews.'});
-  return api.sendRichMessage({chat_id:chatId,rich_message:{blocks}});
+  const pageSize = 10;
+  const pageCount = Math.ceil(published.length / pageSize);
+  const safePage = Math.max(0, Math.min(Number(page) || 0, pageCount - 1));
+  const items = published.slice(safePage * pageSize, (safePage + 1) * pageSize);
+  const params = { chat_id: chatId, rich_message: buildMyReviewsRichMessage(items, safePage, pageCount, published.length) };
+  const buttons = [];
+  if (safePage > 0) buttons.push({ text: '‹ Previous', callback_data: `rv:reviews:${safePage - 1}` });
+  if (safePage + 1 < pageCount) buttons.push({ text: 'Next ›', callback_data: `rv:reviews:${safePage + 1}` });
+  params.reply_markup = { inline_keyboard: buttons.length ? [buttons] : [] };
+  if (messageId) { params.message_id = messageId; return api.editMessageText(params); }
+  return api.sendRichMessage(params);
 }
 
 async function showAdmin(chatId, userId, command) {
@@ -261,29 +258,60 @@ async function showAdmin(chatId, userId, command) {
   if (command === '/admin') {
     return sendRich(chatId,{blocks:[
       {type:'heading',size:1,text:'ReviewTVBot Admin'},
-      {type:'paragraph',text:'Private maintenance and review statistics.'},
+      {type:'paragraph',text:'Private administration and publishing controls.'},
       {type:'list',items:[
-        {blocks:[{type:'paragraph',text:'/stats — review totals and category counts'}]},
-        {blocks:[{type:'paragraph',text:'/settings — forum and topic status'}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'Statistics'},' — Review totals and category breakdown']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'Settings'},' — Forum connection and topic mappings']}]},
       ]},
-      {type:'footer',text:'This panel is private to authorized administrators.'},
-    ]});
+      {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
+    ]},{inline_keyboard:[[
+      {text:'Statistics',callback_data:'rv:admin:stats'},
+      {text:'Settings',callback_data:'rv:admin:settings'},
+    ]]});
   }
-  if (command === '/stats') {
-    const all = await db.select().from(reviews).all();
-    const published = all.filter(row=>row.status==='published');
-    const lines = categories.map(c=>`${c.label}: ${published.filter(r=>r.categoryKey===c.key).length}`);
-    return sendRich(chatId,{blocks:[
-      {type:'heading',size:1,text:'Review statistics'},
-      {type:'paragraph',text:`Total published: ${published.length}\nDraft/failed records: ${all.length-published.length}`},
-      {type:'divider'},
-      ...lines.map(line=>({type:'paragraph',text:line})),
-      {type:'footer',text:'Counts are based on saved review records.'},
-    ]});
-  }
-  if (command === '/settings') return showSettings({chat:{id:chatId},from:{id:userId}});
+  if (command === '/stats') return showAdminStats(chatId);
+  if (command === '/settings') return showAdminSettings(chatId);
 }
 
+async function showAdminStats(chatId, messageId = null) {
+  const all = await db.select().from(reviews).all();
+  const published = all.filter(row=>row.status==='published');
+  const cells = [
+    [{text:'Category',is_header:true},{text:'Published',is_header:true}],
+    ...categories.map(c=>[{text:c.label},{text:String(published.filter(r=>r.categoryKey===c.key).length)}]),
+    [{text:'Total published'},{text:String(published.length)}],
+    [{text:'Draft / failed'},{text:String(all.length-published.length)}],
+  ];
+  const params={chat_id:chatId,rich_message:{blocks:[
+    {type:'heading',size:1,text:'Review statistics'},
+    {type:'table',cells,is_bordered:true,is_striped:true,is_compact:true},
+    {type:'footer',text:'Counts are based on saved review records.'},
+  ]},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}};
+  if(messageId){params.message_id=messageId;return api.editMessageText(params);}
+  return sendRich(chatId,params.rich_message,params.reply_markup);
+}
+
+async function showAdminSettings(chatId, messageId = null) {
+  const config=await db.select().from(communityConfig).get();
+  const mappings=await db.select().from(categoryTopics).all();
+  const blocks=[{type:'heading',size:1,text:'Forum settings'}];
+  if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
+  else {
+    blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum'},' ',config.chatTitle]},
+      {type:'paragraph',text:[{type:'bold',text:'Chat ID'},' ',String(config.chatId)]},
+      {type:'paragraph',text:[{type:'bold',text:'Status'},' ',config.enabled?'Connected':'Disconnected']},
+      {type:'divider'},
+      {type:'heading',size:3,text:'Category topics'},
+      {type:'list',items:categories.map(category=>{
+        const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);
+        return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};
+      })},
+      {type:'paragraph',text:'To connect or manage topics, use /connect, /settopic category_key, or /disconnect in the appropriate forum context.'});
+  }
+  const params={chat_id:chatId,rich_message:{blocks},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}};
+  if(messageId){params.message_id=messageId;return api.editMessageText(params);}
+  return sendRich(chatId,params.rich_message,params.reply_markup);
+}
 export default async function (message) {
   if (!message?.chat?.id) return;
   const text = typeof message.text === 'string' ? message.text : '';
@@ -292,7 +320,6 @@ export default async function (message) {
       const { command, args } = parseCommand(text);
       const userId = message.from?.id;
       if (command === '/start') {
-        await setCommandMenus();
         await showWelcome(message);
         return;
       }
@@ -308,7 +335,7 @@ export default async function (message) {
       }
       if (command === '/myreviews') {
         if (message.chat.type !== 'private' || !userId) return;
-        return listMyReviews(message.chat.id,userId);
+        return listMyReviews(message.chat.id,userId,0);
       }
       if (['/admin','/stats'].includes(command)) {
         if (message.chat.type !== 'private' || !isAdmin(userId)) return;
