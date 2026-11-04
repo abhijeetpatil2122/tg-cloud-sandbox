@@ -309,6 +309,7 @@ export default async function (query) {
         return;
       }
       if (value === 'media') { data.media = []; data.mediaMode = 'single'; }
+      if (value === 'media') { data.media = []; data.mediaMode = 'single'; }
       await saveDraft(userId, chat.id, selected[0], data);
       await answer(query.id);
       const keyboard = value === 'rating' ? ratingKeyboard()
