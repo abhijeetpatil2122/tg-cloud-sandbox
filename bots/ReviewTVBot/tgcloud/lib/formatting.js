@@ -69,7 +69,7 @@ export function buildEditKeyboard() {
   ] };
 }
 
-export function buildHelpRichMessage() {
+export function buildHelpRichMessage(isAdmin = false) {
   return { blocks: [
     heading('HELP & COMMANDS', 1),
     paragraph('Submit thoughtful reviews of movies, series, and anime. Every published review is organised in the appropriate topic of @Review_Tv.'),
@@ -83,7 +83,11 @@ export function buildHelpRichMessage() {
       { blocks: [paragraph('/myreviews — View your published reviews')] },
       { blocks: [paragraph('/cancel — Cancel your active draft')] },
     ] },
-    { type: 'divider' },
+    ...(isAdmin ? [
+      heading('Private administration', 3),
+      paragraph(['/admin', ' — Open the private admin panel. Use its buttons to view statistics and forum settings.']),
+      paragraph('Forum topic management: /connect, /settopic category_key, and /disconnect. These commands are used in the connected forum and its topics.'),
+    ] : []),
     { type: 'footer', text: ['Reviews are published in ', { type: 'url', text: '@Review_Tv', url: 'https://t.me/Review_Tv' }, '. Use /howtouse for the submission guide.'] },
   ] };
 }
@@ -115,4 +119,20 @@ export function buildHowToRichMessage() {
     { type: 'divider' },
     footer('Tip: Be respectful, stay on topic, and write your own review. Use /review whenever you are ready.'),
   ] };
+}
+
+export function buildMyReviewsRichMessage(items, page, pageCount, total) {
+  const blocks = [heading('YOUR REVIEWS', 2)];
+  for (const item of items) {
+    blocks.push({
+      type: 'paragraph',
+      text: [
+        { type: 'bold', text: `${plain(item.title)} (${plain(item.year)})` },
+        ' ',
+        ...(item.messageLink ? [{ type: 'button', button: { text: `★ ${plain(item.rating)}/10`, url: item.messageLink, style: 'success' } }] : [{ type: 'bold', text: `★ ${plain(item.rating)}/10` }]),
+      ],
+    });
+  }
+  blocks.push(footer(`Showing ${page * 10 + 1}–${page * 10 + items.length} of ${total} published reviews • Page ${page + 1}/${pageCount}`));
+  return { blocks };
 }

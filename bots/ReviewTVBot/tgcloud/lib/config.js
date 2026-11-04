@@ -18,15 +18,6 @@ export const publicCommands = [
   { command: 'cancel', description: 'Cancel your current draft' },
 ];
 
-export const adminCommands = [
-  ...publicCommands,
-  { command: 'admin', description: 'Open private admin tools' },
-  { command: 'stats', description: 'View review and topic statistics' },
-  { command: 'settings', description: 'View forum topic configuration' },
-  { command: 'connect', description: 'Connect the review forum' },
-  { command: 'settopic', description: 'Map this topic to a category' },
-  { command: 'disconnect', description: 'Pause review publishing' },
-];
 
 export function isAdmin(userId) {
   return ADMIN_IDS.includes(Number(userId));
