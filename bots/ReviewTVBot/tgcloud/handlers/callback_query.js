@@ -207,6 +207,7 @@ export default async function (query) {
           : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         review_text: ['rating', 'Choose your rating from 1 to 10.', ratingKeyboard()],
         media: ['review_text', 'Write your review in 20–3000 characters.', null],
+        media_layout: ['media', 'Choose how to display your photos.', {inline_keyboard:[[{text:'Single image',callback_data:'rv:mediamode:single'},{text:'Slideshow',callback_data:'rv:mediamode:slideshow',style:'success'}]]}],
         spoiler: ['media', 'Send photos or direct HTTPS image URLs, or tap Skip photos.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
       if (!previous) return preview(chat.id, { ...draft, step: 'complete' });
@@ -266,7 +267,7 @@ export default async function (query) {
       if(value==='skip')data.media=[];
       data.media=Array.isArray(data.media)?data.media:[];
       await answer(query.id);
-      if(data.media.length>1){await saveDraft(userId,chat.id,'media_layout',data);return editPrompt(chat.id,data.promptMessageId,'How should these photos appear in your review?',withBack({inline_keyboard:[[{text:'Single image',callback_data:'rv:mediamode:single'},{text:'Slideshow',callback_data:'rv:mediamode:slideshow',style:'success'}]]}));}
+      if(data.media.length>1){if(draft.step==='edit_media')data.editingMedia=true;await saveDraft(userId,chat.id,'media_layout',data);return editPrompt(chat.id,data.promptMessageId,'How should these photos appear in your review?',withBack({inline_keyboard:[[{text:'Single image',callback_data:'rv:mediamode:single'},{text:'Slideshow',callback_data:'rv:mediamode:slideshow',style:'success'}]]}));}
       data.mediaMode='single';
       if(draft.step==='edit_media'){await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
       await saveDraft(userId,chat.id,'spoiler',data);
@@ -294,7 +295,7 @@ export default async function (query) {
       }
       const steps = {
         title: ['edit_title', 'Send the corrected title.'],
-        year: ['edit_year', 'Send the corrected release year.'],
+        year: ['edit_year', 'Send the corrected release year, or skip if unsure.'],
         genre: ['edit_genre', 'Send genre names, or tap Skip genre to remove them.'],
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
         rating: ['edit_rating', 'Choose the corrected rating.'],
@@ -310,6 +311,7 @@ export default async function (query) {
       await saveDraft(userId, chat.id, selected[0], data);
       await answer(query.id);
       const keyboard = value === 'rating' ? ratingKeyboard()
+        : value === 'year' ? {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}
         : value === 'genre' ? { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }
         : value === 'media' ? {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}
         : value === 'spoiler' ? spoilerKeyboard()
