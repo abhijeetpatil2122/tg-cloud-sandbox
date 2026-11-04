@@ -259,12 +259,24 @@ export default async function (query) {
       try {
         const result = await publishReview(userId, { ...draft, step: 'complete', data });
         await deleteDraft(userId);
-        await editPrompt(chat.id, data.promptMessageId,
-          `Your review has been published successfully.\n\nReview #${String(result.reviewNumber).padStart(3, '0')} · ${result.category.label}\n${result.link}`);
+        await api.editMessageText({
+          chat_id: chat.id,
+          message_id: data.promptMessageId,
+          rich_message: { blocks: [
+            { type: 'heading', size: 2, text: '✅ Review posted!' },
+            { type: 'paragraph', text: `Your review is now live in ${result.category.label}.` },
+            { type: 'footer', text: `Review #${String(result.reviewNumber).padStart(3, '0')}` },
+          ] },
+          reply_markup: { inline_keyboard: [] },
+        });
         try {
-          await api.sendMessage({
+          await api.sendRichMessage({
             chat_id: userId,
-            text: `Your review is now live in ${result.category.label}.\\n\\nOpen it here: ${result.link}`,
+            rich_message: { blocks: [
+              { type: 'heading', size: 2, text: '✅ Your review is live!' },
+              { type: 'paragraph', text: `Your review has been published in ${result.category.label}.` },
+              { type: 'paragraph', text: { type: 'url', text: 'Open your published review', url: result.link } },
+            ] },
           });
         } catch (notifyError) {
           console.warn('Review was published, but the author notification could not be delivered.', notifyError?.description || notifyError?.message || notifyError);
