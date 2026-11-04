@@ -52,12 +52,11 @@ async function showWelcome(message) {
   const user = message.from ?? {};
   const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || 'there';
   const rich = { blocks: [
-    { type: 'heading', size: 1, text: `Welcome, ${fullName}!` },
-    { type: 'paragraph', text: 'Welcome to ReviewTVBot — a community for honest reviews of movies, TV shows, and anime.' },
-    { type: 'paragraph', text: 'Write your review, add a rating and poster, preview the final card, and publish it to the right community topic.' },
+    { type: 'heading', size: 1, text: `Welcome, ${fullName}.` },
+    { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, and anime.' },
+    { type: 'paragraph', text: 'Submit your review with a rating, genre, and optional poster. Published reviews are organised in the appropriate topic of @Review_Tv.' },
     { type: 'divider' },
-    { type: 'paragraph', text: [{ type: 'bold', text: 'Ready to share your opinion?' }, ' Start with /review or learn the steps with /howtouse.'] },
-    { type: 'footer', text: 'For commands and help, use /help.' },
+    { type: 'footer', text: ['Review publishing hub: ', { type: 'url', text: '@Review_Tv', url: 'https://t.me/Review_Tv' }, '. Use /help to see available commands.'] },
   ] };
   await sendRich(message.chat.id, rich, { inline_keyboard: [[
     { text: 'Write a review', callback_data: 'rv:start', style: 'success' },
