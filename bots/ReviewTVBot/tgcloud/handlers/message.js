@@ -118,12 +118,12 @@ async function startReview(message) {
     const prompts = {
       category: 'Choose the category for your review:',
       title: 'Send the movie, show, or anime title.',
-      year: 'Send the release year (for example, 2024).',
+      year: 'Send the release year (for example, 2024), or tap Skip year if unsure.',
       genre: 'Optionally send the genre or genres (for example, Action, Drama, Romance), or tap Skip genre.',
       season: 'Send the season number, or tap Skip season.',
       rating: 'Choose your rating from 1 to 10.',
       review_text: 'Write your review in 20–3000 characters.',
-      poster: 'Send a poster photo or a direct HTTPS image URL, or skip this step.',
+      media: 'Send photos or direct HTTPS image URLs one at a time. Tap Done when finished, or Skip photos.',
       spoiler: 'Does your review contain spoilers?',
     };
     const keyboards = {
@@ -131,7 +131,8 @@ async function startReview(message) {
       genre: { inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] },
       season: { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] },
       rating: { inline_keyboard: [[1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})) , [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`}))] },
-      poster: { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] },
+      year: { inline_keyboard: [[{text:'Skip year',callback_data:'rv:year:skip'}]] },
+      media: { inline_keyboard: [[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]] },
       spoiler: { inline_keyboard: [[{text:'Contains spoilers',callback_data:'rv:spoiler:yes',style:'danger'},{text:'No spoilers',callback_data:'rv:spoiler:no',style:'success'}]] },
     };
     await editPrompt(message.chat.id, existing.data.promptMessageId, prompts[existing.step] || 'Continue your review.', withBack(keyboards[existing.step]));
@@ -160,16 +161,13 @@ async function handleDraftInput(message, draft) {
     data.title = text;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'year', 'Send the release year (for example, 2024).', null, data);
+    return transition(message, draft, 'year', 'Send the release year (for example, 2024), or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}, data);
   }
   if (draft.step === 'year' || draft.step === 'edit_year') {
-    const year = Number(text);
-    const maxYear = new Date().getUTCFullYear() + 5;
-    if (!/^\d{4}$/.test(text) || !Number.isInteger(year) || year < 1888 || year > maxYear) return editPrompt(chatId, data.promptMessageId, `Please send a valid four-digit year between 1888 and ${maxYear}.`, withBack());
-    data.year = year;
-    await deleteUserMessage(message);
-    if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'genre', 'Optionally send the genre or genres (for example, Action, Drama, Romance), or tap Skip genre.', { inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] }, data);
+    const year=Number(text), maxYear=new Date().getUTCFullYear()+5;
+    if(!/^\d{4}$/.test(text)||!Number.isInteger(year)||year<1888||year>maxYear)return editPrompt(chatId,data.promptMessageId,`Please send a valid four-digit year between 1888 and ${maxYear}, or tap Skip year.`,withBack({inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}));
+    data.year=year; await deleteUserMessage(message); if(editing)return saveAndPreview(userId,chatId,data);
+    return transition(message,draft,'genre','Optionally send the genre or genres (for example, Action, Drama, Romance), or tap Skip genre.',{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
   }
   if (draft.step === 'genre' || draft.step === 'edit_genre') {
     if (text.toLowerCase() === '/skip') data.genre = null;
@@ -197,23 +195,20 @@ async function handleDraftInput(message, draft) {
     if (text.length < 20 || text.length > 3000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 3000 characters for your review.', withBack());
     data.reviewText = text;
     await deleteUserMessage(message);
-    if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'poster', 'Send a poster photo or a direct HTTPS image URL, or skip this step.', { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] }, data);
+    if(editing)return saveAndPreview(userId,chatId,data);
+    data.media=[];data.mediaMode='single';
+    return transition(message,draft,'media','Send photos or direct HTTPS image URLs one at a time. Tap Done when finished, or Skip photos.',{inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},data);
   }
-  if (draft.step === 'poster' || draft.step === 'edit_poster') {
-    if (Array.isArray(message.photo) && message.photo.length) {
-      data.posterFileId = message.photo[message.photo.length - 1].file_id;
-      data.posterUrl = null;
-    } else if (/^https:\/\/\S+$/i.test(text)) {
-      data.posterFileId = null;
-      data.posterUrl = text;
-    } else if (text.toLowerCase() === '/skip') {
-      data.posterFileId = null;
-      data.posterUrl = null;
-    } else return editPrompt(chatId, data.promptMessageId, 'Send a poster photo or a direct HTTPS image URL, or tap Skip poster.', withBack({ inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] }));
-    await deleteUserMessage(message);
-    if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'spoiler', 'Does your review contain spoilers?', spoilerKeyboard(), data);
+  if(draft.step==='media'||draft.step==='edit_media'){
+    const item=Array.isArray(message.photo)&&message.photo.length?{type:'photo',media:message.photo[message.photo.length-1].file_id}:/^https:\/\/\S+$/i.test(text)?{type:'photo',media:text}:null;
+    if(!item)return editPrompt(chatId,data.promptMessageId,'Send a Telegram photo or direct HTTPS image URL. Send each image separately, then tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+    data.media=Array.isArray(data.media)?data.media:[];if(data.media.length>=10)return editPrompt(chatId,data.promptMessageId,'You can add up to 10 images. Tap Done to continue.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
+    data.media.push(item);await deleteUserMessage(message);await saveDraft(userId,chatId,draft.step,data);
+    return editPrompt(chatId,data.promptMessageId,`Added image ${data.media.length}/10. Send another, or tap Done.`,withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+  }
+  if(draft.step==='poster'||draft.step==='edit_poster'){
+    if(Array.isArray(message.photo)&&message.photo.length)data.media=[{type:'photo',media:message.photo[message.photo.length-1].file_id}];else if(/^https:\/\/\S+$/i.test(text))data.media=[{type:'photo',media:text}];else if(text.toLowerCase()==='/skip')data.media=[];else return editPrompt(chatId,data.promptMessageId,'Send a photo or direct HTTPS image URL, or skip.',withBack());
+    data.mediaMode='single';await deleteUserMessage(message);if(editing)return saveAndPreview(userId,chatId,data);return transition(message,draft,'spoiler','Does your review contain spoilers?',spoilerKeyboard(),data);
   }
   if (draft.step === 'complete') return showPreview(chatId, draft);
 }
