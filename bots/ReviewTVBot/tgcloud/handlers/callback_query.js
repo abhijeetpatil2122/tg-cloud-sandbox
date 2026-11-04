@@ -171,7 +171,14 @@ export default async function (query) {
       return;
     }
 
-    const draft = await getDraft(userId);
+    let draft = await getDraft(userId);
+    if (draft?.step === 'publishing') {
+      const publishingAge = Date.now() - new Date(draft.updatedAt).getTime();
+      if (!Number.isFinite(publishingAge) || publishingAge > 120000) {
+        await saveDraft(userId, chat.id, 'complete', draft.data);
+        draft = await getDraft(userId);
+      }
+    }
     if (action === 'start') {
       if (draft && draft.step !== 'complete') {
         await answer(query.id, 'You already have a review in progress. Resume it with /review or cancel it first.');
