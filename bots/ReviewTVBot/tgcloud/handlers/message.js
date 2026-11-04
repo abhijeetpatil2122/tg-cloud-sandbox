@@ -302,7 +302,7 @@ async function showAdminSettings(chatId, messageId = null) {
   if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
   else {
     blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},
-      {type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'monospace',text:String(config.chatId)}]},
+      {type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'code',text:String(config.chatId)}]},
       {type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},
       {type:'divider'},
       {type:'heading',size:3,text:'Category topics'},

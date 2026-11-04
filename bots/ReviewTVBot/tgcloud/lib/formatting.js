@@ -7,7 +7,7 @@ const footer = (text) => ({ type: 'footer', text: plain(text) });
 
 export function buildReviewRichMessage(data, reviewNumber = null, preview = false) {
   const blocks = [
-    heading('MOVIE REVIEW', 2),
+    heading(data.categoryKey === 'tv_shows' ? 'SERIES REVIEW' : 'MOVIE REVIEW', 2),
   ];
   const posterMedia = data.posterMedia || data.posterFileId || data.posterUrl;
   if (posterMedia) {
@@ -19,6 +19,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   blocks.push(
     heading(`${plain(data.title)} (${plain(data.year)})`, 1),
     ...(data.genre ? [paragraph(plain(data.genre))] : []),
+    ...(data.categoryKey === 'tv_shows' && data.season ? [paragraph(`Season ${plain(data.season)}`)] : []),
     paragraph([
       { type: 'button', button: { text: `★ ${plain(data.rating)}/10`, style: 'success', disabled: {} } },
       ...(data.hasSpoilers ? ['  ', { type: 'button', button: { text: 'SPOILER', style: 'danger', disabled: {} } }] : []),
@@ -94,30 +95,26 @@ export function buildHelpRichMessage(isAdmin = false) {
 
 export function buildHowToRichMessage() {
   const sample = buildReviewRichMessage({
-    categoryKey: 'hollywood_movies', title: 'Example Film', year: 2026,
-    rating: 8, reviewText: 'A sample review appears here. Your own words will be shown in this section with their original paragraph breaks.',
-    authorName: 'yourname', hasSpoilers: false,
-  }, 1, true);
+    categoryKey: 'tv_shows',
+    title: 'Game of Thrones',
+    year: 2011,
+    genre: 'Fantasy, Drama',
+    season: 8,
+    rating: 9,
+    reviewText: 'An ambitious fantasy series with unforgettable characters, political intrigue, and remarkable world-building. Its strongest seasons build tension through layered storytelling and memorable performances. A landmark series for viewers who enjoy complex dramas and large-scale fantasy.',
+    authorName: 'yourname',
+    hasSpoilers: false,
+  }, 1, false);
   return { blocks: [
     heading('HOW TO POST A REVIEW', 1),
-    paragraph('Follow these simple steps. Your draft is saved as you go, and the review is not posted until you confirm it.'),
+    paragraph('Posting is simple. Start a review and follow the prompts — your draft is saved as you go, and nothing is published until you confirm it.'),
     { type: 'list', items: [
-      { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat with the bot.')] },
-      { value: 2, type: '1', blocks: [paragraph('Choose the correct category: Hollywood, Bollywood, South Indian, other regional, TV shows, or anime.')] },
-      { value: 3, type: '1', blocks: [paragraph('Enter the title and release year.')] },
-      { value: 4, type: '1', blocks: [paragraph('Optionally send the genre or genres (for example, Action, Drama, Romance), or skip this step.')] },
-      { value: 5, type: '1', blocks: [paragraph('TV show reviewers can add a season number or skip it.')] },
-      { value: 6, type: '1', blocks: [paragraph('Choose your rating from 1 to 10.')] },
-      { value: 7, type: '1', blocks: [paragraph('Write your review in your own words. Explain what worked, what did not, and who might enjoy it. Avoid revealing major plot details unless you mark the review as a spoiler.')] },
-      { value: 8, type: '1', blocks: [paragraph('Add a poster photo if you have one, or skip this step.')] },
-      { value: 9, type: '1', blocks: [paragraph('Choose whether your review contains spoilers. Spoiler reviews hide the review text and poster preview.')] },
-      { value: 10, type: '1', blocks: [paragraph('Check the preview. Use Edit details to change a field, then tap Publish review when everything looks right.')] },
+      { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose the review category.')] },
+      { value: 2, type: '1', blocks: [paragraph('Enter the title and release year. Add a genre if you want; series reviews can also include a season number.')] },
+      { value: 3, type: '1', blocks: [paragraph('Choose a rating from 1–10, then write your review in your own words.')] },
+      { value: 4, type: '1', blocks: [paragraph('Add a poster or skip it, choose the spoiler setting, check your preview, and tap Publish review.')] },
     ] },
-    { type: 'divider' },
-    heading('PUBLISHED REVIEW PREVIEW', 2),
-    ...sample.blocks,
-    { type: 'divider' },
-    footer('Tip: Be respectful, stay on topic, and write your own review. Use /review whenever you are ready.'),
+    { type: 'details', summary: 'See an example of a published series review', blocks: sample.blocks },
   ] };
 }
 
