@@ -52,14 +52,9 @@ export async function publishReview(userId, draft) {
       message_thread_id: mapping.topicId,
       rich_message: buildReviewRichMessage({ ...data, authorName }, reviewNumber, false),
     });
-    let username = null;
-    try {
-      const chat = await api.getChat({ chat_id: config.chatId });
-      username = chat?.username || null;
-    } catch (error) {
-      console.warn('Could not resolve the public forum username; using the private chat link format.', error?.description || error?.message || error);
-    }
-    const link = makeMessageLink(config.chatId, sent.message_id, mapping.topicId, username);
+    // The configured publishing destination is the public @Review_Tv forum.
+    // Avoid an extra getChat Bot API round-trip after the post has already sent.
+    const link = makeMessageLink(config.chatId, sent.message_id, mapping.topicId, 'Review_Tv');
     await db.update(reviews).set({
       status: 'published', messageId: sent.message_id, messageLink: link, publishedAt: new Date(),
     }).where(eq(reviews.id, reviewRecord.id)).run();
