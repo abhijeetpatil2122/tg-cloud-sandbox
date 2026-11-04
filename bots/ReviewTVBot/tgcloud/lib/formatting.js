@@ -71,8 +71,8 @@ export function buildEditKeyboard() {
 
 export function buildHelpRichMessage() {
   return { blocks: [
-    heading('ReviewTVBot', 1),
-    paragraph('A community space for thoughtful movie, series, and anime reviews. Share your opinion, rate what you watched, and discover what others recommend.'),
+    heading('HELP & COMMANDS', 1),
+    paragraph('Submit thoughtful reviews of movies, series, and anime. Every published review is organised in the appropriate topic of @Review_Tv.'),
     { type: 'divider' },
     heading('Commands', 3),
     { type: 'list', items: [
@@ -84,7 +84,7 @@ export function buildHelpRichMessage() {
       { blocks: [paragraph('/cancel — Cancel your active draft')] },
     ] },
     { type: 'divider' },
-    footer('Need a hand? Use /howtouse to see how reviews are submitted.'),
+    { type: 'footer', text: ['Reviews are published in ', { type: 'url', text: '@Review_Tv', url: 'https://t.me/Review_Tv' }, '. Use /howtouse for the submission guide.'] },
   ] };
 }
 
