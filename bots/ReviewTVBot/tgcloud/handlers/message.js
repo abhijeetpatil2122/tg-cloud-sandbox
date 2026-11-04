@@ -200,7 +200,7 @@ async function handleDraftInput(message, draft) {
     data.reviewText = text;
     await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
-    data.media=[];data.mediaMode='single';
+    data.media=[];data.mediaMode='slideshow';
     return transition(message,draft,'media','Send one or more photos, or paste direct HTTPS image links separated by commas. Tap Done when finished, or Skip photos.',{inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},data);
   }
   if(draft.step==='media'||draft.step==='edit_media'){
