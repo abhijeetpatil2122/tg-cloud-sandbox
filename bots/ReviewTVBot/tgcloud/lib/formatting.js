@@ -6,7 +6,6 @@ const paragraph = (text) => ({ type: 'paragraph', text });
 const footer = (text) => ({ type: 'footer', text: plain(text) });
 
 export function buildReviewRichMessage(data, reviewNumber = null, preview = false) {
-  const category = categories.find((item) => item.key === data.categoryKey);
   const blocks = [
     heading('MOVIE REVIEW', 2),
   ];
@@ -101,11 +100,11 @@ export function buildHowToRichMessage() {
     { type: 'list', items: [
       { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat with the bot.')] },
       { value: 2, type: '1', blocks: [paragraph('Choose the correct category: Hollywood, Bollywood, South Indian, other regional, TV shows, or anime.')] },
-      { value: 3, type: '1', blocks: [paragraph('Enter the title and release year. TV show reviewers can add a season number or skip it.')] },
+      { value: 3, type: '1', blocks: [paragraph('Enter the title and release year.')] },
       { value: 4, type: '1', blocks: [paragraph('Optionally send the genre or genres (for example, Action, Drama, Romance), or skip this step.')] },
       { value: 5, type: '1', blocks: [paragraph('TV show reviewers can add a season number or skip it.')] },
       { value: 6, type: '1', blocks: [paragraph('Choose your rating from 1 to 10.')] },
-      { value: 5, type: '1', blocks: [paragraph('Write your review in your own words. Explain what worked, what did not, and who might enjoy it. Avoid revealing major plot details unless you mark the review as a spoiler.')] },
+      { value: 7, type: '1', blocks: [paragraph('Write your review in your own words. Explain what worked, what did not, and who might enjoy it. Avoid revealing major plot details unless you mark the review as a spoiler.')] },
       { value: 8, type: '1', blocks: [paragraph('Add a poster photo if you have one, or skip this step.')] },
       { value: 9, type: '1', blocks: [paragraph('Choose whether your review contains spoilers. Spoiler reviews hide the review text and poster preview.')] },
       { value: 10, type: '1', blocks: [paragraph('Check the preview. Use Edit details to change a field, then tap Publish review when everything looks right.')] },
