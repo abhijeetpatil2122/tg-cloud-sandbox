@@ -19,11 +19,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   }
   blocks.push(
     heading(`${plain(data.title)} (${plain(data.year)})`, 1),
-    paragraph([
-      category?.label ?? 'Review',
-      String(data.year),
-      data.season ? `Season ${data.season}` : null,
-    ].filter(Boolean).join('  •  ')),
+    ...(data.genre ? [paragraph(plain(data.genre))] : []),
     paragraph([
       { type: 'button', button: { text: `★ ${plain(data.rating)}/10`, style: 'success', disabled: {} } },
       ...(data.hasSpoilers ? ['  ', { type: 'button', button: { text: 'SPOILER', style: 'danger', disabled: {} } }] : []),
@@ -65,7 +61,7 @@ export function buildReviewKeyboard(data, mode = 'preview') {
 
 export function buildEditKeyboard() {
   const fields = [
-    ['title', 'Title'], ['year', 'Year'], ['season', 'Season'],
+    ['title', 'Title'], ['year', 'Year'], ['genre', 'Genre'], ['season', 'Season'],
     ['rating', 'Rating'], ['text', 'Review text'], ['poster', 'Poster'], ['spoiler', 'Spoilers'],
   ];
   return { inline_keyboard: [
@@ -106,11 +102,13 @@ export function buildHowToRichMessage() {
       { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat with the bot.')] },
       { value: 2, type: '1', blocks: [paragraph('Choose the correct category: Hollywood, Bollywood, South Indian, other regional, TV shows, or anime.')] },
       { value: 3, type: '1', blocks: [paragraph('Enter the title and release year. TV show reviewers can add a season number or skip it.')] },
-      { value: 4, type: '1', blocks: [paragraph('Choose your rating from 1 to 10.')] },
+      { value: 4, type: '1', blocks: [paragraph('Optionally send the genre or genres (for example, Action, Drama, Romance), or skip this step.')] },
+      { value: 5, type: '1', blocks: [paragraph('TV show reviewers can add a season number or skip it.')] },
+      { value: 6, type: '1', blocks: [paragraph('Choose your rating from 1 to 10.')] },
       { value: 5, type: '1', blocks: [paragraph('Write your review in your own words. Explain what worked, what did not, and who might enjoy it. Avoid revealing major plot details unless you mark the review as a spoiler.')] },
-      { value: 6, type: '1', blocks: [paragraph('Add a poster photo if you have one, or skip this step.')] },
-      { value: 7, type: '1', blocks: [paragraph('Choose whether your review contains spoilers. Spoiler reviews hide the review text and poster preview.')] },
-      { value: 8, type: '1', blocks: [paragraph('Check the preview. Use Edit details to change a field, then tap Publish review when everything looks right.')] },
+      { value: 8, type: '1', blocks: [paragraph('Add a poster photo if you have one, or skip this step.')] },
+      { value: 9, type: '1', blocks: [paragraph('Choose whether your review contains spoilers. Spoiler reviews hide the review text and poster preview.')] },
+      { value: 10, type: '1', blocks: [paragraph('Check the preview. Use Edit details to change a field, then tap Publish review when everything looks right.')] },
     ] },
     { type: 'divider' },
     heading('PUBLISHED REVIEW PREVIEW', 2),
