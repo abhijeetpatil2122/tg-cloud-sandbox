@@ -121,7 +121,7 @@ async function startReview(message) {
   if (existing) {
     if (existing.step === 'complete') return showPreview(message.chat.id, existing);
     if (existing.step === 'publishing') {
-      await api.sendMessage({ chat_id: message.chat.id, text: 'Your review is still being published. Please try again shortly.' });
+      await api.sendMessage({ chat_id: message.chat.id, text: 'Your review is currently being published. Please wait a moment. If it seems stuck, send /cancel to cancel this draft, then use /review to start again.' });
       return;
     }
     const prompts = {
