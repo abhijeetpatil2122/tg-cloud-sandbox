@@ -1,6 +1,6 @@
 import { api, db } from 'sdk';
 import { and, eq } from 'sdk/db';
-import { reviewDrafts, reviews, communityConfig, categoryTopics } from '../schema.js';
+import { reviewDrafts, reviews, communityConfig, categoryTopics, topicCounters } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
 import { categories, getCategory, isAdmin } from '../lib/config.js';
 import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage, buildMyReviewsRichMessage } from '../lib/formatting.js';
@@ -84,6 +84,26 @@ export default async function (query) {
     }
 
     const [prefix, action, value] = String(query.data ?? '').split(':');
+    if (prefix === 'rv' && action === 'resetdb') {
+      if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
+      if (value === 'cancel') {
+        await answer(query.id, 'Reset cancelled.');
+        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,text:'Database reset cancelled.',reply_markup:{inline_keyboard:[]}});
+      }
+      if (value === 'confirm') {
+        await answer(query.id, 'Clearing test data…');
+        await db.delete(reviews).run();
+        await db.delete(reviewDrafts).run();
+        await db.delete(topicCounters).run();
+        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[
+          {type:'heading',size:2,text:'Test data cleared'},
+          {type:'paragraph',text:'All saved review records, active drafts, and review-number counters have been cleared.'},
+          {type:'paragraph',text:'Forum connection and category-topic settings were preserved. Existing posts in Telegram topics were not deleted.'},
+        ]},reply_markup:{inline_keyboard:[]}});
+      }
+      await answer(query.id, 'Unknown reset action.');
+      return;
+    }
     if (prefix !== 'rv') {
       await answer(query.id, 'This button is not recognized.');
       return;
@@ -102,6 +122,7 @@ export default async function (query) {
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/disconnect'},' — Disable the connected review forum']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/resetdb'},' — Temporarily clear test reviews, drafts, and numbering']}]},
         ]},
         {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
       ]},reply_markup:{inline_keyboard:[[{text:'Statistics',callback_data:'rv:admin:stats'},{text:'Settings',callback_data:'rv:admin:settings'}]]}});
