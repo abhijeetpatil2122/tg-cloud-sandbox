@@ -127,6 +127,7 @@ async function startReview(message) {
       category: 'Choose the category for your review:',
       title: 'Send the movie, show, or anime title.',
       year: 'Send the release year (for example, 2024).',
+      genre: 'Optionally send the genre or genres (for example, Action, Drama, Romance), or tap Skip genre.',
       season: 'Send the season number, or tap Skip season.',
       rating: 'Choose your rating from 1 to 10.',
       review_text: 'Write your review in 20–3000 characters.',
@@ -135,6 +136,7 @@ async function startReview(message) {
     };
     const keyboards = {
       category: { inline_keyboard: categories.reduce((rows, item, i) => { const r=Math.floor(i/2); rows[r] ||= []; rows[r].push({text:item.label,callback_data:`rv:category:${item.key}`}); return rows; },[]) },
+      genre: { inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] },
       season: { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] },
       rating: { inline_keyboard: [[1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})) , [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`}))] },
       poster: { inline_keyboard: [[{text:'Skip poster',callback_data:'rv:poster:skip'}]] },
@@ -173,6 +175,16 @@ async function handleDraftInput(message, draft) {
     const maxYear = new Date().getUTCFullYear() + 5;
     if (!/^\d{4}$/.test(text) || !Number.isInteger(year) || year < 1888 || year > maxYear) return editPrompt(chatId, data.promptMessageId, `Please send a valid four-digit year between 1888 and ${maxYear}.`, withBack());
     data.year = year;
+    await deleteUserMessage(message);
+    if (editing) return saveAndPreview(userId, chatId, data);
+    return transition(message, draft, 'genre', 'Optionally send the genre or genres (for example, Action, Drama, Romance), or tap Skip genre.', { inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] }, data);
+  }
+  if (draft.step === 'genre' || draft.step === 'edit_genre') {
+    if (text.toLowerCase() === '/skip') data.genre = null;
+    else {
+      if (text.length < 2 || text.length > 80) return editPrompt(chatId, data.promptMessageId, 'Send genre names between 2 and 80 characters, or tap Skip genre.', withBack({ inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] }));
+      data.genre = text;
+    }
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     if (data.categoryKey === 'tv_shows') return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }, data);

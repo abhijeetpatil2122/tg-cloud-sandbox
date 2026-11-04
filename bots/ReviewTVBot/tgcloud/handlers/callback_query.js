@@ -148,10 +148,11 @@ export default async function (query) {
       const previous = {
         title: ['category', 'Choose the category for your review:', categoryKeyboard()],
         year: ['title', 'Send the movie, show, or anime title.', null],
-        season: ['year', 'Send the release year (for example, 2024).', null],
+        genre: ['year', 'Send the release year (for example, 2024).', null],
+        season: ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         rating: data.categoryKey === 'tv_shows'
           ? ['season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
-          : ['year', 'Send the release year (for example, 2024).', null],
+          : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         review_text: ['rating', 'Choose your rating from 1 to 10.', ratingKeyboard()],
         poster: ['review_text', 'Write your review in 20–3000 characters.', null],
         spoiler: ['poster', 'Send a poster photo, a direct HTTPS image link, or skip this step.', { inline_keyboard: [[{ text: 'Skip poster', callback_data: 'rv:poster:skip' }]] }],
@@ -159,6 +160,21 @@ export default async function (query) {
       if (!previous) return preview(chat.id, { ...draft, step: 'complete' });
       await saveDraft(userId, chat.id, previous[0], data);
       return editPrompt(chat.id, data.promptMessageId, previous[1], withBack(previous[2]));
+    }
+
+    if (action === 'genre' && value === 'skip' && ['genre', 'edit_genre'].includes(draft.step)) {
+      data.genre = null;
+      await answer(query.id);
+      if (draft.step === 'edit_genre') {
+        await saveDraft(userId, chat.id, 'complete', data);
+        return preview(chat.id, await getDraft(userId));
+      }
+      if (data.categoryKey === 'tv_shows') {
+        await saveDraft(userId, chat.id, 'season', data);
+        return editPrompt(chat.id, data.promptMessageId, 'Send the season number, or tap Skip season.', withBack({ inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }));
+      }
+      await saveDraft(userId, chat.id, 'rating', data);
+      return editPrompt(chat.id, data.promptMessageId, 'Choose your rating from 1 to 10.', withBack(ratingKeyboard()));
     }
 
     if (action === 'season' && value === 'skip' && ['season', 'edit_season'].includes(draft.step)) {
@@ -216,6 +232,7 @@ export default async function (query) {
       const steps = {
         title: ['edit_title', 'Send the corrected title.'],
         year: ['edit_year', 'Send the corrected release year.'],
+        genre: ['edit_genre', 'Send genre names, or tap Skip genre to remove them.'],
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
         rating: ['edit_rating', 'Choose the corrected rating.'],
         text: ['edit_text', 'Send the corrected review text.'],
@@ -230,6 +247,7 @@ export default async function (query) {
       await saveDraft(userId, chat.id, selected[0], data);
       await answer(query.id);
       const keyboard = value === 'rating' ? ratingKeyboard()
+        : value === 'genre' ? { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }
         : value === 'poster' ? { inline_keyboard: [[{ text: 'Remove poster', callback_data: 'rv:poster:skip' }]] }
         : value === 'spoiler' ? spoilerKeyboard()
         : value === 'season' ? { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }
@@ -265,22 +283,11 @@ export default async function (query) {
           rich_message: { blocks: [
             { type: 'heading', size: 2, text: '✅ Review posted!' },
             { type: 'paragraph', text: `Your review is now live in ${result.category.label}.` },
+            { type: 'paragraph', text: { type: 'url', text: 'Open your published review', url: result.link } },
             { type: 'footer', text: `Review #${String(result.reviewNumber).padStart(3, '0')}` },
           ] },
           reply_markup: { inline_keyboard: [] },
         });
-        try {
-          await api.sendRichMessage({
-            chat_id: userId,
-            rich_message: { blocks: [
-              { type: 'heading', size: 2, text: '✅ Your review is live!' },
-              { type: 'paragraph', text: `Your review has been published in ${result.category.label}.` },
-              { type: 'paragraph', text: { type: 'url', text: 'Open your published review', url: result.link } },
-            ] },
-          });
-        } catch (notifyError) {
-          console.warn('Review was published, but the author notification could not be delivered.', notifyError?.description || notifyError?.message || notifyError);
-        }
       } catch (error) {
         console.error('Review publishing failed', {
           message: error?.message,
