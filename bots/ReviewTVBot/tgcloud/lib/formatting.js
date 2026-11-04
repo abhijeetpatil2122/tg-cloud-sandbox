@@ -84,7 +84,6 @@ export function buildHelpRichMessage(isAdmin = false) {
       { blocks: [paragraph('/cancel — Cancel your active draft')] },
     ] },
     ...(isAdmin ? [
-      { type: 'divider' },
       heading('Private administration', 3),
       paragraph(['/admin', ' — Open the private admin panel. Use its buttons to view statistics and forum settings.']),
       paragraph('Forum topic management: /connect, /settopic category_key, and /disconnect. These commands are used in the connected forum and its topics.'),
