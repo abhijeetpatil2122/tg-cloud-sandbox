@@ -35,6 +35,7 @@ There is no admin approval queue. The author's final confirmation authorizes pub
 - `/settopic` — configure a category topic.
 - `/settings` — view configuration.
 - `/stats` — private statistics.
+- `/resetdb` — temporary admin-only test-data reset; requires confirmation. Clears review records, drafts, and numbering counters, but preserves forum connection/topic mappings and does not delete Telegram forum posts.
 - `/disconnect confirm` — disable the destination after confirmation.
 
 Owner actions are restricted to the Telegram creator of the connected forum supergroup. `/connect` verifies the caller against `getChatAdministrators`; later owner commands check the saved creator ID.
