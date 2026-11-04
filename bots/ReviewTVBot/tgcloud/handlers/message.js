@@ -108,11 +108,20 @@ async function startReview(message) {
     await api.sendMessage({ chat_id: message.chat.id, text: 'Please submit reviews in your private chat with the bot.' });
     return;
   }
-  const existing = await getDraft(message.from.id);
+  let existing = await getDraft(message.from.id);
+  if (existing?.step === 'publishing') {
+    const publishingAge = Date.now() - new Date(existing.updatedAt).getTime();
+    // A Serverless invocation can be interrupted while waiting on Telegram's
+    // media fetch. Recover abandoned locks so the author is never stuck forever.
+    if (!Number.isFinite(publishingAge) || publishingAge > 120000) {
+      await saveDraft(message.from.id, message.chat.id, 'complete', existing.data);
+      existing = await getDraft(message.from.id);
+    }
+  }
   if (existing) {
     if (existing.step === 'complete') return showPreview(message.chat.id, existing);
     if (existing.step === 'publishing') {
-      await api.sendMessage({ chat_id: message.chat.id, text: 'Your review is currently being published. Please wait a moment.' });
+      await api.sendMessage({ chat_id: message.chat.id, text: 'Your review is currently being published. Please wait a moment. If it seems stuck, send /cancel to cancel this draft, then use /review to start again.' });
       return;
     }
     const prompts = {
@@ -215,11 +224,23 @@ async function handleDraftInput(message, draft) {
     if(!appended){
       const latest=await getDraft(userId);
       const count=Array.isArray(latest?.data?.media)?latest.data.media.length:0;
+      await deleteUserMessage(message);
       return editPrompt(chatId,data.promptMessageId,count>=10?'You can add up to 10 images. Tap Done to continue.':'This review is no longer accepting images. Send /review to resume.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
     }
-    // Telegram delivers each album photo as a separate update. Append atomically
-    // and leave the prompt untouched so concurrent album updates cannot overwrite
-    // one another or race multiple edits of the same prompt message.
+    // Each album photo is a separate update. Keep the append atomic, but restore
+    // the normal wizard UX: remove the user's upload and refresh the single prompt.
+    await deleteUserMessage(message);
+    const latest=await getDraft(userId);
+    const count=Array.isArray(latest?.data?.media)?latest.data.media.length:0;
+    const added=items.length;
+    const promptText=count>=10
+      ? `Received your images. ${count}/10 added — tap Done to continue.`
+      : `Received ${added} image${added===1?'':'s'} (${count}/10). Send more photos or comma-separated links, or tap Done.`;
+    try {
+      await editPrompt(chatId,data.promptMessageId,promptText,withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+    } catch (error) {
+      console.warn('Could not refresh the media upload prompt',error?.description||error?.message||error);
+    }
     return;
   }
   if(draft.step==='poster'||draft.step==='edit_poster'){

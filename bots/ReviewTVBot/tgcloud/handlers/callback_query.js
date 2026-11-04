@@ -171,7 +171,14 @@ export default async function (query) {
       return;
     }
 
-    const draft = await getDraft(userId);
+    let draft = await getDraft(userId);
+    if (draft?.step === 'publishing') {
+      const publishingAge = Date.now() - new Date(draft.updatedAt).getTime();
+      if (!Number.isFinite(publishingAge) || publishingAge > 120000) {
+        await saveDraft(userId, chat.id, 'complete', draft.data);
+        draft = await getDraft(userId);
+      }
+    }
     if (action === 'start') {
       if (draft && draft.step !== 'complete') {
         await answer(query.id, 'You already have a review in progress. Resume it with /review or cancel it first.');
@@ -352,7 +359,12 @@ export default async function (query) {
       return editPrompt(chat.id, data.promptMessageId, 'Your review draft has been cancelled.');
     }
 
-    if (action === 'publish' && draft.step === 'complete') {
+    if (action === 'publish' && draft?.step === 'publishing') {
+      await answer(query.id, 'Your review is currently being published. Please wait a moment. If it gets stuck, send /cancel to cancel this draft, then use /review to start again.');
+      return;
+    }
+
+    if (action === 'publish' && draft?.step === 'complete') {
       const claim = await db.update(reviewDrafts).set({ step: 'publishing', updatedAt: new Date() })
         .where(and(eq(reviewDrafts.userId, userId), eq(reviewDrafts.step, 'complete'))).run();
       if (!claim.rowsAffected) {
