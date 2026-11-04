@@ -85,8 +85,8 @@ export function buildHelpRichMessage(isAdmin = false) {
     ] },
     ...(isAdmin ? [
       heading('Private administration', 3),
-      paragraph(['/admin', ' — Open the private admin panel. Use its buttons to view statistics and forum settings.']),
-      paragraph('Forum topic management: /connect, /settopic category_key, and /disconnect. These commands are used in the connected forum and its topics.'),
+      paragraph(['/admin', ' — Open the private admin panel and access administration commands.']),
+
     ] : []),
     { type: 'footer', text: ['Reviews are published in ', { type: 'url', text: '@Review_Tv', url: 'https://t.me/Review_Tv' }, '. Use /howtouse for the submission guide.'] },
   ] };
@@ -125,12 +125,15 @@ export function buildMyReviewsRichMessage(items, page, pageCount, total) {
   const blocks = [heading('YOUR REVIEWS', 2)];
   for (const item of items) {
     blocks.push({
+      type: 'list',
+      items: [{ value: page * 10 + items.indexOf(item) + 1, type: '1', blocks: [{
       type: 'paragraph',
       text: [
         { type: 'bold', text: `${plain(item.title)} (${plain(item.year)})` },
         ' ',
         ...(item.messageLink ? [{ type: 'button', button: { text: `★ ${plain(item.rating)}/10`, url: item.messageLink, style: 'success' } }] : [{ type: 'bold', text: `★ ${plain(item.rating)}/10` }]),
       ],
+    }] }],
     });
   }
   blocks.push(footer(`Showing ${page * 10 + 1}–${page * 10 + items.length} of ${total} published reviews • Page ${page + 1}/${pageCount}`));
