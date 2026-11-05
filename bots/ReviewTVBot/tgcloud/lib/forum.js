@@ -93,6 +93,7 @@ export async function connectForum(message) {
       '/settopic category_key',
       '',
       ...categories.map((category) => `• ${category.label}: ${category.key}`),
+      '• Leaderboard: leaderboard',
       '',
       'The command must be sent inside the topic it should map to.'
     ].join('\n')
@@ -100,7 +101,8 @@ export async function connectForum(message) {
 }
 
 export async function setCategoryTopic(message, categoryKey) {
-  const category = getCategory(categoryKey);
+  const isLeaderboard = categoryKey === 'leaderboard';
+  const category = isLeaderboard ? { key: 'leaderboard', label: 'Leaderboard' } : getCategory(categoryKey);
   if (!category) {
     await sendToMessageContext(
       message,
@@ -165,6 +167,8 @@ export async function showSettings(message) {
     const mapping = mappings.find((item) => item.categoryKey === category.key && item.chatId === config.chatId);
     return `${mapping ? '✓' : '—'} ${category.label}: ${mapping ? mapping.topicId : 'Not configured'}`;
   });
+  const leaderboardMapping = mappings.find((item) => item.categoryKey === 'leaderboard' && item.chatId === config.chatId);
+  lines.push(`${leaderboardMapping ? '✓' : '—'} Leaderboard: ${leaderboardMapping ? leaderboardMapping.topicId : 'Not configured'}`);
 
   await sendToMessageContext(
     message,
