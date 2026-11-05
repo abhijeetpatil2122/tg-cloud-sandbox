@@ -5,6 +5,8 @@ import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
 import { categories, getCategory, isAdmin } from '../lib/config.js';
 import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage, buildMyReviewsRichMessage } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
+import { refreshLeaderboard } from '../lib/leaderboard.js';
+import { showUserProfile } from '../lib/profile.js';
 
 async function answer(id, text) {
   const params = { callback_query_id: id };
@@ -153,6 +155,10 @@ export default async function (query) {
     if (action === 'admin') {
       if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
       await answer(query.id);
+      if (value === 'leaderboard') {
+        try { const result = await refreshLeaderboard(); return api.sendMessage({chat_id:chat.id,text:result.replaced?`Leaderboard repaired (message ID: ${result.messageId}).`:`Leaderboard refreshed (message ID: ${result.messageId}).`}); }
+        catch (error) { return api.sendMessage({chat_id:chat.id,text:error?.message||'Could not initialize the leaderboard.'}); }
+      }
       if (value === 'home') return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[
         {type:'heading',size:1,text:'ReviewTVBot Admin'},
         {type:'paragraph',text:'Private administration and publishing controls.'},
@@ -166,7 +172,7 @@ export default async function (query) {
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/resetdb'},' — Temporarily clear test reviews, drafts, and numbering']}]},
         ]},
         {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
-      ]},reply_markup:{inline_keyboard:[[{text:'Statistics',callback_data:'rv:admin:stats'},{text:'Settings',callback_data:'rv:admin:settings'}]]}});
+      ]},reply_markup:{inline_keyboard:[[{text:'Statistics',callback_data:'rv:admin:stats'},{text:'Settings',callback_data:'rv:admin:settings'}],[{text:'Refresh leaderboard',callback_data:'rv:admin:leaderboard'}]]}});
       if (value === 'stats') {
         const all=await db.select().from(reviews).all(); const published=all.filter(row=>row.status==='published');
         const cells=[[{text:'Category',is_header:true},{text:'Published',is_header:true}],...categories.map(c=>[{text:c.label},{text:String(published.filter(r=>r.categoryKey===c.key).length)}]),[{text:'Total published'},{text:String(published.length)}],[{text:'Draft / failed'},{text:String(all.length-published.length)}]];
@@ -196,6 +202,10 @@ export default async function (query) {
       const nav=[];if(safe>0)nav.push({text:'‹ Previous',callback_data:`rv:reviews:${safe-1}`});if(safe+1<count)nav.push({text:'Next ›',callback_data:`rv:reviews:${safe+1}`});
       await answer(query.id);
       return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:nav.length?[nav]:[] }});
+    }
+    if (action === 'profile') {
+      await answer(query.id);
+      return showUserProfile(chat.id, query.from, query.message.message_id);
     }
     if (action === 'howto') {
       await answer(query.id);
@@ -293,7 +303,7 @@ export default async function (query) {
         await saveDraft(userId, chat.id, 'complete', data);
         return preview(chat.id, await getDraft(userId));
       }
-      if (data.categoryKey === 'tv_shows') {
+      if (['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)) {
         await saveDraft(userId, chat.id, 'season', data);
         return editPrompt(chat.id, data.promptMessageId, 'Send the season number, or tap Skip season.', withBack({ inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }));
       }
