@@ -48,7 +48,7 @@ export function buildReviewKeyboard(data, mode = 'preview', reviewId = null, cou
     ] };
   }
   if (mode === 'published') return { inline_keyboard: [
-    [{ text: `👍 ${counts.likes}${userReaction === 'like' ? ' ✓' : ''}`, callback_data: `rv:react:${reviewId}:like` }, { text: `👎 ${counts.dislikes}${userReaction === 'dislike' ? ' ✓' : ''}`, callback_data: `rv:react:${reviewId}:dislike` }],
+    [{ text: `👍 ${counts.likes}`, callback_data: `rv:react:${reviewId}:like` }, { text: `👎 ${counts.dislikes}`, callback_data: `rv:react:${reviewId}:dislike` }],
   ] };
   const category = categories.find((item) => item.key === data.categoryKey);
   return { inline_keyboard: [
