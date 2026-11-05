@@ -195,7 +195,7 @@ async function handleDraftInput(message, draft) {
     const year=Number(text), maxYear=new Date().getUTCFullYear()+5;
     if(!/^\d{4}$/.test(text)||!Number.isInteger(year)||year<1888||year>maxYear)return editPrompt(chatId,data.promptMessageId,`Please send a valid four-digit year between 1888 and ${maxYear}, or tap Skip year.`,withBack({inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}));
     data.year=year; data.endYear=null; await deleteUserMessage(message);
-    if(data.categoryKey==='tv_shows') return transition(message,draft,editing?'edit_end_year':'end_year','If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',{inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},data);
+    if(['tv_shows','k_c_j_dramas'].includes(data.categoryKey)) return transition(message,draft,editing?'edit_end_year':'end_year','If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',{inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},data);
     if(editing)return saveAndPreview(userId,chatId,data);
     return transition(message,draft,'genre','Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
   }
@@ -320,7 +320,6 @@ async function showAdmin(chatId, userId, command) {
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/stats'},' — View review totals and category statistics']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/leaderboard'},' — Initialize or repair the top 20 leaderboard message']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settings'},' — View forum connection and topic mappings']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/leaderboard'},' — Initialize or repair the top 20 leaderboard']}]]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/disconnect'},' — Disable the connected review forum']}]},
