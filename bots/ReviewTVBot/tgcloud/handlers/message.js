@@ -16,7 +16,7 @@ import {
 function normalizeGenres(value) {
   return value.split(',').map((item) => item.trim()).filter(Boolean).map((item) => {
     if (item.startsWith('#')) return item;
-    return `#${item.replace(/\\s+/g, '_')}`;
+    return `#${item.replace(/\s+/g, '_')}`;
   }).join(', ');
 }
 
@@ -189,7 +189,7 @@ async function handleDraftInput(message, draft) {
   }
   if (draft.step === 'year' || draft.step === 'edit_year') {
     const year=Number(text), maxYear=new Date().getUTCFullYear()+5;
-    if(!/^\\d{4}$/.test(text)||!Number.isInteger(year)||year<1888||year>maxYear)return editPrompt(chatId,data.promptMessageId,`Please send a valid four-digit year between 1888 and ${maxYear}, or tap Skip year.`,withBack({inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}));
+    if(!/^\d{4}$/.test(text)||!Number.isInteger(year)||year<1888||year>maxYear)return editPrompt(chatId,data.promptMessageId,`Please send a valid four-digit year between 1888 and ${maxYear}, or tap Skip year.`,withBack({inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}));
     data.year=year; data.endYear=null; await deleteUserMessage(message);
     if(data.categoryKey==='tv_shows') return transition(message,draft,editing?'edit_end_year':'end_year','If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',{inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},data);
     if(editing)return saveAndPreview(userId,chatId,data);
@@ -197,7 +197,7 @@ async function handleDraftInput(message, draft) {
   }
   if (draft.step === 'end_year' || draft.step === 'edit_end_year') {
     const endYear=Number(text), maxYear=new Date().getUTCFullYear()+5;
-    if(!/^\\d{4}$/.test(text)||!Number.isInteger(endYear)||endYear<1888||endYear>maxYear||(data.year&&endYear<data.year))return editPrompt(chatId,data.promptMessageId,`Please send a valid end year between ${data.year||1888} and ${maxYear}; it cannot be earlier than the start year. Or tap Skip end year.`,withBack({inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}));
+    if(!/^\d{4}$/.test(text)||!Number.isInteger(endYear)||endYear<1888||endYear>maxYear||(data.year&&endYear<data.year))return editPrompt(chatId,data.promptMessageId,`Please send a valid end year between ${data.year||1888} and ${maxYear}; it cannot be earlier than the start year. Or tap Skip end year.`,withBack({inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}));
     data.endYear=endYear; await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
     return transition(message,draft,'genre','Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
