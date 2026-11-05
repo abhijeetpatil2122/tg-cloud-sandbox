@@ -73,7 +73,9 @@ export async function refreshLeaderboard({ forceNew = false } = {}) {
       });
       return { messageId: state.messageId, replaced: false };
     } catch (error) {
-      console.warn('Stored leaderboard message could not be edited; creating a replacement', error?.description || error?.message || error);
+      const reason = String(error?.description || error?.message || error);
+      if (/message is not modified/i.test(reason)) return { messageId: state.messageId, replaced: false, unchanged: true };
+      console.warn('Stored leaderboard message could not be edited; creating a replacement', reason);
     }
   }
   const sent = await api.sendRichMessage({
