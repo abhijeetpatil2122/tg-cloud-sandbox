@@ -66,3 +66,12 @@ export const reviewReactions = table('review_reactions', {
   reviewUserUnique: uniqueIndex('uq_review_reactions_review_user').on(t.reviewId, t.userId),
   reviewIdx: index('idx_review_reactions_review').on(t.reviewId),
 }));
+
+
+export const leaderboardState = table('leaderboard_state', {
+  id: integer('id').primaryKey(),
+  chatId: integer('chat_id').notNull(),
+  topicId: integer('topic_id').notNull(),
+  messageId: integer('message_id').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
