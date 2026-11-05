@@ -377,7 +377,7 @@ export default async function (query) {
         genre: ['edit_genre', 'Send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). Missing # symbols are added automatically, or tap Skip genre.'],
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
         rating: ['edit_rating', 'Choose the corrected rating.'],
-        text: ['edit_text', 'Send the corrected review text.'],
+        text: ['edit_text', 'Send the corrected review text (20–5000 characters).'],
         media: ['edit_media', 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.'],
         spoiler: ['edit_spoiler', 'Choose the spoiler setting.'],
       };
