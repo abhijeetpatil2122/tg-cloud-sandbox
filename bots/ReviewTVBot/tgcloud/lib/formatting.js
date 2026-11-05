@@ -16,7 +16,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   if(selectedMedia.length===1)blocks.push(photoBlock(selectedMedia[0]));
   else if(selectedMedia.length>1)blocks.push({type:'slideshow',blocks:selectedMedia.map(photoBlock)});
   blocks.push(
-    heading(`${plain(data.title)}${data.year ? ` (${plain(data.year)})` : ''}`, 1),
+    heading(`${plain(data.title)}${data.year ? ` (${plain(data.year)}${data.endYear ? ` — ${plain(data.endYear)}` : ''})` : ''}`, 1),
     ...(data.genre ? [paragraph(plain(data.genre))] : []),
     ...(data.categoryKey === 'tv_shows' && data.season ? [paragraph(`Season ${plain(data.season)}`)] : []),
     paragraph([
@@ -26,7 +26,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
     { type: 'divider' },
     heading('Review', 3),
     {
-      type: 'paragraph',
+      type: 'expandable_blockquote',
       text: data.hasSpoilers
         ? { type: 'spoiler', text: plain(data.reviewText) }
         : plain(data.reviewText),
@@ -37,7 +37,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   return { blocks };
 }
 
-export function buildReviewKeyboard(data, mode = 'preview') {
+export function buildReviewKeyboard(data, mode = 'preview', reviewId = null, counts = { likes: 0, dislikes: 0 }, userReaction = null) {
   if (mode === 'preview') {
     return { inline_keyboard: [
       [{ text: 'Publish review', callback_data: 'rv:publish', style: 'success' }],
@@ -47,12 +47,12 @@ export function buildReviewKeyboard(data, mode = 'preview') {
       ],
     ] };
   }
-  const category = categories.find((item) => item.key === data.categoryKey);
+  if (mode === 'published') return { inline_keyboard: [\n    [{ text: `👍 ${counts.likes}${userReaction === 'like' ? ' ✓' : ''}`, callback_data: `rv:react:${reviewId}:like` }, { text: `👎 ${counts.dislikes}${userReaction === 'dislike' ? ' ✓' : ''}`, callback_data: `rv:react:${reviewId}:dislike` }],\n  ] };\n  const category = categories.find((item) => item.key === data.categoryKey);
   return { inline_keyboard: [
     [{ text: data.hasSpoilers ? 'SPOILER REVIEW' : `★ ${data.rating}/10`, callback_data: 'rv:noop', style: data.hasSpoilers ? 'danger' : 'success', disabled: true }],
     [
       { text: category?.label ?? 'Review', callback_data: 'rv:noop', style: 'primary', disabled: true },
-      ...(data.year ? [{text:String(data.year),callback_data:'rv:noop',style:'primary',disabled:true}] : []),
+      ...(data.year ? [{text:`${data.year}${data.endYear ? ` — ${data.endYear}` : ''}`,callback_data:'rv:noop',style:'primary',disabled:true}] : []),
       ...(data.season ? [{ text: `Season ${data.season}`, callback_data: 'rv:noop', style: 'primary', disabled: true }] : []),
     ],
   ] };
@@ -126,7 +126,7 @@ export function buildMyReviewsRichMessage(items, page, pageCount, total) {
     blocks: [{
       type: 'paragraph',
       text: [
-        { type: 'bold', text: `${plain(item.title)}${item.year ? ` (${plain(item.year)})` : ''}` },
+        { type: 'bold', text: `${plain(item.title)}${item.year ? ` (${plain(item.year)}${item.endYear ? ` — ${plain(item.endYear)}` : ''})` : ''}` },
         ' ',
         ...(item.messageLink
           ? [{ type: 'button', button: { text: `★ ${plain(item.rating)}/10`, url: item.messageLink, style: 'success' } }]
