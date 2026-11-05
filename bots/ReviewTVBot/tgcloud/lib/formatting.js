@@ -49,7 +49,8 @@ export function buildReviewKeyboard(data, mode = 'preview', reviewId = null, cou
   }
   if (mode === 'published') return { inline_keyboard: [
     [{ text: `👍 ${counts.likes}${userReaction === 'like' ? ' ✓' : ''}`, callback_data: `rv:react:${reviewId}:like` }, { text: `👎 ${counts.dislikes}${userReaction === 'dislike' ? ' ✓' : ''}`, callback_data: `rv:react:${reviewId}:dislike` }],
-  ] };\n  const category = categories.find((item) => item.key === data.categoryKey);
+  ] };
+  const category = categories.find((item) => item.key === data.categoryKey);
   return { inline_keyboard: [
     [{ text: data.hasSpoilers ? 'SPOILER REVIEW' : `★ ${data.rating}/10`, callback_data: 'rv:noop', style: data.hasSpoilers ? 'danger' : 'success', disabled: true }],
     [
