@@ -13,7 +13,7 @@ import {
   connectForum, setCategoryTopic, showSettings, disconnectForum,
 } from '../lib/forum.js';
 
-function parseCommand(text) {
+function normalizeGenres(value) {\n  return value.split(',').map((item) => item.trim()).filter(Boolean).map((item) => {\n    if (item.startsWith('#')) return item;\n    return `#${item.replace(/\\s+/g, '_')}`;\n  }).join(', ');\n}\n\nfunction parseCommand(text) {
   const [rawCommand, ...args] = text.trim().split(/\s+/);
   return { command: rawCommand.split('@', 1)[0].toLowerCase(), args };
 }
@@ -127,12 +127,12 @@ async function startReview(message) {
     const prompts = {
       category: 'Choose the category for your review:',
       title: 'Send the movie, show, or anime title.',
-      year: 'Send the release year (for example, 2024), or tap Skip year if unsure.',
-      edit_year: 'Send the corrected release year, or tap Skip year if unsure.',
-      genre: 'Optionally send the genre or genres (for example, Action, Drama, Romance), or tap Skip genre.',
+      year: 'Send the release year (for example, 2024), or tap Skip year if unsure.',\n      end_year: 'If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',
+      edit_year: 'Send the corrected release year, or tap Skip year if unsure.',\n      edit_end_year: 'Send the series end year, or tap Skip end year if it is still ongoing or unknown.',
+      genre: 'Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',
       season: 'Send the season number, or tap Skip season.',
       rating: 'Choose your rating from 1 to 10.',
-      review_text: 'Write your review in 20–3000 characters.',
+      review_text: 'Write your review in 20–5000 characters. Your review will appear in an expandable quotation.',
       media: 'Send one or more photos, or paste direct HTTPS image links separated by commas. Tap Done when finished, or Skip photos.',
       edit_media: 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.',
       spoiler: 'Does your review contain spoilers?',
@@ -142,8 +142,8 @@ async function startReview(message) {
       genre: { inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] },
       season: { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] },
       rating: { inline_keyboard: [[1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})) , [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`}))] },
-      year: { inline_keyboard: [[{text:'Skip year',callback_data:'rv:year:skip'}]] },
-      edit_year: {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]},
+      year: { inline_keyboard: [[{text:'Skip year',callback_data:'rv:year:skip'}]] },\n      end_year: { inline_keyboard: [[{text:'Skip end year',callback_data:'rv:year:skip'}]] },
+      edit_year: {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]},\n      edit_end_year: {inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},
       media: { inline_keyboard: [[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]] },
       edit_media: {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},
       spoiler: { inline_keyboard: [[{text:'Contains spoilers',callback_data:'rv:spoiler:yes',style:'danger'},{text:'No spoilers',callback_data:'rv:spoiler:no',style:'success'}]] },
@@ -178,15 +178,24 @@ async function handleDraftInput(message, draft) {
   }
   if (draft.step === 'year' || draft.step === 'edit_year') {
     const year=Number(text), maxYear=new Date().getUTCFullYear()+5;
-    if(!/^\d{4}$/.test(text)||!Number.isInteger(year)||year<1888||year>maxYear)return editPrompt(chatId,data.promptMessageId,`Please send a valid four-digit year between 1888 and ${maxYear}, or tap Skip year.`,withBack({inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}));
-    data.year=year; await deleteUserMessage(message); if(editing)return saveAndPreview(userId,chatId,data);
-    return transition(message,draft,'genre','Optionally send the genre or genres (for example, Action, Drama, Romance), or tap Skip genre.',{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
+    if(!/^\\d{4}$/.test(text)||!Number.isInteger(year)||year<1888||year>maxYear)return editPrompt(chatId,data.promptMessageId,`Please send a valid four-digit year between 1888 and ${maxYear}, or tap Skip year.`,withBack({inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}));
+    data.year=year; data.endYear=null; await deleteUserMessage(message);
+    if(data.categoryKey==='tv_shows') return transition(message,draft,editing?'edit_end_year':'end_year','If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',{inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},data);
+    if(editing)return saveAndPreview(userId,chatId,data);
+    return transition(message,draft,'genre','Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
+  }
+  if (draft.step === 'end_year' || draft.step === 'edit_end_year') {
+    const endYear=Number(text), maxYear=new Date().getUTCFullYear()+5;
+    if(!/^\\d{4}$/.test(text)||!Number.isInteger(endYear)||endYear<1888||endYear>maxYear||(data.year&&endYear<data.year))return editPrompt(chatId,data.promptMessageId,`Please send a valid end year between ${data.year||1888} and ${maxYear}; it cannot be earlier than the start year. Or tap Skip end year.`,withBack({inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}));
+    data.endYear=endYear; await deleteUserMessage(message);
+    if(editing)return saveAndPreview(userId,chatId,data);
+    return transition(message,draft,'genre','Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
   }
   if (draft.step === 'genre' || draft.step === 'edit_genre') {
     if (text.toLowerCase() === '/skip') data.genre = null;
     else {
-      if (text.length < 2 || text.length > 80) return editPrompt(chatId, data.promptMessageId, 'Send genre names between 2 and 80 characters, or tap Skip genre.', withBack({ inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] }));
-      data.genre = text;
+      if (text.length < 2 || text.length > 80 || !text.split(',').every((item) => item.trim().length > 0)) return editPrompt(chatId, data.promptMessageId, 'Send genre names separated by commas (up to 80 characters), or tap Skip genre.', withBack({ inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] }));
+      data.genre = normalizeGenres(text);
     }
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
@@ -205,7 +214,7 @@ async function handleDraftInput(message, draft) {
     return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard());
   }
   if (draft.step === 'review_text' || draft.step === 'edit_text') {
-    if (text.length < 20 || text.length > 3000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 3000 characters for your review.', withBack());
+    if (text.length < 20 || text.length > 5000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 5000 characters for your review.', withBack());
     data.reviewText = text;
     await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
