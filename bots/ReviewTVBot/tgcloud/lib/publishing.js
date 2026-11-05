@@ -1,6 +1,7 @@
 import { api, db } from 'sdk';
 import { eq, sql } from 'sdk/db';
-import { categoryTopics, communityConfig, reviews, topicCounters } from '../schema.js';\nimport { buildReviewKeyboard } from './formatting.js';
+import { categoryTopics, communityConfig, reviews, topicCounters } from '../schema.js';
+import { buildReviewKeyboard } from './formatting.js';
 import { getCategory } from './config.js';
 import { buildReviewRichMessage } from './formatting.js';
 
@@ -50,7 +51,8 @@ export async function publishReview(userId, draft) {
     const sent = await api.sendRichMessage({
       chat_id: config.chatId,
       message_thread_id: mapping.topicId,
-      rich_message: buildReviewRichMessage({ ...data, authorName }, reviewNumber, false),\n      reply_markup: buildReviewKeyboard(data, 'published', reviewRecord.id),
+      rich_message: buildReviewRichMessage({ ...data, authorName }, reviewNumber, false),
+      reply_markup: buildReviewKeyboard(data, 'published', reviewRecord.id),
     });
     // The configured publishing destination is the public @Review_Tv forum.
     // Avoid an extra getChat Bot API round-trip after the post has already sent.
