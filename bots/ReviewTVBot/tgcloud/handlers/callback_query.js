@@ -78,6 +78,7 @@ export default async function (query) {
   const chat = query.message?.chat;
   const userId = query.from?.id;
   try {
+    if (!userId) { await answer(query.id, 'Unable to identify your Telegram account.'); return; }
     const [prefix, action, value, detail] = String(query.data ?? '').split(':');
     if (prefix === 'rv' && action === 'react') {
       const reviewId = Number(value);
@@ -137,7 +138,7 @@ export default async function (query) {
         await db.delete(topicCounters).run();
         return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[
           {type:'heading',size:2,text:'Test data cleared'},
-          {type:'paragraph',text:'All saved review records, active drafts, and review-number counters have been cleared.'},
+          {type:'paragraph',text:'All saved reviews, reaction votes, active drafts, and review-number counters have been cleared.'},
           {type:'paragraph',text:'Forum connection and category-topic settings were preserved. Existing posts in Telegram topics were not deleted.'},
         ]},reply_markup:{inline_keyboard:[]}});
       }
