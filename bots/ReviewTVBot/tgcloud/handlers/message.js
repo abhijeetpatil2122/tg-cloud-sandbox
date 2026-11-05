@@ -1,6 +1,6 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
-import { reviews, reviewReactions } from '../schema.js';
+import { reviews } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft, appendDraftMedia } from '../lib/sessions.js';
 import { categories, isAdmin } from '../lib/config.js';
 import {
@@ -185,7 +185,7 @@ async function handleDraftInput(message, draft) {
     data.title = text;
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'year', 'Send the release year (for example, 2024), or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}, data);
+    return transition(message, draft, 'year', 'Send the release year (for example, 2024). For TV series, you can add the end year in the next step, or skip either year if unknown.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}, data);
   }
   if (draft.step === 'year' || draft.step === 'edit_year') {
     const year=Number(text), maxYear=new Date().getUTCFullYear()+5;
