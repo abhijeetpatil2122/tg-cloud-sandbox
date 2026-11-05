@@ -9,6 +9,7 @@ import {
 } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 import { refreshLeaderboard } from '../lib/leaderboard.js';
+import { showUserProfile } from '../lib/profile.js';
 import { communityConfig, categoryTopics } from '../schema.js';
 import {
   connectForum, setCategoryTopic, showSettings, disconnectForum,
@@ -396,7 +397,6 @@ export default async function (message) {
       }
       if (command === '/profile') {
         if (message.chat.type !== 'private' || !userId) return;
-        const { showUserProfile } = await import('../lib/profile.js');
         return showUserProfile(message.chat.id, message.from);
       }
       if (command === '/leaderboard') {
