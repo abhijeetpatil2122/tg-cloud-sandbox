@@ -131,6 +131,7 @@ export default async function (query) {
       }
       if (value === 'confirm') {
         await answer(query.id, 'Clearing test data…');
+        await db.delete(reviewReactions).run();
         await db.delete(reviews).run();
         await db.delete(reviewDrafts).run();
         await db.delete(topicCounters).run();
@@ -188,7 +189,7 @@ export default async function (query) {
       const items=published.slice(safe*size,(safe+1)*size);
       const blocks=[
         {type:'heading',size:2,text:'YOUR REVIEWS'},
-        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title}${item.year ? ` (${item.year})` : ''}`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
+        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title}${item.year ? ` (${item.year}${item.endYear ? ` — ${item.endYear}` : ''})` : ''}`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
         {type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`},
       ];
       const nav=[];if(safe>0)nav.push({text:'‹ Previous',callback_data:`rv:reviews:${safe-1}`});if(safe+1<count)nav.push({text:'Next ›',callback_data:`rv:reviews:${safe+1}`});
@@ -267,7 +268,10 @@ export default async function (query) {
       const previous = {
         title: ['category', 'Choose the category for your review:', categoryKeyboard()],
         year: ['title', 'Send the movie, show, or anime title.', null],
-        genre: ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
+        genre: data.categoryKey === 'tv_shows'
+          ? ['end_year', 'If the series has ended, send its final year, or tap Skip end year.', {inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}]
+          : ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
+        end_year: ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
         season: ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         rating: data.categoryKey === 'tv_shows'
           ? ['season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
