@@ -13,7 +13,14 @@ import {
   connectForum, setCategoryTopic, showSettings, disconnectForum,
 } from '../lib/forum.js';
 
-function normalizeGenres(value) {\n  return value.split(',').map((item) => item.trim()).filter(Boolean).map((item) => {\n    if (item.startsWith('#')) return item;\n    return `#${item.replace(/\\s+/g, '_')}`;\n  }).join(', ');\n}\n\nfunction parseCommand(text) {
+function normalizeGenres(value) {
+  return value.split(',').map((item) => item.trim()).filter(Boolean).map((item) => {
+    if (item.startsWith('#')) return item;
+    return `#${item.replace(/\\s+/g, '_')}`;
+  }).join(', ');
+}
+
+function parseCommand(text) {
   const [rawCommand, ...args] = text.trim().split(/\s+/);
   return { command: rawCommand.split('@', 1)[0].toLowerCase(), args };
 }
@@ -127,8 +134,10 @@ async function startReview(message) {
     const prompts = {
       category: 'Choose the category for your review:',
       title: 'Send the movie, show, or anime title.',
-      year: 'Send the release year (for example, 2024), or tap Skip year if unsure.',\n      end_year: 'If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',
-      edit_year: 'Send the corrected release year, or tap Skip year if unsure.',\n      edit_end_year: 'Send the series end year, or tap Skip end year if it is still ongoing or unknown.',
+      year: 'Send the release year (for example, 2024), or tap Skip year if unsure.',
+      end_year: 'If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',
+      edit_year: 'Send the corrected release year, or tap Skip year if unsure.',
+      edit_end_year: 'Send the series end year, or tap Skip end year if it is still ongoing or unknown.',
       genre: 'Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',
       season: 'Send the season number, or tap Skip season.',
       rating: 'Choose your rating from 1 to 10.',
@@ -142,8 +151,10 @@ async function startReview(message) {
       genre: { inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] },
       season: { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] },
       rating: { inline_keyboard: [[1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})) , [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`}))] },
-      year: { inline_keyboard: [[{text:'Skip year',callback_data:'rv:year:skip'}]] },\n      end_year: { inline_keyboard: [[{text:'Skip end year',callback_data:'rv:year:skip'}]] },
-      edit_year: {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]},\n      edit_end_year: {inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},
+      year: { inline_keyboard: [[{text:'Skip year',callback_data:'rv:year:skip'}]] },
+      end_year: { inline_keyboard: [[{text:'Skip end year',callback_data:'rv:year:skip'}]] },
+      edit_year: {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]},
+      edit_end_year: {inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},
       media: { inline_keyboard: [[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]] },
       edit_media: {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},
       spoiler: { inline_keyboard: [[{text:'Contains spoilers',callback_data:'rv:spoiler:yes',style:'danger'},{text:'No spoilers',callback_data:'rv:spoiler:no',style:'success'}]] },
