@@ -1,6 +1,6 @@
 import { api, db } from 'sdk';
 import { and, eq } from 'sdk/db';
-import { reviewDrafts, reviews, communityConfig, categoryTopics, topicCounters } from '../schema.js';
+import { reviewDrafts, reviews, reviewReactions, communityConfig, categoryTopics, topicCounters } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
 import { categories, getCategory, isAdmin } from '../lib/config.js';
 import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage, buildMyReviewsRichMessage } from '../lib/formatting.js';
@@ -83,7 +83,7 @@ export default async function (query) {
       return;
     }
 
-    const [prefix, action, value] = String(query.data ?? '').split(':');
+    const [prefix, action, value, detail] = String(query.data ?? '').split(':');
     if (prefix === 'rv' && action === 'resetdb') {
       if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
       if (value === 'cancel') {
@@ -103,6 +103,46 @@ export default async function (query) {
       }
       await answer(query.id, 'Unknown reset action.');
       return;
+    }
+    if (prefix === 'rv' && action === 'react') {
+      const reviewId = Number(value);
+      const reaction = detail;
+      if (!Number.isInteger(reviewId) || reviewId < 1 || !['like', 'dislike'].includes(reaction) || !query.message?.message_id) {
+        await answer(query.id, 'This reaction button is invalid.');
+        return;
+      }
+      const review = await db.select().from(reviews).where(eq(reviews.id, reviewId)).get();
+      if (!review || review.status !== 'published' || review.chatId !== chat.id || review.messageId !== query.message.message_id) {
+        await answer(query.id, 'This review is no longer available.');
+        return;
+      }
+      const existingVote = await db.select().from(reviewReactions)
+        .where(and(eq(reviewReactions.reviewId, reviewId), eq(reviewReactions.userId, userId))).get();
+      if (existingVote?.reaction === reaction) {
+        await db.delete(reviewReactions).where(and(
+          eq(reviewReactions.reviewId, reviewId),
+          eq(reviewReactions.userId, userId),
+        )).run();
+      } else {
+        await db.insert(reviewReactions).values({
+          reviewId, userId, reaction, createdAt: new Date(), updatedAt: new Date(),
+        }).onConflictDoUpdate({
+          target: [reviewReactions.reviewId, reviewReactions.userId],
+          set: { reaction, updatedAt: new Date() },
+        }).run();
+      }
+      const votes = await db.select().from(reviewReactions).where(eq(reviewReactions.reviewId, reviewId)).all();
+      const counts = {
+        likes: votes.filter((vote) => vote.reaction === 'like').length,
+        dislikes: votes.filter((vote) => vote.reaction === 'dislike').length,
+      };
+      const userReaction = existingVote?.reaction === reaction ? null : reaction;
+      await answer(query.id, userReaction ? 'Your reaction has been saved.' : 'Your reaction has been removed.');
+      return api.editMessageReplyMarkup({
+        chat_id: chat.id,
+        message_id: query.message.message_id,
+        reply_markup: buildReviewKeyboard({}, 'published', reviewId, counts, userReaction),
+      });
     }
     if (prefix !== 'rv') {
       await answer(query.id, 'This button is not recognized.');
@@ -234,7 +274,7 @@ export default async function (query) {
           ? ['season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
           : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         review_text: ['rating', 'Choose your rating from 1 to 10.', ratingKeyboard()],
-        media: ['review_text', 'Write your review in 20–3000 characters.', null],
+        media: ['review_text', 'Write your review in 20–5000 characters.', null],
         spoiler: ['media', 'Send photos or direct HTTPS image URLs, or tap Skip photos.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
       if (!previous) return preview(chat.id, { ...draft, step: 'complete' });
@@ -284,11 +324,18 @@ export default async function (query) {
       return editPrompt(chat.id, data.promptMessageId, 'Write your review in 20–3000 characters.', withBack());
     }
 
-    if(action==='year'&&value==='skip'&&['year','edit_year'].includes(draft.step)){
-      data.year=null;await answer(query.id);
-      if(draft.step==='edit_year'){await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
+    if(action==='year'&&value==='skip'&&['year','edit_year','end_year','edit_end_year'].includes(draft.step)){
+      const editingYear = draft.step.startsWith('edit_');
+      if (draft.step === 'year' || draft.step === 'edit_year') {
+        data.year = null;
+        data.endYear = null;
+      } else {
+        data.endYear = null;
+      }
+      await answer(query.id);
+      if(editingYear){await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
       await saveDraft(userId,chat.id,'genre',data);
-      return editPrompt(chat.id,data.promptMessageId,'Optionally send the genre or genres, or tap Skip genre.',withBack({inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]}));
+      return editPrompt(chat.id,data.promptMessageId,'Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',withBack({inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]}));
     }
     if(action==='media'&&['done','skip'].includes(value)&&['media','edit_media'].includes(draft.step)){
       // Re-read after album updates: each Telegram photo arrives in its own
@@ -322,8 +369,8 @@ export default async function (query) {
       }
       const steps = {
         title: ['edit_title', 'Send the corrected title.'],
-        year: ['edit_year', 'Send the corrected release year, or skip if unsure.'],
-        genre: ['edit_genre', 'Send genre names, or tap Skip genre to remove them.'],
+        year: ['edit_year', 'Send the corrected release year. For TV series, you’ll also be able to add an end year.'],
+        genre: ['edit_genre', 'Send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). Missing # symbols are added automatically, or tap Skip genre.'],
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
         rating: ['edit_rating', 'Choose the corrected rating.'],
         text: ['edit_text', 'Send the corrected review text.'],
