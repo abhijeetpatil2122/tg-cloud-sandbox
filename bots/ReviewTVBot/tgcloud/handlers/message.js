@@ -1,6 +1,6 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
-import { reviews } from '../schema.js';
+import { reviews, reviewReactions } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft, appendDraftMedia } from '../lib/sessions.js';
 import { categories, isAdmin } from '../lib/config.js';
 import {
