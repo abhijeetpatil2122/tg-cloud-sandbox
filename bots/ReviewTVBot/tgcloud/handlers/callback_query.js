@@ -279,12 +279,12 @@ export default async function (query) {
       const previous = {
         title: ['category', 'Choose the category for your review:', categoryKeyboard()],
         year: ['title', 'Send the movie, show, or anime title.', null],
-        genre: data.categoryKey === 'tv_shows'
+        genre: ['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)
           ? ['end_year', 'If the series has ended, send its final year, or tap Skip end year.', {inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}]
           : ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
         end_year: ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
         season: ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
-        rating: data.categoryKey === 'tv_shows'
+        rating: ['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)
           ? ['season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
           : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         review_text: ['rating', 'Choose your rating from 1 to 10.', ratingKeyboard()],
