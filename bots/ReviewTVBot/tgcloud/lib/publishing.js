@@ -1,6 +1,7 @@
 import { api, db } from 'sdk';
 import { eq, sql } from 'sdk/db';
 import { categoryTopics, communityConfig, reviews, topicCounters } from '../schema.js';
+import { buildReviewKeyboard } from './formatting.js';
 import { getCategory } from './config.js';
 import { buildReviewRichMessage } from './formatting.js';
 
@@ -39,7 +40,7 @@ export async function publishReview(userId, draft) {
 
   const inserted = await db.insert(reviews).values({
     reviewNumber, authorId: userId, authorName, categoryKey: data.categoryKey,
-    title: data.title, year: data.year || 0, season: data.season ?? null, rating: data.rating,
+    title: data.title, year: data.year || 0, endYear: data.endYear || null, season: data.season ?? null, rating: data.rating,
     reviewText: data.reviewText, posterFileId: data.media?.length ? JSON.stringify({version:1,media:data.media,mediaMode:data.mediaMode||'single'}) : (data.posterFileId ?? data.posterUrl ?? data.posterMedia ?? null),
     hasSpoilers: Boolean(data.hasSpoilers), status: 'publishing',
     chatId: config.chatId, topicId: mapping.topicId, createdAt: new Date(),
@@ -51,6 +52,7 @@ export async function publishReview(userId, draft) {
       chat_id: config.chatId,
       message_thread_id: mapping.topicId,
       rich_message: buildReviewRichMessage({ ...data, authorName }, reviewNumber, false),
+      reply_markup: buildReviewKeyboard(data, 'published', reviewRecord.id),
     });
     // The configured publishing destination is the public @Review_Tv forum.
     // Avoid an extra getChat Bot API round-trip after the post has already sent.

@@ -2,7 +2,7 @@
 
 A Telegram BotFather Serverless bot for community-written movie, TV show, and anime reviews.
 
-Users submit reviews privately through a category-first wizard, preview the finished post, and confirm publication. Confirmed reviews are posted directly into the matching topic of one configured Telegram forum supergroup.
+Users submit reviews privately through a category-first wizard, preview the finished post, and confirm publication. Published reviews include per-user like/dislike buttons; each user can change or remove their vote. Confirmed reviews are posted directly into the matching topic of one configured Telegram forum supergroup.
 
 ## Forum topics
 
@@ -17,7 +17,9 @@ The user chooses a category before entering review details. The bot maps that ca
 
 ## Review flow
 
-Choose category → enter title and year → optional TV season → choose rating (1–10) → write review → optional poster → spoiler flag → preview/edit → confirm and publish.
+Choose category → enter title and year → optional series end year → genre hashtags → optional TV season → choose rating (1–10) → write review → optional poster → spoiler flag → preview/edit → confirm and publish.
+
+Genres are displayed as hashtags. Review text supports 20–5000 characters and is shown in an expandable blockquote. TV series can include both a start and end year.
 
 There is no admin approval queue. The author's final confirmation authorizes publication.
 

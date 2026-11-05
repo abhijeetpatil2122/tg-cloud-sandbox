@@ -16,7 +16,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   if(selectedMedia.length===1)blocks.push(photoBlock(selectedMedia[0]));
   else if(selectedMedia.length>1)blocks.push({type:'slideshow',blocks:selectedMedia.map(photoBlock)});
   blocks.push(
-    heading(`${plain(data.title)}${data.year ? ` (${plain(data.year)})` : ''}`, 1),
+    heading(`${plain(data.title)}${data.year ? ` (${plain(data.year)}${data.endYear ? ` — ${plain(data.endYear)}` : ''})` : ''}`, 1),
     ...(data.genre ? [paragraph(plain(data.genre))] : []),
     ...(data.categoryKey === 'tv_shows' && data.season ? [paragraph(`Season ${plain(data.season)}`)] : []),
     paragraph([
@@ -26,7 +26,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
     { type: 'divider' },
     heading('Review', 3),
     {
-      type: 'paragraph',
+      type: 'expandable_blockquote',
       text: data.hasSpoilers
         ? { type: 'spoiler', text: plain(data.reviewText) }
         : plain(data.reviewText),
@@ -37,7 +37,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   return { blocks };
 }
 
-export function buildReviewKeyboard(data, mode = 'preview') {
+export function buildReviewKeyboard(data, mode = 'preview', reviewId = null, counts = { likes: 0, dislikes: 0 }, userReaction = null) {
   if (mode === 'preview') {
     return { inline_keyboard: [
       [{ text: 'Publish review', callback_data: 'rv:publish', style: 'success' }],
@@ -47,12 +47,15 @@ export function buildReviewKeyboard(data, mode = 'preview') {
       ],
     ] };
   }
+  if (mode === 'published') return { inline_keyboard: [
+    [{ text: `👍 ${counts.likes}`, callback_data: `rv:react:${reviewId}:like` }, { text: `👎 ${counts.dislikes}`, callback_data: `rv:react:${reviewId}:dislike` }],
+  ] };
   const category = categories.find((item) => item.key === data.categoryKey);
   return { inline_keyboard: [
     [{ text: data.hasSpoilers ? 'SPOILER REVIEW' : `★ ${data.rating}/10`, callback_data: 'rv:noop', style: data.hasSpoilers ? 'danger' : 'success', disabled: true }],
     [
       { text: category?.label ?? 'Review', callback_data: 'rv:noop', style: 'primary', disabled: true },
-      ...(data.year ? [{text:String(data.year),callback_data:'rv:noop',style:'primary',disabled:true}] : []),
+      ...(data.year ? [{text:`${data.year}${data.endYear ? ` — ${data.endYear}` : ''}`,callback_data:'rv:noop',style:'primary',disabled:true}] : []),
       ...(data.season ? [{ text: `Season ${data.season}`, callback_data: 'rv:noop', style: 'primary', disabled: true }] : []),
     ],
   ] };
@@ -97,9 +100,10 @@ export function buildHowToRichMessage() {
     categoryKey: 'tv_shows',
     title: 'Game of Thrones',
     year: 2011,
+    endYear: 2019,
     media:[{type:'photo',media:'https://image.zaw-myo.workers.dev/image/47bc8568-311f-4e70-aef5-d01cd80eac92'},{type:'photo',media:'https://image.zaw-myo.workers.dev/image/531b99d8-c963-4886-b578-546b82a88337'}],
     mediaMode:'slideshow',
-    genre: 'Fantasy, Drama',
+    genre: '#Fantasy, #Drama',
     season: 8,
     rating: 9,
     reviewText: 'An ambitious fantasy series with unforgettable characters, political intrigue, and remarkable world-building. Its strongest seasons build tension through layered storytelling and memorable performances. A landmark series for viewers who enjoy complex dramas and large-scale fantasy.',
@@ -111,8 +115,8 @@ export function buildHowToRichMessage() {
     paragraph('Posting is simple. Start a review and follow the prompts — your draft is saved as you go, and nothing is published until you confirm it.'),
     { type: 'list', items: [
       { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose the review category.')] },
-      { value: 2, type: '1', blocks: [paragraph('Enter the title and release year, or skip the year if unsure. Add a genre if you want; series reviews can also include a season number.')] },
-      { value: 3, type: '1', blocks: [paragraph('Choose a rating from 1–10, then write your review in your own words.')] },
+      { value: 2, type: '1', blocks: [paragraph('Enter the title and release year. For ended series, add the end year too (for example, 2012 — 2020). Add genres separated by commas; missing # symbols are added automatically. Series reviews can also include a season number.')] },
+      { value: 3, type: '1', blocks: [paragraph('Choose a rating from 1–10, then write a review of 20–5000 characters. It is displayed in an expandable quotation.')] },
       { value: 4, type: '1', blocks: [paragraph('Add one or more photos, or paste multiple direct HTTPS image links separated by commas (or skip), set spoilers, review the preview, and publish.')] },
     ] },
     { type: 'details', summary: 'See an example of a published series review', blocks: sample.blocks },
@@ -126,7 +130,7 @@ export function buildMyReviewsRichMessage(items, page, pageCount, total) {
     blocks: [{
       type: 'paragraph',
       text: [
-        { type: 'bold', text: `${plain(item.title)}${item.year ? ` (${plain(item.year)})` : ''}` },
+        { type: 'bold', text: `${plain(item.title)}${item.year ? ` (${plain(item.year)}${item.endYear ? ` — ${plain(item.endYear)}` : ''})` : ''}` },
         ' ',
         ...(item.messageLink
           ? [{ type: 'button', button: { text: `★ ${plain(item.rating)}/10`, url: item.messageLink, style: 'success' } }]
