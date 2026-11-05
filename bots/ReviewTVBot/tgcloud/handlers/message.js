@@ -134,9 +134,9 @@ async function startReview(message) {
     const prompts = {
       category: 'Choose the category for your review:',
       title: 'Send the movie, show, or anime title.',
-      year: 'Send the release year (for example, 2024), or tap Skip year if unsure.',
+      year: 'Send the release year (for example, 2024). For TV series, you can add the end year in the next step, or skip if unknown.',
       end_year: 'If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',
-      edit_year: 'Send the corrected release year, or tap Skip year if unsure.',
+      edit_year: 'Send the corrected release year. For TV series, you can also update its end year, or tap Skip year if unknown.',
       edit_end_year: 'Send the series end year, or tap Skip end year if it is still ongoing or unknown.',
       genre: 'Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',
       season: 'Send the season number, or tap Skip season.',
