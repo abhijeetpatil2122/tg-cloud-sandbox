@@ -83,7 +83,7 @@ export default async function (query) {
     if (prefix === 'rv' && action === 'react') {
       const reviewId = Number(value);
       const reaction = detail;
-      if (!Number.isInteger(reviewId) || reviewId < 1 || !['like', 'dislike'].includes(reaction) || !query.message?.message_id) {
+      if (!Number.isInteger(reviewId) || reviewId < 1 || !['like', 'dislike'].includes(reaction) || !chat?.id || !query.message?.message_id) {
         await answer(query.id, 'This reaction button is invalid.');
         return;
       }
