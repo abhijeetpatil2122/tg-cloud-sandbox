@@ -166,6 +166,7 @@ export default async function (query) {
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/admin'},' — Open this administration panel']}]},
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/stats'},' — View review totals and category statistics']}]},
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settings'},' — View forum connection and topic mappings']}]},
+          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/leaderboard'},' — Initialize or repair the top 20 leaderboard']}]},
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
           {blocks:[{type:'paragraph',text:[{type:'bold',text:'/disconnect'},' — Disable the connected review forum']}]},
@@ -182,7 +183,7 @@ export default async function (query) {
         const config=await db.select().from(communityConfig).get(); const mappings=await db.select().from(categoryTopics).all();
         const blocks=[{type:'heading',size:1,text:'Forum settings'}];
         if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
-        else blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},{type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'code',text:String(config.chatId)}]},{type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},{type:'divider'},{type:'heading',size:3,text:'Category topics'},{type:'list',items:categories.map(category=>{const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};})});
+        else blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},{type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'code',text:String(config.chatId)}]},{type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},{type:'divider'},{type:'heading',size:3,text:'Category topics'},{type:'list',items:categories.map(category=>{const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};})},{type:'paragraph',text:[{type:'bold',text:'Leaderboard'},' — ',String(mappings.find(item=>item.categoryKey==='leaderboard'&&item.chatId===config.chatId)?.topicId ?? 'Not configured')]});
         return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}});
       }
     }
