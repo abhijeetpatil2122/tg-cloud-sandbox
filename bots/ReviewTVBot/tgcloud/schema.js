@@ -1,4 +1,4 @@
-import { table, integer, text, boolean, sql } from 'sdk/db';
+import { table, integer, text, boolean, sql, uniqueIndex, index } from 'sdk/db';
 
 export const communityConfig = table('community_config', {
   id: integer('id').primaryKey(),
@@ -52,3 +52,16 @@ export const reviews = table('reviews', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   publishedAt: integer('published_at', { mode: 'timestamp' }),
 });
+
+
+export const reviewReactions = table('review_reactions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  reviewId: integer('review_id').notNull(),
+  userId: integer('user_id').notNull(),
+  reaction: text('reaction').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+}, (t) => ({
+  reviewUserUnique: uniqueIndex('uq_review_reactions_review_user').on(t.reviewId, t.userId),
+  reviewIdx: index('idx_review_reactions_review').on(t.reviewId),
+}));
