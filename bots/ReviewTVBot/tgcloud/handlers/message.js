@@ -8,6 +8,7 @@ import {
   buildReviewKeyboard, buildEditKeyboard, buildMyReviewsRichMessage,
 } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
+import { refreshLeaderboard } from '../lib/leaderboard.js';
 import { communityConfig, categoryTopics } from '../schema.js';
 import {
   connectForum, setCategoryTopic, showSettings, disconnectForum,
@@ -60,8 +61,10 @@ async function showWelcome(message) {
     { type: 'footer', text: ['Review publishing hub: ', { type: 'url', text: '@Review_Tv', url: 'https://t.me/Review_Tv' }, '. Use /help to see available commands.'] },
   ] };
   await sendRich(message.chat.id, rich, { inline_keyboard: [[
-    { text: 'Write a review', callback_data: 'rv:start', style: 'success' },
+    { text: 'Profile', callback_data: 'rv:profile' },
     { text: 'How to use', callback_data: 'rv:howto' },
+  ], [
+    { text: 'Write a review', callback_data: 'rv:start', style: 'success' },
   ]] });
 }
 
@@ -210,7 +213,7 @@ async function handleDraftInput(message, draft) {
     }
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    if (data.categoryKey === 'tv_shows') return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }, data);
+    if (['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)) return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }, data);
     return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard(), data);
   }
   if (draft.step === 'season' || draft.step === 'edit_season') {
@@ -314,6 +317,7 @@ async function showAdmin(chatId, userId, command) {
       {type:'list',items:[
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/admin'},' — Open this administration panel']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/stats'},' — View review totals and category statistics']}]},
+        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/leaderboard'},' — Initialize or repair the top 20 leaderboard message']}]]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settings'},' — View forum connection and topic mappings']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
         {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
@@ -389,6 +393,20 @@ export default async function (message) {
         if (!draft) return api.sendMessage({chat_id:message.chat.id,text:'You do not have an active review draft.'});
         await deleteDraft(userId);
         return editPrompt(message.chat.id,draft.data.promptMessageId,'Your review draft has been cancelled.',null);
+      }
+      if (command === '/profile') {
+        if (message.chat.type !== 'private' || !userId) return;
+        const { showUserProfile } = await import('../lib/profile.js');
+        return showUserProfile(message.chat.id, message.from);
+      }
+      if (command === '/leaderboard') {
+        if (message.chat.type !== 'private' || !isAdmin(userId)) return;
+        try {
+          const result = await refreshLeaderboard();
+          return api.sendMessage({ chat_id: message.chat.id, text: result.replaced ? `Leaderboard repaired with a new message (ID: ${result.messageId}).` : `Leaderboard initialized or refreshed successfully (message ID: ${result.messageId}).` });
+        } catch (error) {
+          return api.sendMessage({ chat_id: message.chat.id, text: error?.message || 'Could not initialize the leaderboard. Check the forum and topic configuration.' });
+        }
       }
       if (command === '/myreviews') {
         if (message.chat.type !== 'private' || !userId) return;
