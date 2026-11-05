@@ -78,32 +78,7 @@ export default async function (query) {
   const chat = query.message?.chat;
   const userId = query.from?.id;
   try {
-    if (!chat || chat.type !== 'private' || !userId || chat.id !== userId) {
-      await answer(query.id, 'Please use these buttons in your private chat with the bot.');
-      return;
-    }
-
     const [prefix, action, value, detail] = String(query.data ?? '').split(':');
-    if (prefix === 'rv' && action === 'resetdb') {
-      if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
-      if (value === 'cancel') {
-        await answer(query.id, 'Reset cancelled.');
-        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,text:'Database reset cancelled.',reply_markup:{inline_keyboard:[]}});
-      }
-      if (value === 'confirm') {
-        await answer(query.id, 'Clearing test data…');
-        await db.delete(reviews).run();
-        await db.delete(reviewDrafts).run();
-        await db.delete(topicCounters).run();
-        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[
-          {type:'heading',size:2,text:'Test data cleared'},
-          {type:'paragraph',text:'All saved review records, active drafts, and review-number counters have been cleared.'},
-          {type:'paragraph',text:'Forum connection and category-topic settings were preserved. Existing posts in Telegram topics were not deleted.'},
-        ]},reply_markup:{inline_keyboard:[]}});
-      }
-      await answer(query.id, 'Unknown reset action.');
-      return;
-    }
     if (prefix === 'rv' && action === 'react') {
       const reviewId = Number(value);
       const reaction = detail;
@@ -143,6 +118,30 @@ export default async function (query) {
         message_id: query.message.message_id,
         reply_markup: buildReviewKeyboard({}, 'published', reviewId, counts, userReaction),
       });
+    }
+    if (!chat || chat.type !== 'private' || !userId || chat.id !== userId) {
+      await answer(query.id, 'Please use these buttons in your private chat with the bot.');
+      return;
+    }
+    if (prefix === 'rv' && action === 'resetdb') {
+      if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
+      if (value === 'cancel') {
+        await answer(query.id, 'Reset cancelled.');
+        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,text:'Database reset cancelled.',reply_markup:{inline_keyboard:[]}});
+      }
+      if (value === 'confirm') {
+        await answer(query.id, 'Clearing test data…');
+        await db.delete(reviews).run();
+        await db.delete(reviewDrafts).run();
+        await db.delete(topicCounters).run();
+        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[
+          {type:'heading',size:2,text:'Test data cleared'},
+          {type:'paragraph',text:'All saved review records, active drafts, and review-number counters have been cleared.'},
+          {type:'paragraph',text:'Forum connection and category-topic settings were preserved. Existing posts in Telegram topics were not deleted.'},
+        ]},reply_markup:{inline_keyboard:[]}});
+      }
+      await answer(query.id, 'Unknown reset action.');
+      return;
     }
     if (prefix !== 'rv') {
       await answer(query.id, 'This button is not recognized.');
@@ -321,7 +320,7 @@ export default async function (query) {
         return preview(chat.id, await getDraft(userId));
       }
       await saveDraft(userId, chat.id, 'review_text', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Write your review in 20–3000 characters.', withBack());
+      return editPrompt(chat.id, data.promptMessageId, 'Write your review in 20–5000 characters.', withBack());
     }
 
     if(action==='year'&&value==='skip'&&['year','edit_year','end_year','edit_end_year'].includes(draft.step)){
