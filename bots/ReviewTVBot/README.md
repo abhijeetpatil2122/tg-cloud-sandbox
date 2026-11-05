@@ -1,8 +1,8 @@
 # ReviewTVBot
 
-A Telegram BotFather Serverless bot for community-written movie, TV show, and anime reviews.
+A Telegram BotFather Serverless bot for community-written movie, TV show, anime, and K/C/J drama reviews.
 
-Users submit reviews privately through a category-first wizard, preview the finished post, and confirm publication. Published reviews include per-user like/dislike buttons; each user can change or remove their vote. Confirmed reviews are posted directly into the matching topic of one configured Telegram forum supergroup.
+Users submit reviews privately through a category-first wizard, preview the finished post, and confirm publication. The bot also provides reviewer profiles and a persistent top-20 leaderboard. Published reviews include per-user like/dislike buttons; each user can change or remove their vote. Confirmed reviews are posted directly into the matching topic of one configured Telegram forum supergroup.
 
 ## Forum topics
 
@@ -12,8 +12,10 @@ Users submit reviews privately through a category-first wizard, preview the fini
 4. Other Regional Movies
 5. TV Shows & Series
 6. Anime
+7. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
+8. Leaderboard — automatically refreshed top 20 reviewers
 
-The user chooses a category before entering review details. The bot maps that category to a configured topic ID. The owner creates the forum topics; the bot does not create them automatically.
+The user chooses a category before entering review details. K/C/J Dramas reuse the TV series year-range and optional season steps; no separate wizard is needed. The bot maps that category to a configured topic ID. The owner creates the forum topics; the bot does not create them automatically.
 
 ## Review flow
 
@@ -29,6 +31,7 @@ There is no admin approval queue. The author's final confirmation authorizes pub
 - `/start` — main menu.
 - `/review` — submit a review.
 - `/myreviews` — view your published reviews.
+- `/profile` — view your profile, review totals, average rating, received reactions, category breakdown, and recent reviews.
 - `/help` — instructions.
 - `/cancel` — cancel the current draft.
 
@@ -37,6 +40,7 @@ There is no admin approval queue. The author's final confirmation authorizes pub
 - `/settopic` — configure a category topic.
 - `/settings` — view configuration.
 - `/stats` — private statistics.
+- `/leaderboard` — initialize, refresh, or repair the single leaderboard message (private admin command).
 - `/resetdb` — temporary admin-only test-data reset; requires confirmation. Clears review records, drafts, and numbering counters, but preserves forum connection/topic mappings and does not delete Telegram forum posts.
 - `/disconnect confirm` — disable the destination after confirmation.
 
@@ -49,7 +53,7 @@ Owner actions are restricted to the Telegram creator of the connected forum supe
 3. Add it to GitHub repository Actions secrets as `TGCLOUD_TOKEN_REVIEWTVBOT`.
 4. Create a supergroup, enable Topics, add the bot as administrator, and grant required text/media permissions.
 5. Create the six topics listed above.
-6. After the forum setup code is deployed and its database schema is migrated, send `/connect` in the supergroup as its creator. Then open each topic and send `/settopic` followed by its category key (for example, `/settopic hollywood_movies`). The bot captures the topic ID from the update, so you do not need to copy IDs manually.
+6. After the forum setup code is deployed and its database schema is migrated, send `/connect` in the supergroup as its creator. Then open each topic and send `/settopic` followed by its category key (for example, `/settopic hollywood_movies`). The bot captures the topic ID from the update, so you do not need to copy IDs manually. Configure the leaderboard topic with `/settopic leaderboard`, then send `/leaderboard` privately to create its persistent message.
 
 The Serverless CLI token is different from the ordinary Bot API token. Never commit either token or place them in source code.
 

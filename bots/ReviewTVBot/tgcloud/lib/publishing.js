@@ -4,6 +4,7 @@ import { categoryTopics, communityConfig, reviews, topicCounters } from '../sche
 import { buildReviewKeyboard } from './formatting.js';
 import { getCategory } from './config.js';
 import { buildReviewRichMessage } from './formatting.js';
+import { refreshLeaderboard } from './leaderboard.js';
 
 const CONFIG_ID = 1;
 
@@ -60,6 +61,8 @@ export async function publishReview(userId, draft) {
     await db.update(reviews).set({
       status: 'published', messageId: sent.message_id, messageLink: link, publishedAt: new Date(),
     }).where(eq(reviews.id, reviewRecord.id)).run();
+    try { await refreshLeaderboard(); }
+    catch (leaderboardError) { console.warn('Leaderboard refresh failed after publishing', leaderboardError?.description || leaderboardError?.message || leaderboardError); }
     return { reviewNumber, link, messageId: sent.message_id, category, topicName: category.label };
   } catch (error) {
     await db.update(reviews).set({ status: 'failed' }).where(eq(reviews.id, reviewRecord.id)).run();

@@ -15,7 +15,7 @@ The repository root `/AGENTS.md` is authoritative for shared Serverless, GitHub 
 - No external movie metadata provider or Mini App is required for the MVP.
 
 ## Category/topic registry
-Use these six initial categories in this order:
+Use these seven review categories in this order:
 
 | Stable key | Forum topic | Coverage |
 |---|---|---|
@@ -24,6 +24,7 @@ Use these six initial categories in this order:
 | `south_indian_movies` | South Indian Movies | Tamil, Telugu, Malayalam, Kannada cinema |
 | `other_regional_movies` | Other Regional Movies | Marathi, Bengali, Punjabi, and other regional cinema |
 | `tv_shows` | TV Shows & Series | Television shows, web series, streaming originals |
+| `k_c_j_dramas` | K/C/J Dramas | Korean, Chinese, and Japanese dramas |
 | `anime` | Anime | Anime films and series |
 
 Keep genres (action, comedy, thriller, romance, horror, sci-fi, etc.) separate from forum categories. Do not add genre topics by default. Category keys are stable internal identifiers; labels and Telegram topic IDs must be configurable independently. Never hardcode topic IDs in publishing logic.
@@ -40,7 +41,7 @@ Submission flow:
 1. Select category using inline buttons.
 2. Enter title.
 3. Enter release year.
-4. If category is TV Shows & Series, ask for an optional season number with Skip. Do not ask for season for movies. Anime series season/cour may be optional metadata, never a blocker.
+4. If category is TV Shows & Series or K/C/J Dramas, ask for an optional series end year and optional season number with Skip. Both categories share the same series metadata flow. Do not ask for season for movies. Anime series season/cour may be optional metadata, never a blocker.
 5. Select rating from 1–10.
 6. Enter review text.
 7. Optionally upload a poster (or Skip).
@@ -50,7 +51,7 @@ Submission flow:
 11. Publish only after an explicit confirmation callback.
 12. Confirm success and return the published message link if available.
 
-The chosen category determines the destination topic. Users never enter topic IDs.
+The chosen category determines the destination topic. Configure the separate leaderboard topic with `/settopic leaderboard`; it is not a review category and must not appear in the review category picker. Users never enter topic IDs.
 
 ## Review post format
 Use a consistent, clean layout: category/title heading, release year and optional season, rating as N/10, review body, spoiler-protected text when marked, reviewer attribution, and optional poster. Prefer native Telegram Rich Message formatting after verifying the exact current Bot API input schema. Do not assume ordinary Markdown is automatically parsed as Rich Message or that `sendRichMessage` accepts media. If poster and formatted review need separate messages, send both to the same `message_thread_id`, store both message IDs, and implement partial-failure recovery.
@@ -183,3 +184,12 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - https://core.telegram.org/bots/api.md
 - https://core.telegram.org/bots/api.json.md
 - https://core.telegram.org/bots/api-changelog.md
+
+
+## Leaderboard and reviewer profiles (current feature branch)
+- The leaderboard is one persistent Rich Message in its own forum topic. Configure it by sending `/settopic leaderboard` inside that topic as the connected forum owner.
+- An authorized admin initializes or repairs it from the bot's private chat with `/leaderboard` (also available in the private admin panel). The command edits the stored message when possible and sends a replacement if it was deleted or cannot be edited.
+- The leaderboard displays at most 20 users, ordered by published review count descending. Equal counts are ordered by Telegram user ID for deterministic ranking.
+- After each successful review publication, the bot attempts to refresh the stored leaderboard message. A leaderboard update failure must never roll back or mark a published review as failed.
+- Reviewer profiles are available from the Start screen and `/profile`. Profile metrics are computed from published review and reaction records; no duplicated counters or extra user profile table is required.
+- The schema adds `leaderboard_state` to persist the forum/topic/message identifiers. This requires a separate migration; CI and deployment do not apply it.

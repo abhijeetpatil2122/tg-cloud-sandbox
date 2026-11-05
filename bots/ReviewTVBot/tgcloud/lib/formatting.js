@@ -7,7 +7,7 @@ const footer = (text) => ({ type: 'footer', text: plain(text) });
 
 export function buildReviewRichMessage(data, reviewNumber = null, preview = false) {
   const blocks = [
-    heading(data.categoryKey === 'anime' ? 'ANIME REVIEW' : data.categoryKey === 'tv_shows' ? 'TV SHOW REVIEW' : 'MOVIE REVIEW', 2),
+    heading(data.categoryKey === 'anime' ? 'ANIME REVIEW' : data.categoryKey === 'tv_shows' ? 'TV SHOW REVIEW' : data.categoryKey === 'k_c_j_dramas' ? 'K/C/J DRAMA REVIEW' : 'MOVIE REVIEW', 2),
   ];
   const legacyMedia=data.posterMedia||data.posterFileId||data.posterUrl;
   const media=Array.isArray(data.media)?data.media:(legacyMedia?[{type:'photo',media:legacyMedia}]:[]);
@@ -18,7 +18,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   blocks.push(
     heading(`${plain(data.title)}${data.year ? ` (${plain(data.year)}${data.endYear ? ` — ${plain(data.endYear)}` : ''})` : ''}`, 1),
     ...(data.genre ? [paragraph(plain(data.genre))] : []),
-    ...(data.categoryKey === 'tv_shows' && data.season ? [paragraph(`Season ${plain(data.season)}`)] : []),
+    ...(['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey) && data.season ? [paragraph(`Season ${plain(data.season)}`)] : []),
     paragraph([
       { type: 'button', button: { text: `★ ${plain(data.rating)}/10`, style: 'success', disabled: {} } },
       ...(data.hasSpoilers ? ['  ', { type: 'button', button: { text: 'SPOILER', style: 'danger', disabled: {} } }] : []),
@@ -75,7 +75,7 @@ export function buildEditKeyboard() {
 export function buildHelpRichMessage(isAdmin = false) {
   return { blocks: [
     heading('HELP & COMMANDS', 1),
-    paragraph('Submit thoughtful reviews of movies, series, and anime. Every published review is organised in the appropriate topic of @Review_Tv.'),
+    paragraph('Submit thoughtful reviews of movies, TV series, anime, and Korean, Chinese, or Japanese dramas. Open your profile to see your review activity and reactions.'),
     { type: 'divider' },
     heading('Commands', 3),
     { type: 'list', items: [
@@ -84,6 +84,7 @@ export function buildHelpRichMessage(isAdmin = false) {
       { blocks: [paragraph('/howtouse — Step-by-step review guide')] },
       { blocks: [paragraph('/review — Write and submit a review')] },
       { blocks: [paragraph('/myreviews — View your published reviews')] },
+      { blocks: [paragraph('/profile — View your reviewer profile and statistics')] },
       { blocks: [paragraph('/cancel — Cancel your active draft')] },
     ] },
     ...(isAdmin ? [
@@ -114,8 +115,8 @@ export function buildHowToRichMessage() {
     heading('HOW TO POST A REVIEW', 1),
     paragraph('Posting is simple. Start a review and follow the prompts — your draft is saved as you go, and nothing is published until you confirm it.'),
     { type: 'list', items: [
-      { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose the review category.')] },
-      { value: 2, type: '1', blocks: [paragraph('Enter the title and release year. For ended series, add the end year too (for example, 2012 — 2020). Add genres separated by commas; missing # symbols are added automatically. Series reviews can also include a season number.')] },
+      { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose the review category, including K/C/J Dramas for Korean, Chinese, or Japanese drama.')] },
+      { value: 2, type: '1', blocks: [paragraph('Enter the title and release year. For ended series, add the end year too (for example, 2012 — 2020). Add genres separated by commas; missing # symbols are added automatically. TV series and K/C/J drama reviews can also include a season number.')] },
       { value: 3, type: '1', blocks: [paragraph('Choose a rating from 1–10, then write a review of 20–5000 characters. It is displayed in an expandable quotation.')] },
       { value: 4, type: '1', blocks: [paragraph('Add one or more photos, or paste multiple direct HTTPS image links separated by commas (or skip), set spoilers, review the preview, and publish.')] },
     ] },
