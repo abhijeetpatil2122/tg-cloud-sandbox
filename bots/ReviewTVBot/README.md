@@ -19,7 +19,9 @@ The user chooses a category before entering review details. The bot maps that ca
 
 Choose category → enter title and year → optional series end year → genre hashtags → optional TV season → choose rating (1–10) → write review → optional poster → spoiler flag → preview/edit → confirm and publish.
 
-Genres are displayed as hashtags. Review text supports 20–5000 characters and is shown in an expandable blockquote. TV series can include both a start and end year.\n\nThere is no admin approval queue. The author's final confirmation authorizes publication.
+Genres are displayed as hashtags. Review text supports 20–5000 characters and is shown in an expandable blockquote. TV series can include both a start and end year.
+
+There is no admin approval queue. The author's final confirmation authorizes publication.
 
 ## Commands
 
