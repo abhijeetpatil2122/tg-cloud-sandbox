@@ -77,7 +77,7 @@ export async function showUserProfile(chatId, user, messageId = null) {
     { type: 'table', cells: [
       [{ text: 'Statistic', is_header: true }, { text: 'Value', is_header: true }],
       [{ text: 'Published reviews' }, { text: String(published.length) }],
-      [{ text: 'Legacy numeric average' }, { text: legacyRated.length ? average + '/10' : '—' }],
+      [{ text: 'Average score (older reviews)' }, { text: legacyRated.length ? average + '/10' : '—' }],
       [{ text: 'Verdict-based reviews' }, { text: String(published.filter((row) => Boolean(getRatingVerdict(row.ratingVerdict))).length) }],
       [{ text: '👍 Received' }, { text: String(likes) }],
       [{ text: '👎 Received' }, { text: String(dislikes) }],
