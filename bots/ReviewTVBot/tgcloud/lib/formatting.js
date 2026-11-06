@@ -1,4 +1,4 @@
-import { categories } from './config.js';
+import { categories, getRatingVerdict } from './config.js';
 
 const plain = (text) => String(text ?? '');
 const heading = (text, size = 2) => ({ type: 'heading', size, text: plain(text) });
@@ -7,7 +7,7 @@ const footer = (text) => ({ type: 'footer', text: plain(text) });
 
 export function buildReviewRichMessage(data, reviewNumber = null, preview = false) {
   const blocks = [
-    heading(data.categoryKey === 'anime' ? 'ANIME REVIEW' : data.categoryKey === 'tv_shows' ? 'TV SHOW REVIEW' : data.categoryKey === 'k_c_j_dramas' ? 'K/C/J DRAMA REVIEW' : 'MOVIE REVIEW', 2),
+    heading(data.categoryKey === 'anime' ? 'ANIME REVIEW' : data.categoryKey === 'tv_shows' ? 'TV SHOW REVIEW' : data.categoryKey === 'k_c_j_dramas' ? 'K/C/J DRAMA REVIEW' : data.categoryKey === 'international_movies' ? 'INTERNATIONAL MOVIE REVIEW' : 'MOVIE REVIEW', 2),
   ];
   const legacyMedia=data.posterMedia||data.posterFileId||data.posterUrl;
   const media=Array.isArray(data.media)?data.media:(legacyMedia?[{type:'photo',media:legacyMedia}]:[]);
@@ -15,12 +15,15 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   const photoBlock=item=>({type:'photo',photo:{type:'photo',media:item.media,...(data.hasSpoilers?{has_spoiler:true}:{})}});
   if(selectedMedia.length===1)blocks.push(photoBlock(selectedMedia[0]));
   else if(selectedMedia.length>1)blocks.push({type:'slideshow',blocks:selectedMedia.map(photoBlock)});
+  const verdict = getRatingVerdict(data.ratingVerdict);
+  const ratingLabel = verdict?.label ?? (data.rating != null ? `★ ${plain(data.rating)}/10` : 'Not rated');
+  const ratingStyle = verdict?.style ?? 'success';
   blocks.push(
     heading(`${plain(data.title)}${data.year ? ` (${plain(data.year)}${data.endYear ? ` — ${plain(data.endYear)}` : ''})` : ''}`, 1),
     ...(data.genre ? [paragraph(plain(data.genre))] : []),
     ...(['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey) && data.season ? [paragraph(`Season ${plain(data.season)}`)] : []),
     paragraph([
-      { type: 'button', button: { text: `★ ${plain(data.rating)}/10`, style: 'success', disabled: {} } },
+      { type: 'button', button: { text: ratingLabel, style: ratingStyle, disabled: {} } },
       ...(data.hasSpoilers ? ['  ', { type: 'button', button: { text: 'SPOILER', style: 'danger', disabled: {} } }] : []),
     ]),
     { type: 'divider' },
@@ -52,7 +55,7 @@ export function buildReviewKeyboard(data, mode = 'preview', reviewId = null, cou
   ] };
   const category = categories.find((item) => item.key === data.categoryKey);
   return { inline_keyboard: [
-    [{ text: data.hasSpoilers ? 'SPOILER REVIEW' : `★ ${data.rating}/10`, callback_data: 'rv:noop', style: data.hasSpoilers ? 'danger' : 'success', disabled: true }],
+    [{ text: data.hasSpoilers ? 'SPOILER REVIEW' : (getRatingVerdict(data.ratingVerdict)?.label ?? `★ ${data.rating}/10`), callback_data: 'rv:noop', style: data.hasSpoilers ? 'danger' : (getRatingVerdict(data.ratingVerdict)?.style ?? 'success'), disabled: true }],
     [
       { text: category?.label ?? 'Review', callback_data: 'rv:noop', style: 'primary', disabled: true },
       ...(data.year ? [{text:`${data.year}${data.endYear ? ` — ${data.endYear}` : ''}`,callback_data:'rv:noop',style:'primary',disabled:true}] : []),
@@ -64,7 +67,7 @@ export function buildReviewKeyboard(data, mode = 'preview', reviewId = null, cou
 export function buildEditKeyboard() {
   const fields = [
     ['title', 'Title'], ['year', 'Year'], ['genre', 'Genre'], ['season', 'Season'],
-    ['rating', 'Rating'], ['text', 'Review text'], ['media', 'Photos'], ['spoiler', 'Spoilers'],
+    ['rating', 'Verdict'], ['text', 'Review text'], ['media', 'Photos'], ['spoiler', 'Spoilers'],
   ];
   return { inline_keyboard: [
     ...fields.map(([key, label]) => [{ text: label, callback_data: `rv:edit:${key}` }]),
@@ -75,7 +78,7 @@ export function buildEditKeyboard() {
 export function buildHelpRichMessage(isAdmin = false) {
   return { blocks: [
     heading('HELP & COMMANDS', 1),
-    paragraph('Submit thoughtful reviews of movies, TV series, anime, and Korean, Chinese, or Japanese dramas. Open your profile to see your review activity and reactions.'),
+    paragraph('Submit thoughtful reviews of movies, TV series, anime, and dramas. Choose a category, then add your personal verdict and review. Open your profile to see your review activity and reactions.'),
     { type: 'divider' },
     heading('Commands', 3),
     { type: 'list', items: [
@@ -106,7 +109,7 @@ export function buildHowToRichMessage() {
     mediaMode:'slideshow',
     genre: '#Fantasy, #Drama',
     season: 8,
-    rating: 9,
+    ratingVerdict: 'absolute_cinema',
     reviewText: 'An ambitious fantasy series with unforgettable characters, political intrigue, and remarkable world-building. Its strongest seasons build tension through layered storytelling and memorable performances. A landmark series for viewers who enjoy complex dramas and large-scale fantasy.',
     authorName: 'yourname',
     hasSpoilers: false,
@@ -117,7 +120,7 @@ export function buildHowToRichMessage() {
     { type: 'list', items: [
       { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose the review category, including K/C/J Dramas for Korean, Chinese, or Japanese drama.')] },
       { value: 2, type: '1', blocks: [paragraph('Enter the title and release year. For ended series, add the end year too (for example, 2012 — 2020). Add genres separated by commas; missing # symbols are added automatically. TV series and K/C/J drama reviews can also include a season number.')] },
-      { value: 3, type: '1', blocks: [paragraph('Choose a rating from 1–10, then write a review of 20–5000 characters. It is displayed in an expandable quotation.')] },
+      { value: 3, type: '1', blocks: [paragraph('Choose a personal verdict — Absolute Cinema, Go for It, Timepass, or Skip It — then write a review of 20–5000 characters. It is displayed in an expandable quotation.')] },
       { value: 4, type: '1', blocks: [paragraph('Add one or more photos, or paste multiple direct HTTPS image links separated by commas (or skip), set spoilers, review the preview, and publish.')] },
     ] },
     { type: 'details', summary: 'See an example of a published series review', blocks: sample.blocks },
@@ -125,7 +128,11 @@ export function buildHowToRichMessage() {
 }
 
 export function buildMyReviewsRichMessage(items, page, pageCount, total) {
-  const listItems = items.map((item, index) => ({
+  const listItems = items.map((item, index) => {
+    const verdict = getRatingVerdict(item.ratingVerdict);
+    const label = verdict?.label ?? (item.rating != null ? `★ ${plain(item.rating)}/10` : 'Not rated');
+    const style = verdict?.style ?? 'success';
+    return ({
     value: page * 10 + index + 1,
     type: '1',
     blocks: [{
@@ -134,11 +141,12 @@ export function buildMyReviewsRichMessage(items, page, pageCount, total) {
         { type: 'bold', text: `${plain(item.title)}${item.year ? ` (${plain(item.year)}${item.endYear ? ` — ${plain(item.endYear)}` : ''})` : ''}` },
         ' ',
         ...(item.messageLink
-          ? [{ type: 'button', button: { text: `★ ${plain(item.rating)}/10`, url: item.messageLink, style: 'success' } }]
-          : [{ type: 'bold', text: `★ ${plain(item.rating)}/10` }]),
+          ? [{ type: 'button', button: { text: label, url: item.messageLink, style } }]
+          : [{ type: 'bold', text: label }]),
       ],
     }],
-  }));
+  });
+  });
   return { blocks: [
     heading('YOUR REVIEWS', 2),
     { type: 'list', items: listItems },
