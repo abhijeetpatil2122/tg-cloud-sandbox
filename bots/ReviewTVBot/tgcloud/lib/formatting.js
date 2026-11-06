@@ -79,7 +79,7 @@ export function buildEditKeyboard() {
 export function buildHelpRichMessage(isAdmin = false) {
   return { blocks: [
     heading('HELP & COMMANDS', 1),
-    paragraph('Submit thoughtful reviews of movies, TV series, anime, and dramas. Choose a category, then add your personal verdict and review. Open your profile to see your review activity and reactions.'),
+    paragraph('Submit thoughtful reviews of movies, TV series, anime, and dramas. Choose a category, give a numeric rating, optionally add a personal verdict, and write your review. Open your profile to see your review activity and reactions.'),
     { type: 'divider' },
     heading('Commands', 3),
     { type: 'list', items: [
@@ -110,6 +110,7 @@ export function buildHowToRichMessage() {
     mediaMode:'slideshow',
     genre: '#Fantasy, #Drama',
     season: 8,
+    rating: 9,
     ratingVerdict: 'absolute_cinema',
     reviewText: 'An ambitious fantasy series with unforgettable characters, political intrigue, and remarkable world-building. Its strongest seasons build tension through layered storytelling and memorable performances. A landmark series for viewers who enjoy complex dramas and large-scale fantasy.',
     authorName: 'yourname',
