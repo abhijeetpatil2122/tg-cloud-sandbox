@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { and, eq } from 'sdk/db';
 import { reviewDrafts, reviews, reviewReactions, communityConfig, categoryTopics, topicCounters } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
-import { categories, getCategory, isAdmin } from '../lib/config.js';
+import { categories, getCategory, getRatingVerdict, isAdmin, ratingVerdicts } from '../lib/config.js';
 import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage, buildMyReviewsRichMessage } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 import { refreshLeaderboard } from '../lib/leaderboard.js';
@@ -36,8 +36,8 @@ function categoryKeyboard() {
 
 function ratingKeyboard() {
   return { inline_keyboard: [
-    [1, 2, 3, 4, 5].map(n => ({ text: String(n), callback_data: `rv:rating:${n}` })),
-    [6, 7, 8, 9, 10].map(n => ({ text: String(n), callback_data: `rv:rating:${n}` })),
+    ratingVerdicts.slice(0, 2).map((v) => ({ text: v.label, callback_data: `rv:rating:${v.key}`, style: v.style })),
+    ratingVerdicts.slice(2).map((v) => ({ text: v.label, callback_data: `rv:rating:${v.key}`, style: v.style })),
   ] };
 }
 
@@ -303,7 +303,7 @@ export default async function (query) {
         rating: ['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)
           ? ['season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
           : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
-        review_text: ['rating', 'Choose your rating from 1 to 10.', ratingKeyboard()],
+        review_text: ['rating', 'Choose your review verdict.', ratingKeyboard()],
         media: ['review_text', 'Write your review in 20–5000 characters.', null],
         spoiler: ['media', 'Send photos or direct HTTPS image URLs, or tap Skip photos.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
@@ -339,12 +339,13 @@ export default async function (query) {
     }
 
     if (action === 'rating' && ['rating', 'edit_rating'].includes(draft.step)) {
-      const rating = Number(value);
-      if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
-        await answer(query.id, 'Choose a rating from 1 to 10.');
+      const verdict = getRatingVerdict(value);
+      if (!verdict) {
+        await answer(query.id, 'Choose one of the available review verdicts.');
         return;
       }
-      data.rating = rating;
+      data.ratingVerdict = verdict.key;
+      data.rating = null;
       await answer(query.id);
       if (draft.step === 'edit_rating') {
         await saveDraft(userId, chat.id, 'complete', data);
