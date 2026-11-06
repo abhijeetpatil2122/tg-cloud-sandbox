@@ -42,7 +42,7 @@ There is no admin approval queue. The author's final confirmation authorizes pub
 - `/settings` — view configuration.
 - `/stats` — private statistics.
 - `/leaderboard` — initialize, refresh, or repair the single leaderboard message (private admin command).
-- `/resetdb` — temporary admin-only test-data reset; requires confirmation. Clears review records, drafts, and numbering counters, but preserves forum connection/topic mappings and does not delete Telegram forum posts.
+- `/resetdb` — admin-only test-data reset; requires confirmation. Clears review records (including verdicts), reaction votes, active drafts, and per-category numbering counters. It preserves the forum connection, topic mappings, and leaderboard message state, then refreshes the leaderboard. Existing Telegram forum posts are not deleted.
 - `/disconnect confirm` — disable the destination after confirmation.
 
 Owner actions are restricted to the Telegram creator of the connected forum supergroup. `/connect` verifies the caller against `getChatAdministrators`; later owner commands check the saved creator ID.
