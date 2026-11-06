@@ -19,6 +19,14 @@ export const ratingVerdicts = [
 ];
 export const getRatingVerdict = (key) => ratingVerdicts.find((item) => item.key === key) ?? null;
 
+export function getNumericRatingStyle(rating) {
+  const value = Number(rating);
+  if (!Number.isInteger(value) || value < 1 || value > 10) return 'primary';
+  if (value <= 4) return 'danger';
+  if (value <= 7) return 'primary';
+  return 'success';
+}
+
 export const publicCommands = [
   { command: 'start', description: 'Welcome message and main menu' },
   { command: 'help', description: 'Show available commands' },
