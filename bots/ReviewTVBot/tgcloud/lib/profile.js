@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { reviews, reviewReactions } from '../schema.js';
-import { categories, getNumericRatingStyle, ratingVerdicts } from './config.js';
+import { categories, getNumericRatingStyle, getRatingVerdict, ratingVerdicts } from './config.js';
 
 const plain = (value) => String(value ?? '');
 
