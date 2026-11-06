@@ -57,7 +57,7 @@ async function showWelcome(message) {
   const rich = { blocks: [
     { type: 'heading', size: 1, text: `Welcome, ${fullName}.` },
     { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, and anime.' },
-    { type: 'paragraph', text: 'Submit your review with a rating, genre, and optional poster. Published reviews are organised in the appropriate topic of @Review_Tv.' },
+    { type: 'paragraph', text: 'Submit your review with a personal verdict, genre, and optional poster. Published reviews are organised in the appropriate topic of @Review_Tv.' },
     { type: 'divider' },
     { type: 'footer', text: ['Review publishing hub: ', { type: 'url', text: '@Review_Tv', url: 'https://t.me/Review_Tv' }, '. Use /help to see available commands.'] },
   ] };
