@@ -144,7 +144,7 @@ async function startReview(message) {
       edit_end_year: 'Send the series end year, or tap Skip end year if it is still ongoing or unknown.',
       genre: 'Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',
       season: 'Send the season number, or tap Skip season.',
-      rating: 'Choose your review verdict.'
+      rating: 'Choose your review verdict.',
       review_text: 'Write your review in 20–5000 characters. Your review will appear in an expandable quotation.',
       media: 'Send one or more photos, or paste direct HTTPS image links separated by commas. Tap Done when finished, or Skip photos.',
       edit_media: 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.',
