@@ -196,3 +196,11 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - After each successful review publication, the bot attempts to refresh the stored leaderboard message. A leaderboard update failure must never roll back or mark a published review as failed.
 - Reviewer profiles are available from the Start screen and `/profile`. Profile metrics are computed from published review and reaction records; no duplicated counters or extra user profile table is required.
 - The schema adds `leaderboard_state` to persist the forum/topic/message identifiers. This requires a separate migration; CI and deployment do not apply it.
+
+
+## Admin test-data reset (current feature branch)
+- /resetdb is owner/admin-only and always requires an explicit confirmation callback.
+- It deletes review_reactions before reviews, then clears review_drafts and topic_counters. Deleting review rows also clears all stored numeric ratings and optional rating_verdict values; no separate verdict table exists.
+- Preserve community_config, category_topics, and leaderboard_state so the connected forum and persistent leaderboard message remain configured.
+- After clearing records, refresh the existing leaderboard message to its empty state. If that refresh fails, the reset still succeeds and the owner receives a note to refresh the leaderboard separately.
+- The reset never deletes messages already published in Telegram forum topics. It resets database-backed history and numbering only.
