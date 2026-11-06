@@ -77,55 +77,43 @@ export function buildEditKeyboard() {
 }
 
 export function buildHelpRichMessage(isAdmin = false) {
+  const communityButton = { type: 'button', button: { text: '@Review_Tv', url: 'https://t.me/Review_Tv' } };
   return { blocks: [
-    heading('HELP & COMMANDS', 1),
-    paragraph('Submit thoughtful reviews of movies, TV series, anime, and dramas. Choose a category, give a numeric rating, optionally add a personal verdict, and write your review. Open your profile to see your review activity and reactions.'),
+    heading('❓ Help & Commands', 1),
+    paragraph('Browse community reviews or publish your own. Every review has a 1–10 rating; a personal verdict is optional.'),
     { type: 'divider' },
     heading('Commands', 3),
     { type: 'list', items: [
-      { blocks: [paragraph('/start — Welcome message')] },
-      { blocks: [paragraph('/help — View this help menu')] },
-      { blocks: [paragraph('/howtouse — Step-by-step review guide')] },
-      { blocks: [paragraph('/review — Write and submit a review')] },
-      { blocks: [paragraph('/myreviews — View your published reviews')] },
-      { blocks: [paragraph('/profile — View your reviewer profile and statistics')] },
+      { blocks: [paragraph('/start — Open the welcome menu')] },
+      { blocks: [paragraph('/help — Show this command list')] },
+      { blocks: [paragraph('/howtouse — View the submission guide')] },
+      { blocks: [paragraph('/review — Submit a review'), { type: 'list', items: [{ blocks: [paragraph('/myreviews — View your published reviews')] }] }] },
+      { blocks: [paragraph('/profile — View your reviewer profile')] },
       { blocks: [paragraph('/cancel — Cancel your active draft')] },
     ] },
-    ...(isAdmin ? [
-      heading('Private administration', 3),
-      paragraph(['/admin', ' — Open the private admin panel and access administration commands.']),
-
-    ] : []),
-    { type: 'footer', text: ['Reviews are published in ', { type: 'url', text: '@Review_Tv', url: 'https://t.me/Review_Tv' }, '. Use /howtouse for the submission guide.'] },
+    ...(isAdmin ? [{ type: 'divider' }, heading('Administration', 3), paragraph([{ type: 'bold', text: '/admin' }, ' — Open the private admin panel.'])] : []),
+    { type: 'divider' },
+    { type: 'footer', text: ['Published in the community: ', communityButton, '. Guide: /howtouse.'] },
   ] };
 }
 
 export function buildHowToRichMessage() {
   const sample = buildReviewRichMessage({
-    categoryKey: 'tv_shows',
-    title: 'Game of Thrones',
-    year: 2011,
-    endYear: 2019,
-    media:[{type:'photo',media:'https://image.zaw-myo.workers.dev/image/47bc8568-311f-4e70-aef5-d01cd80eac92'},{type:'photo',media:'https://image.zaw-myo.workers.dev/image/531b99d8-c963-4886-b578-546b82a88337'}],
-    mediaMode:'slideshow',
-    genre: '#Fantasy, #Drama',
-    season: 8,
-    rating: 9,
-    ratingVerdict: 'absolute_cinema',
-    reviewText: 'An ambitious fantasy series with unforgettable characters, political intrigue, and remarkable world-building. Its strongest seasons build tension through layered storytelling and memorable performances. A landmark series for viewers who enjoy complex dramas and large-scale fantasy.',
-    authorName: 'yourname',
-    hasSpoilers: false,
+    categoryKey: 'tv_shows', title: 'Sample Series', year: 2020, endYear: 2024,
+    genre: '#Drama, #Mystery', season: 2, rating: 9, ratingVerdict: 'absolute_cinema',
+    reviewText: 'A well-paced series with strong performances and a satisfying story.',
+    authorName: 'Reviewer', hasSpoilers: false,
   }, 1, false);
   return { blocks: [
-    heading('HOW TO POST A REVIEW', 1),
-    paragraph('Posting is simple. Start a review and follow the prompts — your draft is saved as you go, and nothing is published until you confirm it.'),
+    heading('How to submit a review', 1),
+    paragraph('Send /review in your private chat. Your draft is saved as you go and is published only after you confirm the preview.'),
     { type: 'list', items: [
-      { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose a category. International Movies is for films from Japan, China, Korea, and other countries; K/C/J Dramas is for drama series.')] },
-      { value: 2, type: '1', blocks: [paragraph('Enter the title and release year. For ended series, add the end year too (for example, 2012 — 2020). Add genres separated by commas; missing # symbols are added automatically. TV series and K/C/J drama reviews can also include a season number.')] },
-      { value: 3, type: '1', blocks: [paragraph('Choose a numeric rating from 1–10, then optionally add a personal verdict — Absolute Cinema, Go for It, Timepass, or Skip It. You can skip the verdict and continue to your review text.')] },
-      { value: 4, type: '1', blocks: [paragraph('Add one or more photos, or paste multiple direct HTTPS image links separated by commas (or skip), set spoilers, review the preview, and publish.')] },
+      { value: 1, type: '1', blocks: [paragraph('Choose a category, then enter the title and release year. TV Shows & Series and K/C/J Dramas also ask for an optional end year and season.')] },
+      { value: 2, type: '1', blocks: [paragraph('Add genres if you wish. Choose a required rating from 1–10, then select an optional verdict or skip it.')] },
+      { value: 3, type: '1', blocks: [paragraph('Write 20–5,000 characters, optionally add photos, set the spoiler option, and check the preview before publishing.')] },
     ] },
-    { type: 'details', summary: 'See an example of a published series review', blocks: sample.blocks },
+    { type: 'paragraph', text: [{ type: 'bold', text: 'Rating colours: ' }, { type: 'marked', text: '1–4 danger' }, ' · ', { type: 'marked', text: '5–7 primary' }, ' · ', { type: 'marked', text: '8–10 success' }, '. Verdict buttons use their own styles.'] },
+    { type: 'details', summary: 'Preview example', blocks: sample.blocks },
   ] };
 }
 
