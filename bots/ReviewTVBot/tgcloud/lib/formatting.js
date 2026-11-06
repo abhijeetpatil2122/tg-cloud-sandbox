@@ -116,7 +116,7 @@ export function buildHowToRichMessage() {
     ],
     mediaMode: 'slideshow',
     mediaCaption: 'Ramayana: Rise of a Legend · 2026',
-    reviewText: 'Nitesh Tiwari’s retelling is made for the big screen. Its vast worlds, striking production design and large-scale action give the epic a remarkable sense of scale, while the score adds real weight to its biggest moments. Ranbir Kapoor brings sincerity to Rama, Sai Pallavi adds warmth as Sita, and Yash gives Ravana a compelling presence. A few creature effects feel uneven, but the ambition, emotion and spectacle make this a memorable theatrical experience. A true peak-cinema moment.',
+    reviewText: 'Nitesh Tiwari’s retelling is built for the big screen. Its expansive kingdoms, elaborate production design and large-scale battles create a striking sense of scale, while Hans Zimmer and A. R. Rahman’s score gives the key moments real lift. Ranbir Kapoor plays Rama with restraint, Sai Pallavi brings warmth to Sita, and Yash makes Ravana a commanding presence. The spectacle is occasionally let down by uneven creature effects and slower stretches, but its ambition and visual grandeur make it a memorable theatrical experience. Peak cinema for the scale alone.',
     authorName: 'ReviewTV Community',
     hasSpoilers: false,
   }, null, true);
