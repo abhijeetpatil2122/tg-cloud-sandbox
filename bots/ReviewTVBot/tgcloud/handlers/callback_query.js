@@ -209,10 +209,10 @@ export default async function (query) {
         chat_id: chat.id, message_id: query.message.message_id,
         rich_message: { blocks: [
           { type: 'heading', size: 1, text: `👋 Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}` },
-          { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, anime, and dramas.' },
-          { type: 'paragraph', text: 'Submit your review with a numeric rating and an optional personal verdict, genre, and poster. Published reviews are organised in the appropriate community topic.' },
-          { type: 'divider' },
-          { type: 'footer', text: 'Use /help to see available commands.' },
+          { type: 'paragraph', text: 'Share thoughtful reviews of movies, series, dramas, and anime.' },
+          { type: 'paragraph', text: 'Choose a category, give a required 1–10 rating, add an optional verdict, and publish when your preview is ready.' },
+          { type: 'paragraph', text: ['Community: ', { type: 'button', button: { text: '@Review_Tv', url: 'https://t.me/Review_Tv' } }] },
+          { type: 'footer', text: 'Use /help for commands or /howtouse for the submission guide.' },
         ] },
         reply_markup: { inline_keyboard: [[{ text: 'Profile', callback_data: 'rv:profile' }, { text: 'How to use', callback_data: 'rv:howto' }], [{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] },
       });
@@ -436,7 +436,7 @@ export default async function (query) {
         genre: ['edit_genre', genrePrompt()],
         season: ['edit_season', 'Send a season number, or skip.'],
         rating: ['edit_rating', 'Choose a rating from 1–10.'],
-        verdict: ['edit_verdict', 'Optionally choose a personal verdict, or skip it.'],
+        verdict: ['edit_verdict', 'Choose an optional verdict, or skip.'],
         text: ['edit_text', 'Write your review (20–5,000 characters).'],
         media: ['edit_media', 'Add replacement photos, then tap Done or Skip.'],
         spoiler: ['edit_spoiler', 'Choose the spoiler setting.'],
