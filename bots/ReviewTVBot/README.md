@@ -32,7 +32,7 @@ There is no admin approval queue. The author's final confirmation authorizes pub
 - `/start` — main menu.
 - `/review` — submit a review.
 - `/myreviews` — view your published reviews.
-- `/profile` — view your profile, review totals, average rating, received reactions, category breakdown, and recent reviews.
+- `/profile` — view your profile, review totals, verdict breakdown, received reactions, category breakdown, and recent reviews.
 - `/help` — instructions.
 - `/cancel` — cancel the current draft.
 
@@ -64,6 +64,6 @@ The initial Serverless scaffold and forum-configuration modules have been deploy
 
 GitHub Actions automatic deployment is enabled for deployable changes under `bots/ReviewTVBot/` pushed to `main`. Pull requests run validation only. Database migrations are never part of automatic deployment and require separate review and approval.
 
-The first review-submission wizard implementation is on the `feature/reviewtvbot-phase3` branch for validation. It captures category, title, year, optional TV season, rating, review text, optional poster, and spoiler status, and persists the draft between updates. Preview/edit and publishing remain the next phases.
+The review wizard supports all eight categories and the four verdict choices. New verdicts are stored separately from historical numeric ratings; old published reviews continue to display their original N/10 score. The schema update requires a separate migration after the code is deployed.
 
 See [AGENTS.md](./AGENTS.md) for the complete architecture, roadmap, security rules, test checklist, and deployment requirements.
