@@ -46,7 +46,7 @@ Submission flow:
 5. Select a numeric rating from 1–10.
 6. Optionally select a personal verdict: Absolute Cinema, Go for It, Timepass, or Skip It; allow Skip.
 7. Enter review text.
-8. Optionally upload a poster (or Skip).
+8. Optionally add up to 10 images (Telegram photos or direct HTTPS image URLs) to create a slideshow, or Skip. The bot automatically adds a category-specific slideshow caption; users do not enter captions.
 9. Choose whether the review contains spoilers.
 10. Show a complete preview with Publish, Edit, and Cancel actions.
 11. Edit individual fields without losing the rest of the draft.
@@ -56,7 +56,7 @@ Submission flow:
 The chosen category determines the destination topic. Configure the separate leaderboard topic with `/settopic leaderboard`; it is not a review category and must not appear in the review category picker. Users never enter topic IDs.
 
 ## Review post format
-Use a consistent, clean layout: category/title heading, release year and optional season, a numeric score with a dynamic danger (1–4), primary (5–7), or success (8–10) button, plus an optional verdict button with its own style, review body, spoiler-protected text when marked, reviewer attribution, and optional poster. Prefer native Telegram Rich Message formatting after verifying the exact current Bot API input schema. Do not assume ordinary Markdown is automatically parsed as Rich Message or that `sendRichMessage` accepts media. If poster and formatted review need separate messages, send both to the same `message_thread_id`, store both message IDs, and implement partial-failure recovery.
+Use a consistent, clean layout: category/title heading, release year and optional season, a numeric score with a dynamic danger (1–4), primary (5–7), or success (8–10) button, plus an optional verdict button with its own style, review body, spoiler-protected text when marked, reviewer attribution, and an optional image slideshow. When a slideshow has multiple images, add a hardcoded caption based on the review category: movie, TV series, drama, or anime. Use the same renderer and caption in the user's preview and the published forum-topic post; do not ask users to enter or edit captions. Prefer native Telegram Rich Message formatting after verifying the exact current Bot API input schema. Do not assume ordinary Markdown is automatically parsed as Rich Message or that `sendRichMessage` accepts media. If poster and formatted review need separate messages, send both to the same `message_thread_id`, store both message IDs, and implement partial-failure recovery.
 
 Escape/safely construct user text so it cannot inject Rich Message formatting or links. Spoiler text must actually be protected; a warning label alone is insufficient.
 
