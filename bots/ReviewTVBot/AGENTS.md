@@ -43,19 +43,20 @@ Submission flow:
 2. Enter title.
 3. Enter release year.
 4. If category is TV Shows & Series or K/C/J Dramas, ask for an optional series end year and optional season number with Skip. Both categories share the same series metadata flow. Do not ask for season for movies. Anime series season/cour may be optional metadata, never a blocker.
-5. Select one review verdict: Absolute Cinema, Go for It, Timepass, or Skip It.
-6. Enter review text.
-7. Optionally upload a poster (or Skip).
-8. Choose whether the review contains spoilers.
-9. Show a complete preview with Publish, Edit, and Cancel actions.
-10. Edit individual fields without losing the rest of the draft.
-11. Publish only after an explicit confirmation callback.
-12. Confirm success and return the published message link if available.
+5. Select a numeric rating from 1–10.
+6. Optionally select a personal verdict: Absolute Cinema, Go for It, Timepass, or Skip It; allow Skip.
+7. Enter review text.
+8. Optionally upload a poster (or Skip).
+9. Choose whether the review contains spoilers.
+10. Show a complete preview with Publish, Edit, and Cancel actions.
+11. Edit individual fields without losing the rest of the draft.
+12. Publish only after an explicit confirmation callback.
+13. Confirm success and return the published message link if available.
 
 The chosen category determines the destination topic. Configure the separate leaderboard topic with `/settopic leaderboard`; it is not a review category and must not appear in the review category picker. Users never enter topic IDs.
 
 ## Review post format
-Use a consistent, clean layout: category/title heading, release year and optional season, a personal review verdict with a matching danger/primary/success button style, review body, spoiler-protected text when marked, reviewer attribution, and optional poster. Prefer native Telegram Rich Message formatting after verifying the exact current Bot API input schema. Do not assume ordinary Markdown is automatically parsed as Rich Message or that `sendRichMessage` accepts media. If poster and formatted review need separate messages, send both to the same `message_thread_id`, store both message IDs, and implement partial-failure recovery.
+Use a consistent, clean layout: category/title heading, release year and optional season, a numeric score with a dynamic danger (1–4), primary (5–7), or success (8–10) button, plus an optional verdict button with its own style, review body, spoiler-protected text when marked, reviewer attribution, and optional poster. Prefer native Telegram Rich Message formatting after verifying the exact current Bot API input schema. Do not assume ordinary Markdown is automatically parsed as Rich Message or that `sendRichMessage` accepts media. If poster and formatted review need separate messages, send both to the same `message_thread_id`, store both message IDs, and implement partial-failure recovery.
 
 Escape/safely construct user text so it cannot inject Rich Message formatting or links. Spoiler text must actually be protected; a warning label alone is insufficient.
 
@@ -94,7 +95,7 @@ Plan for:
 - users: Telegram ID and minimal display metadata/timestamps.
 - community_config: one connected forum chat ID/title/enabled status and trusted owner ID.
 - category_topics: category key, forum chat ID, topic ID, configured timestamp.
-- reviews: review ID, author ID, category, title, year, optional season, legacy numeric rating (1–10; `0` for verdict-based reviews), optional verdict key, text, optional Telegram poster file ID, spoiler flag, status, timestamps, published message IDs/link.
+- reviews: review ID, author ID, category, title, year, optional season, required numeric rating (1–10), optional verdict key, text, optional Telegram poster file ID, spoiler flag, status, timestamps, published message IDs/link.
 - review_drafts: one active draft per Telegram user, current wizard step, serialized validated payload, and timestamps.
 - Optional aggregate counters for owner stats; avoid storing raw activity unnecessarily.
 
@@ -105,7 +106,7 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 ## Security, privacy, and abuse prevention
 - Every admin action is checked against trusted owner identity on the server.
 - Users can access only their own drafts and review history.
-- Validate category, title, year, either a valid legacy numeric rating or one supported verdict, season, text length, and media type/size.
+- Validate category, title, year, a valid numeric rating (1–10) and an optional supported verdict, season, text length, and media type/size.
 - Treat all incoming update/callback fields as untrusted.
 - Accept Telegram photo uploads for posters; do not fetch arbitrary user-supplied URLs in MVP.
 - Apply reasonable per-user draft limits and duplicate-submit protection.
@@ -188,7 +189,7 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 
 
 ## Leaderboard and reviewer profiles (current feature branch)
-- The review verdict is stored separately from the legacy numeric rating. Historical N/10 reviews remain readable; new reviews use one of the four verdicts. For compatibility with the existing NOT NULL numeric column, new verdict-based rows store `0` in `rating`; this sentinel is never displayed as an N/10 score.
+- Numeric rating remains mandatory for every new review. The optional verdict is stored separately in `rating_verdict`; no sentinel is used. Historical numeric ratings remain unchanged.
 - The leaderboard is one persistent Rich Message in its own forum topic. Configure it by sending `/settopic leaderboard` inside that topic as the connected forum owner.
 - An authorized admin initializes or repairs it from the bot's private chat with `/leaderboard` (also available in the private admin panel). The command edits the stored message when possible and sends a replacement if it was deleted or cannot be edited.
 - The leaderboard displays at most 20 users, ordered by published review count descending. Equal counts are ordered by Telegram user ID for deterministic ranking.
