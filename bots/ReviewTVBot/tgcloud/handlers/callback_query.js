@@ -314,7 +314,7 @@ export default async function (query) {
         genre: ['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)
           ? ['end_year', 'If the series has ended, send its final year, or tap Skip end year.', {inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}]
           : ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
-        end_year: ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
+        end_year: ['year', yearPrompt(data.categoryKey), {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
         season: ['genre', 'Optionally add genres, or skip.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         rating: ['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)
           ? ['season', 'Send a season number, or skip.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
@@ -322,7 +322,7 @@ export default async function (query) {
         verdict: ['rating', 'Choose a rating from 1–10.', ratingKeyboard()],
         review_text: ['verdict', 'Choose an optional verdict, or skip.', verdictKeyboard()],
         media: ['review_text', 'Write your review (20–5,000 characters).', null],
-        spoiler: ['media', 'Send photos or direct HTTPS image URLs, or tap Skip photos.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
+        spoiler: ['media', 'Add photos or skip this step.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
       if (!previous) return preview(chat.id, { ...draft, step: 'complete' });
       await saveDraft(userId, chat.id, previous[0], data);
@@ -398,7 +398,7 @@ export default async function (query) {
       await answer(query.id);
       if(editingYear){await saveDraft(userId,chat.id,'complete',data);return preview(chat.id,await getDraft(userId));}
       await saveDraft(userId,chat.id,'genre',data);
-      return editPrompt(chat.id,data.promptMessageId,'Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',withBack({inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]}));
+      return editPrompt(chat.id,data.promptMessageId,genrePrompt(),withBack({inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]}));
     }
     if(action==='media'&&['done','skip'].includes(value)&&['media','edit_media'].includes(draft.step)){
       // Re-read after album updates: each Telegram photo arrives in its own
@@ -431,14 +431,14 @@ export default async function (query) {
         return editPrompt(chat.id, data.promptMessageId, 'Choose the field you want to edit:', buildEditKeyboard());
       }
       const steps = {
-        title: ['edit_title', 'Send the corrected title.'],
-        year: ['edit_year', 'Send the corrected release year. For TV series, you’ll also be able to add an end year.'],
-        genre: ['edit_genre', 'Send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). Missing # symbols are added automatically, or tap Skip genre.'],
-        season: ['edit_season', 'Send a season number, or tap Skip season.'],
+        title: ['edit_title', titlePrompt(data.categoryKey)],
+        year: ['edit_year', yearPrompt(data.categoryKey)],
+        genre: ['edit_genre', genrePrompt()],
+        season: ['edit_season', 'Send a season number, or skip.'],
         rating: ['edit_rating', 'Choose a rating from 1–10.'],
         verdict: ['edit_verdict', 'Optionally choose a personal verdict, or skip it.'],
-        text: ['edit_text', 'Send the corrected review text (20–5000 characters).'],
-        media: ['edit_media', 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.'],
+        text: ['edit_text', 'Write your review (20–5,000 characters).'],
+        media: ['edit_media', 'Add replacement photos, then tap Done or Skip.'],
         spoiler: ['edit_spoiler', 'Choose the spoiler setting.'],
       };
       const selected = steps[value];
