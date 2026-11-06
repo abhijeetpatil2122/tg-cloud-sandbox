@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { reviews, reviewReactions } from '../schema.js';
-import { categories, getRatingVerdict, ratingVerdicts } from './config.js';
+import { categories, getNumericRatingStyle, ratingVerdicts } from './config.js';
 
 const plain = (value) => String(value ?? '');
 
@@ -50,9 +50,8 @@ export async function showUserProfile(chatId, user, messageId = null) {
     ...categoryCounts.map((item) => [{ text: item.label }, { text: String(item.count) }]),
   ];
   const recentItems = published.slice(0, 5).map((item, index) => {
-    const verdict = getRatingVerdict(item.ratingVerdict);
-    const ratingLabel = verdict?.label ?? (item.rating != null ? '★ ' + item.rating + '/10' : 'Not rated');
-    const ratingStyle = verdict?.style ?? 'success';
+    const ratingLabel = item.rating != null ? '★ ' + item.rating + '/10' : 'Not rated';
+    const ratingStyle = getNumericRatingStyle(item.rating);
     return ({
     value: index + 1,
     type: '1',
