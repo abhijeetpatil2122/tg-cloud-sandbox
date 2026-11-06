@@ -146,7 +146,7 @@ export default async function (query) {
       if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
       if (value === 'cancel') {
         await answer(query.id, 'Reset cancelled.');
-        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,text:'Database reset cancelled.',reply_markup:{inline_keyboard:[]}});
+        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[{type:'heading',size:2,text:'Reset cancelled'},{type:'paragraph',text:'No database records were changed.'},{type:'footer',text:{type:'button',button:{text:'Admin panel',callback_data:'rv:admin:home',style:'link'}}}]},reply_markup:{inline_keyboard:[]}});
       }
       if (value === 'confirm') {
         await answer(query.id, 'Clearing test data…');
@@ -199,7 +199,7 @@ export default async function (query) {
       }
       if (value === 'settings') {
         const config=await db.select().from(communityConfig).get(); const mappings=await db.select().from(categoryTopics).all();
-        const blocks=[{type:'heading',size:1,text:'Forum settings'}];
+        const blocks=[{type:'heading',size:1,text:'⚙️ Forum Settings'}];
         if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
         else blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},{type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'code',text:String(config.chatId)}]},{type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},{type:'divider'},{type:'heading',size:3,text:'Category topics'},{type:'list',items:categories.map(category=>{const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};})},{type:'paragraph',text:[{type:'bold',text:'Leaderboard'},' — ',String(mappings.find(item=>item.categoryKey==='leaderboard'&&item.chatId===config.chatId)?.topicId ?? 'Not configured')]});
         blocks.push({type:'divider'},{type:'footer',text:{type:'button',button:{text:'‹ Admin panel',callback_data:'rv:admin:home',style:'link'}}});
