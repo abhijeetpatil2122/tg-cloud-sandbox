@@ -41,7 +41,7 @@ export const reviews = table('reviews', {
   year: integer('year').notNull(),
   endYear: integer('end_year'),
   season: integer('season'),
-  rating: integer('rating'),
+  rating: integer('rating').notNull(),
   ratingVerdict: text('rating_verdict'),
   reviewText: text('review_text').notNull(),
   posterFileId: text('poster_file_id'),
