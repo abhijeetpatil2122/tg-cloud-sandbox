@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { reviews } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft, appendDraftMedia } from '../lib/sessions.js';
-import { categories, isAdmin, ratingVerdicts } from '../lib/config.js';
+import { categories, getNumericRatingStyle, isAdmin, ratingVerdicts } from '../lib/config.js';
 import {
   buildHelpRichMessage, buildHowToRichMessage, buildReviewRichMessage,
   buildReviewKeyboard, buildEditKeyboard, buildMyReviewsRichMessage,
@@ -144,7 +144,10 @@ async function startReview(message) {
       edit_end_year: 'Send the series end year, or tap Skip end year if it is still ongoing or unknown.',
       genre: 'Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',
       season: 'Send the season number, or tap Skip season.',
-      rating: 'Choose your review verdict.',
+      rating: 'Choose your numeric rating from 1 to 10.',
+      verdict: 'Optionally add a personal verdict, or skip this step.',
+      edit_rating: 'Choose your numeric rating from 1 to 10.',
+      edit_verdict: 'Optionally choose a personal verdict, or skip it.',
       review_text: 'Write your review in 20–5000 characters. Your review will appear in an expandable quotation.',
       media: 'Send one or more photos, or paste direct HTTPS image links separated by commas. Tap Done when finished, or Skip photos.',
       edit_media: 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.',
@@ -155,6 +158,9 @@ async function startReview(message) {
       genre: { inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] },
       season: { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] },
       rating: ratingKeyboard(),
+      edit_rating: ratingKeyboard(),
+      verdict: verdictKeyboard(),
+      edit_verdict: verdictKeyboard(),
       year: { inline_keyboard: [[{text:'Skip year',callback_data:'rv:year:skip'}]] },
       end_year: { inline_keyboard: [[{text:'Skip end year',callback_data:'rv:year:skip'}]] },
       edit_year: {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]},
@@ -215,7 +221,7 @@ async function handleDraftInput(message, draft) {
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     if (['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)) return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }, data);
-    return transition(message, draft, 'rating', 'Choose your review verdict.', ratingKeyboard(), data);
+    return transition(message, draft, 'rating', 'Choose your numeric rating from 1 to 10.', ratingKeyboard(), data);
   }
   if (draft.step === 'season' || draft.step === 'edit_season') {
     if (text.toLowerCase() === '/skip') data.season = null;
@@ -276,8 +282,15 @@ async function handleDraftInput(message, draft) {
 
 function ratingKeyboard() {
   return { inline_keyboard: [
-    ratingVerdicts.slice(0, 2).map((v) => ({ text: v.label, callback_data: `rv:rating:${v.key}`, style: v.style })),
-    ratingVerdicts.slice(2).map((v) => ({ text: v.label, callback_data: `rv:rating:${v.key}`, style: v.style })),
+    [1, 2, 3, 4, 5].map((rating) => ({ text: String(rating), callback_data: `rv:rating:${rating}`, style: getNumericRatingStyle(rating) })),
+    [6, 7, 8, 9, 10].map((rating) => ({ text: String(rating), callback_data: `rv:rating:${rating}`, style: getNumericRatingStyle(rating) })),
+  ] };
+}
+function verdictKeyboard() {
+  return { inline_keyboard: [
+    ratingVerdicts.slice(0, 2).map((v) => ({ text: v.label, callback_data: `rv:verdict:${v.key}`, style: v.style })),
+    ratingVerdicts.slice(2).map((v) => ({ text: v.label, callback_data: `rv:verdict:${v.key}`, style: v.style })),
+    [{ text: 'Skip verdict', callback_data: 'rv:verdict:skip' }],
   ] };
 }
 function spoilerKeyboard() {
