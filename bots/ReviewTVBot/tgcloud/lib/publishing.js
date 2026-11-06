@@ -35,8 +35,8 @@ export async function publishReview(userId, draft) {
   const data = { ...draft.data };
   const category = getCategory(data.categoryKey);
   const verdict = getRatingVerdict(data.ratingVerdict);
-  const hasLegacyRating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= 10;
-  if (!category || !data.title || !data.reviewText || (!verdict && !hasLegacyRating)) throw new Error('The review is missing required details.');
+  const hasValidRating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= 10;
+  if (!category || !data.title || !data.reviewText || !hasValidRating || (data.ratingVerdict && !verdict)) throw new Error('The review is missing required details.');
   const { config, mapping } = await getDestination(data.categoryKey);
   const reviewNumber = await nextNumber(data.categoryKey);
   const authorName = data.authorName || 'Telegram user';
@@ -44,7 +44,7 @@ export async function publishReview(userId, draft) {
   const inserted = await db.insert(reviews).values({
     reviewNumber, authorId: userId, authorName, categoryKey: data.categoryKey,
     title: data.title, year: data.year || 0, endYear: data.endYear || null, season: data.season ?? null,
-    rating: verdict ? 0 : data.rating, ratingVerdict: verdict?.key ?? null,
+    rating: data.rating, ratingVerdict: verdict?.key ?? null,
     reviewText: data.reviewText, posterFileId: data.media?.length ? JSON.stringify({version:1,media:data.media,mediaMode:data.mediaMode||'single'}) : (data.posterFileId ?? data.posterUrl ?? data.posterMedia ?? null),
     hasSpoilers: Boolean(data.hasSpoilers), status: 'publishing',
     chatId: config.chatId, topicId: mapping.topicId, createdAt: new Date(),
