@@ -294,7 +294,7 @@ async function handleDraftInput(message, draft) {
   if(draft.step==='poster'||draft.step==='edit_poster'){
     const photo = Array.isArray(message.photo) && message.photo.length ? [{type:'photo',media:message.photo[message.photo.length-1].file_id}] : null;
     const links = text.split(',').map((link) => link.trim()).filter(Boolean);
-    const validLinks = links.length > 0 && links.length <= 10 && links.every((link) => /^https:\/\/[^\\s,]+$/i.test(link));
+    const validLinks = links.length > 0 && links.length <= 10 && links.every((link) => /^https:\/\/[^\s,]+$/i.test(link));
     if (photo) data.media = photo;
     else if (validLinks) data.media = links.map((link) => ({type:'photo',media:link}));
     else if (text.toLowerCase() === '/skip') data.media = [];
