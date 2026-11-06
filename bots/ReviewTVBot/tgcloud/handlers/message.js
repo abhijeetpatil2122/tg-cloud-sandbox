@@ -145,7 +145,7 @@ async function startReview(message) {
       category: 'Choose the category for your review:',
       title: titlePrompt(existing.data.categoryKey),
       year: yearPrompt(existing.data.categoryKey),
-      end_year: 'If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',
+      end_year: 'Send the series end year, or skip if it is ongoing or unknown.',
       edit_year: yearPrompt(existing.data.categoryKey),
       edit_end_year: 'Send the series end year, or skip if it is ongoing or unknown.',
       genre: genrePrompt(),
@@ -206,9 +206,9 @@ async function handleDraftInput(message, draft) {
   }
   if (draft.step === 'year' || draft.step === 'edit_year') {
     const year=Number(text), maxYear=new Date().getUTCFullYear()+5;
-    if(!/^\d{4}$/.test(text)||!Number.isInteger(year)||year<1888||year>maxYear)return editPrompt(chatId,data.promptMessageId,`Please send a valid four-digit year between 1888 and ${maxYear}, or tap Skip year.`,withBack({inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}));
+    if(!/^\d{4}$/.test(text)||!Number.isInteger(year)||year<1888||year>maxYear)return editPrompt(chatId,data.promptMessageId,`Enter a valid four-digit year between 1888 and ${maxYear}, or skip.`,withBack({inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}));
     data.year=year; data.endYear=null; await deleteUserMessage(message);
-    if(['tv_shows','k_c_j_dramas'].includes(data.categoryKey)) return transition(message,draft,editing?'edit_end_year':'end_year','If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',{inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},data);
+    if(['tv_shows','k_c_j_dramas'].includes(data.categoryKey)) return transition(message,draft,editing?'edit_end_year':'end_year','Send the series end year, or skip if it is ongoing or unknown.',{inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]},data);
     if(editing)return saveAndPreview(userId,chatId,data);
     return transition(message,draft,'genre',genrePrompt(),{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
   }
@@ -242,7 +242,7 @@ async function handleDraftInput(message, draft) {
     return transition(message, draft, 'rating', 'Choose a rating from 1–10.', ratingKeyboard(), data);
   }
   if (draft.step === 'review_text' || draft.step === 'edit_text') {
-    if (text.length < 20 || text.length > 5000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 5000 characters for your review.', withBack());
+    if (text.length < 20 || text.length > 5000) return editPrompt(chatId, data.promptMessageId, 'Write between 20 and 5,000 characters.', withBack());
     data.reviewText = text;
     await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
