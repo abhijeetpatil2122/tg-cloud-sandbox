@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { reviews, reviewReactions } from '../schema.js';
-import { categories } from './config.js';
+import { categories, getRatingVerdict, ratingVerdicts } from './config.js';
 
 const plain = (value) => String(value ?? '');
 
@@ -31,9 +31,9 @@ export async function showUserProfile(chatId, user, messageId = null) {
   const received = allVotes.filter((vote) => ownReviewIds.has(vote.reviewId));
   const likes = received.filter((vote) => vote.reaction === 'like').length;
   const dislikes = received.filter((vote) => vote.reaction === 'dislike').length;
-  const average = published.length
-    ? (published.reduce((sum, row) => sum + Number(row.rating || 0), 0) / published.length).toFixed(1)
-    : '—';
+  const legacyRated = published.filter((row) => Number.isFinite(Number(row.rating)) && row.rating != null && Number(row.rating) > 0);
+  const average = legacyRated.length ? (legacyRated.reduce((sum, row) => sum + Number(row.rating), 0) / legacyRated.length).toFixed(1) : '—';
+  const verdictCounts = ratingVerdicts.map((verdict) => ({ label: verdict.label, count: published.filter((row) => row.ratingVerdict === verdict.key).length })).filter((item) => item.count > 0);
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
     || published[0]?.authorName || 'Telegram user';
   const categoryCounts = categories.map((category) => ({
@@ -49,7 +49,11 @@ export async function showUserProfile(chatId, user, messageId = null) {
     [{ text: 'Category', is_header: true }, { text: 'Reviews', is_header: true }],
     ...categoryCounts.map((item) => [{ text: item.label }, { text: String(item.count) }]),
   ];
-  const recentItems = published.slice(0, 5).map((item, index) => ({
+  const recentItems = published.slice(0, 5).map((item, index) => {
+    const verdict = getRatingVerdict(item.ratingVerdict);
+    const ratingLabel = verdict?.label ?? (item.rating != null ? '★ ' + item.rating + '/10' : 'Not rated');
+    const ratingStyle = verdict?.style ?? 'success';
+    return ({
     value: index + 1,
     type: '1',
     blocks: [{
@@ -58,11 +62,12 @@ export async function showUserProfile(chatId, user, messageId = null) {
         { type: 'bold', text: plain(item.title) + (item.year ? ' (' + item.year + (item.endYear ? ' — ' + item.endYear : '') + ')' : '') },
         ' ',
         ...(item.messageLink
-          ? [{ type: 'button', button: { text: '★ ' + item.rating + '/10', url: item.messageLink, style: 'success' } }]
-          : [{ type: 'bold', text: '★ ' + item.rating + '/10' }]),
+          ? [{ type: 'button', button: { text: ratingLabel, url: item.messageLink, style: ratingStyle } }]
+          : [{ type: 'bold', text: ratingLabel }]),
       ],
     }],
-  }));
+  });
+  });
   const blocks = [
     ...(photoFileId ? [{ type: 'photo', photo: { type: 'photo', media: photoFileId } }] : []),
     { type: 'heading', size: 1, text: 'YOUR PROFILE' },
@@ -72,11 +77,16 @@ export async function showUserProfile(chatId, user, messageId = null) {
     { type: 'table', cells: [
       [{ text: 'Statistic', is_header: true }, { text: 'Value', is_header: true }],
       [{ text: 'Published reviews' }, { text: String(published.length) }],
-      [{ text: 'Average rating given' }, { text: published.length ? average + '/10' : '—' }],
+      [{ text: 'Legacy numeric average' }, { text: legacyRated.length ? average + '/10' : '—' }],
+      [{ text: 'Verdict-based reviews' }, { text: String(published.filter((row) => Boolean(getRatingVerdict(row.ratingVerdict))).length) }],
       [{ text: '👍 Received' }, { text: String(likes) }],
       [{ text: '👎 Received' }, { text: String(dislikes) }],
       [{ text: 'Leaderboard' }, { text: topRank ? '#' + topRank : 'Not in top 20' }],
     ], is_bordered: true, is_striped: true, is_compact: true },
+    ...(verdictCounts.length ? [
+      { type: 'heading', size: 3, text: 'Review verdicts' },
+      { type: 'table', cells: [[{ text: 'Verdict', is_header: true }, { text: 'Reviews', is_header: true }], ...verdictCounts.map((item) => [{ text: item.label }, { text: String(item.count) }])], is_bordered: true, is_striped: true, is_compact: true },
+    ] : []),
     ...(categoryCounts.length ? [
       { type: 'heading', size: 3, text: 'Reviews by category' },
       { type: 'table', cells, is_bordered: true, is_striped: true, is_compact: true },
