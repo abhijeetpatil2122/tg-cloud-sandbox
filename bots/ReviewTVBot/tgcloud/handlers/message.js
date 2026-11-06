@@ -365,28 +365,42 @@ async function showAdminStats(chatId, messageId = null) {
 }
 
 async function showAdminSettings(chatId, messageId = null) {
-  const config=await db.select().from(communityConfig).get();
-  const mappings=await db.select().from(categoryTopics).all();
-  const blocks=[{type:'heading',size:1,text:'⚙️ Forum Settings'}];
-  if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
-  else {
-    blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},
-      {type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'code',text:String(config.chatId)}]},
-      {type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},
-      {type:'divider'},
-      {type:'heading',size:3,text:'Category topics'},
-      {type:'list',items:categories.map(category=>{
-        const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);
-        return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};
-      })},
-      {type:'paragraph',text:[{type:'bold',text:'Leaderboard'},' — ',(mappings.find(item=>item.categoryKey==='leaderboard'&&item.chatId===config.chatId)?.topicId ?? 'Not configured').toString()]},
-      );
+  const config = await db.select().from(communityConfig).get();
+  const mappings = await db.select().from(categoryTopics).all();
+  const blocks = [{ type: 'heading', size: 1, text: '⚙️ Forum Settings' }];
+  if (!config) {
+    blocks.push({ type: 'paragraph', text: 'No forum is connected yet. Connect the forum as its creator to begin configuring topics.' });
+  } else {
+    blocks.push(
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Forum: ' }, config.chatTitle || '@Review_Tv'] },
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Chat ID: ' }, { type: 'code', text: String(config.chatId) }] },
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Status: ' }, config.enabled ? 'Connected ✅' : 'Disconnected'] },
+      { type: 'divider' },
+      { type: 'heading', size: 3, text: 'Topic mappings' },
+    );
+    const rows = categories.map((category) => {
+      const mapping = mappings.find((item) => item.categoryKey === category.key && item.chatId === config.chatId);
+      return [{ text: category.label, align: 'left' }, { text: mapping ? String(mapping.topicId) : '—', align: 'right' }];
+    });
+    const leaderboard = mappings.find((item) => item.categoryKey === 'leaderboard' && item.chatId === config.chatId);
+    rows.push([{ text: 'Leaderboard', align: 'left' }, { text: leaderboard ? String(leaderboard.topicId) : '—', align: 'right' }]);
+    blocks.push({ type: 'table', cells: [
+      [{ text: 'Topic', is_header: true, align: 'left' }, { text: 'Topic ID', is_header: true, align: 'right' }],
+      ...rows,
+    ], is_striped: true, caption: 'Configured forum topics' });
   }
-  blocks.push({type:'divider'},{type:'footer',text:{type:'button',button:{text:'‹ Admin panel',callback_data:'rv:admin:home',style:'link'}}});
-  const params={chat_id:chatId,rich_message:{blocks}};
-  if(messageId){params.message_id=messageId;return api.editMessageText(params);}
-  return sendRich(chatId,params.rich_message,params.reply_markup);
+  blocks.push(
+    { type: 'divider' },
+    { type: 'footer', text: { type: 'button', button: { text: '‹ Admin panel', callback_data: 'rv:admin:home', style: 'link' } } },
+  );
+  const params = { chat_id: chatId, rich_message: { blocks } };
+  if (messageId) {
+    params.message_id = messageId;
+    return api.editMessageText(params);
+  }
+  return sendRich(chatId, params.rich_message);
 }
+
 export default async function (message) {
   if (!message?.chat?.id) return;
   const text = typeof message.text === 'string' ? message.text : '';
