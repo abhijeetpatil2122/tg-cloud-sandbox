@@ -187,7 +187,21 @@ export default async function (query) {
         return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}});
       }
     }
-    if (action === 'home') {\n      await answer(query.id);\n      return api.editMessageText({\n        chat_id: chat.id, message_id: query.message.message_id,\n        rich_message: { blocks: [\n          { type: 'heading', size: 1, text: `Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}.` },\n          { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, anime, and dramas.' },\n          { type: 'paragraph', text: 'Submit your review with a rating, genre, and optional poster. Published reviews are organised in the appropriate community topic.' },\n          { type: 'divider' },\n          { type: 'footer', text: 'Use /help to see available commands.' },\n        ] },\n        reply_markup: { inline_keyboard: [[{ text: 'Profile', callback_data: 'rv:profile' }, { text: 'How to use', callback_data: 'rv:howto' }], [{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] },\n      });\n    }\n    if (action === 'reviews') {
+    if (action === 'home') {
+      await answer(query.id);
+      return api.editMessageText({
+        chat_id: chat.id, message_id: query.message.message_id,
+        rich_message: { blocks: [
+          { type: 'heading', size: 1, text: `Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}.` },
+          { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, anime, and dramas.' },
+          { type: 'paragraph', text: 'Submit your review with a rating, genre, and optional poster. Published reviews are organised in the appropriate community topic.' },
+          { type: 'divider' },
+          { type: 'footer', text: 'Use /help to see available commands.' },
+        ] },
+        reply_markup: { inline_keyboard: [[{ text: 'Profile', callback_data: 'rv:profile' }, { text: 'How to use', callback_data: 'rv:howto' }], [{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] },
+      });
+    }
+    if (action === 'reviews') {
       const page=Number(value);
       if(!Number.isInteger(page)||page<0){await answer(query.id,'Invalid page.');return;}
       const rows=await db.select().from(reviews).where(eq(reviews.authorId,userId)).all();
