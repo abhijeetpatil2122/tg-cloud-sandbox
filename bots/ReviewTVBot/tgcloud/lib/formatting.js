@@ -14,8 +14,8 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   const selectedMedia=data.mediaMode==='single'?media.slice(0,1):media;
   const photoBlock=item=>({type:'photo',photo:{type:'photo',media:item.media,...(data.hasSpoilers?{has_spoiler:true}:{})}});
   if(selectedMedia.length===1)blocks.push(photoBlock(selectedMedia[0]));
-  else if(selectedMedia.length>1)blocks.push({type:'slideshow',blocks:selectedMedia.map(photoBlock)});
-  const verdict = getRatingVerdict(data.ratingVerdict);
+  else if(selectedMedia.length>1)blocks.push({type:'slideshow',blocks:selectedMedia.map(photoBlock),...(data.mediaCaption?{caption:{text:plain(data.mediaCaption)}}:{})});
+  const verdict = getRatingVerdict(data.ratingVerdict) ?? (data.ratingVerdictLabel ? { label: plain(data.ratingVerdictLabel), style: data.ratingVerdictStyle || 'success' } : null);
   const ratingLabel = data.rating != null ? `★ ${plain(data.rating)}/10` : 'Not rated';
   const ratingStyle = getNumericRatingStyle(data.rating);
   blocks.push(
@@ -78,9 +78,10 @@ export function buildEditKeyboard() {
 
 export function buildHelpRichMessage(isAdmin = false) {
   const communityButton = { type: 'button', button: { text: '@Review_Tv', url: 'https://t.me/Review_Tv' } };
+  const guideButton = { type: 'button', button: { text: 'How to use', callback_data: 'rv:howto', style: 'link' } };
   return { blocks: [
     heading('❓ Help & Commands', 1),
-    paragraph('Browse community reviews or publish your own. Every review has a 1–10 rating; a personal verdict is optional.'),
+    paragraph('Browse community reviews or publish your own. Every review has a required 1–10 rating; a personal verdict is optional.'),
     { type: 'divider' },
     heading('Commands', 3),
     { type: 'list', items: [
@@ -93,27 +94,97 @@ export function buildHelpRichMessage(isAdmin = false) {
     ] },
     ...(isAdmin ? [{ type: 'divider' }, heading('Administration', 3), paragraph([{ type: 'bold', text: '/admin' }, ' — Open the private admin panel.'])] : []),
     { type: 'divider' },
-    { type: 'footer', text: ['Published in the community: ', communityButton, '. Guide: /howtouse.'] },
+    { type: 'footer', text: ['Published in the community: ', communityButton, '  ', guideButton] },
   ] };
 }
 
 export function buildHowToRichMessage() {
   const sample = buildReviewRichMessage({
-    categoryKey: 'tv_shows', title: 'Sample Series', year: 2020, endYear: 2024,
-    genre: '#Drama, #Mystery', season: 2, rating: 9, ratingVerdict: 'absolute_cinema',
-    reviewText: 'A well-paced series with strong performances and a satisfying story.',
-    authorName: 'Reviewer', hasSpoilers: false,
-  }, 1, false);
+    categoryKey: 'bollywood_movies',
+    title: 'Ramayana: Rise of a Legend',
+    year: 2026,
+    genre: '#Mythology, #Action, #Adventure, #Drama',
+    rating: 9.5,
+    ratingVerdictLabel: 'Peak',
+    ratingVerdictStyle: 'success',
+    media: [
+      { type: 'photo', media: 'https://image.tmdb.org/t/p/original/ysoJexwslfJnSXcHNNF1A9EtDbB.jpg' },
+      { type: 'photo', media: 'https://image.tmdb.org/t/p/original/ks72NqTPhpupk207NXiqmZIQQVI.jpg' },
+      { type: 'photo', media: 'https://image.tmdb.org/t/p/original/xmtdDK5FaBgwDPc9oUSRDmBFJfm.jpg' },
+      { type: 'photo', media: 'https://image.tmdb.org/t/p/original/f5Lq2ndFETM1V5RNmFhpl2FKrHL.jpg' },
+      { type: 'photo', media: 'https://image.tmdb.org/t/p/original/tyL4w11gLjensmsZqW46niGBa4V.jpg' },
+    ],
+    mediaMode: 'slideshow',
+    mediaCaption: 'Ramayana: Rise of a Legend · 2026',
+    reviewText: 'Nitesh Tiwari’s retelling is made for the big screen. Its vast worlds, striking production design and large-scale action give the epic a remarkable sense of scale, while the score adds real weight to its biggest moments. Ranbir Kapoor brings sincerity to Rama, Sai Pallavi adds warmth as Sita, and Yash gives Ravana a compelling presence. A few creature effects feel uneven, but the ambition, emotion and spectacle make this a memorable theatrical experience. A true peak-cinema moment.',
+    authorName: 'ReviewTV Community',
+    hasSpoilers: false,
+  }, null, true);
   return { blocks: [
-    heading('How to submit a review', 1),
+    heading('📖 How to submit a review', 1),
     paragraph('Send /review in your private chat. Your draft is saved as you go and is published only after you confirm the preview.'),
     { type: 'list', items: [
       { value: 1, type: '1', blocks: [paragraph('Choose a category, then enter the title and release year. TV Shows & Series and K/C/J Dramas also ask for an optional end year and season.')] },
       { value: 2, type: '1', blocks: [paragraph('Add genres if you wish. Choose a required rating from 1–10, then select an optional verdict or skip it.')] },
-      { value: 3, type: '1', blocks: [paragraph('Write 20–5,000 characters, optionally add photos, set the spoiler option, and check the preview before publishing.')] },
+      { value: 3, type: '1', blocks: [paragraph('Write your review (20–5,000 characters). Add Telegram photos or multiple direct HTTPS image URLs separated by commas (up to 10 images), set the spoiler option, and check the preview before publishing.')] },
     ] },
-    { type: 'paragraph', text: [{ type: 'bold', text: 'Rating colours: ' }, { type: 'marked', text: '1–4 danger' }, ' · ', { type: 'marked', text: '5–7 primary' }, ' · ', { type: 'marked', text: '8–10 success' }, '. Verdict buttons use their own styles.'] },
-    { type: 'details', summary: 'Preview example', blocks: sample.blocks },
+    { type: 'details', summary: 'Example review · Ramayana: Rise of a Legend (2026)', blocks: sample.blocks },
+  ] };
+}
+
+export function buildAdminPanelRichMessage() {
+  return { blocks: [
+    heading('🛠️ Admin Panel', 1),
+    paragraph('Manage forum publishing, review statistics and test data.'),
+    { type: 'divider' },
+    heading('Admin commands', 3),
+    { type: 'list', items: [
+      { blocks: [paragraph([{ type: 'bold', text: '/admin' }, ' — Open this panel'])] },
+      { blocks: [paragraph([{ type: 'bold', text: '/stats' }, ' — View review totals'])] },
+      { blocks: [paragraph([{ type: 'bold', text: '/leaderboard' }, ' — Initialize or refresh the leaderboard'])] },
+      { blocks: [paragraph([{ type: 'bold', text: '/settings' }, ' — View forum and topic setup'])] },
+      { blocks: [paragraph([{ type: 'bold', text: '/connect' }, ' — Connect the forum (creator only)'])] },
+      { blocks: [paragraph([{ type: 'bold', text: '/settopic <category_key>' }, ' — Map the current topic'])] },
+      { blocks: [paragraph([{ type: 'bold', text: '/disconnect confirm' }, ' — Pause review publishing'])] },
+      { blocks: [paragraph([{ type: 'bold', text: '/resetdb' }, ' — Clear saved test data after confirmation'])] },
+    ] },
+    { type: 'divider' },
+    { type: 'footer', text: ['Authorized administrators only. ', { type: 'button', button: { text: 'Forum settings', callback_data: 'rv:admin:settings', style: 'link' } }] },
+  ] };
+}
+
+export function buildAdminStatsRichMessage(rows) {
+  const published = rows.filter((row) => row.status === 'published');
+  const cell = (text, align = 'left', isHeader = false) => ({
+    text: String(text), align, valign: 'middle', ...(isHeader ? { is_header: true } : {}),
+  });
+  const cells = [
+    [cell('Category', 'left', true), cell('Published', 'right', true)],
+    ...categories.map((category) => [
+      cell(category.label, 'left'),
+      cell(published.filter((row) => row.categoryKey === category.key).length, 'right'),
+    ]),
+    [cell('Total published', 'left'), cell(published.length, 'right')],
+    [cell('Draft / failed', 'left'), cell(rows.length - published.length, 'right')],
+  ];
+  return { blocks: [
+    heading('📊 Review Statistics', 1),
+    { type: 'table', cells, is_striped: true, caption: 'Saved review records by category' },
+    { type: 'footer', text: ['Statistics are based on the current database. ', { type: 'button', button: { text: 'Admin panel', callback_data: 'rv:admin:home', style: 'link' } }] },
+  ] };
+}
+
+export function buildAdminResetConfirmation() {
+  return { blocks: [
+    heading('⚠️ Clear test data?', 1),
+    paragraph('This permanently removes saved reviews, reaction votes, active drafts and review-number counters.'),
+    paragraph('Your forum connection, topic mappings and leaderboard message will be kept. Existing posts in Telegram topics will not be deleted.'),
+    { type: 'divider' },
+    { type: 'footer', text: [
+      { type: 'button', button: { text: 'Confirm reset', callback_data: 'rv:resetdb:confirm', style: 'danger' } },
+      '  ',
+      { type: 'button', button: { text: 'Cancel', callback_data: 'rv:resetdb:cancel', style: 'link' } },
+    ] },
   ] };
 }
 
