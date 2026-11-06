@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { eq, sql } from 'sdk/db';
 import { categoryTopics, communityConfig, reviews, topicCounters } from '../schema.js';
 import { buildReviewKeyboard } from './formatting.js';
-import { getCategory } from './config.js';
+import { getCategory, getRatingVerdict } from './config.js';
 import { buildReviewRichMessage } from './formatting.js';
 import { refreshLeaderboard } from './leaderboard.js';
 
@@ -34,14 +34,15 @@ export async function publishReview(userId, draft) {
   if (!draft || draft.step !== 'complete') throw new Error('Your review is not ready to publish.');
   const data = { ...draft.data };
   const category = getCategory(data.categoryKey);
-  if (!category || !data.title || !data.reviewText || !Number.isInteger(data.rating)) throw new Error('The review is missing required details.');
+  if (!category || !data.title || !data.reviewText || (!getRatingVerdict(data.ratingVerdict) && !Number.isInteger(data.rating))) throw new Error('The review is missing required details.');
   const { config, mapping } = await getDestination(data.categoryKey);
   const reviewNumber = await nextNumber(data.categoryKey);
   const authorName = data.authorName || 'Telegram user';
 
   const inserted = await db.insert(reviews).values({
     reviewNumber, authorId: userId, authorName, categoryKey: data.categoryKey,
-    title: data.title, year: data.year || 0, endYear: data.endYear || null, season: data.season ?? null, rating: data.rating,
+    title: data.title, year: data.year || 0, endYear: data.endYear || null, season: data.season ?? null,
+    rating: getRatingVerdict(data.ratingVerdict) ? null : data.rating, ratingVerdict: getRatingVerdict(data.ratingVerdict)?.key ?? null,
     reviewText: data.reviewText, posterFileId: data.media?.length ? JSON.stringify({version:1,media:data.media,mediaMode:data.mediaMode||'single'}) : (data.posterFileId ?? data.posterUrl ?? data.posterMedia ?? null),
     hasSpoilers: Boolean(data.hasSpoilers), status: 'publishing',
     chatId: config.chatId, topicId: mapping.topicId, createdAt: new Date(),
