@@ -6,6 +6,7 @@ export const categories = [
   { key: 'south_indian_movies', label: 'South Indian Movies' },
   { key: 'other_regional_movies', label: 'Other Regional Movies' },
   { key: 'tv_shows', label: 'TV Shows & Series' },
+  { key: 'k_c_j_dramas', label: 'K/C/J Dramas' },
   { key: 'anime', label: 'Anime' },
 ];
 

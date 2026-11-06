@@ -11,8 +11,8 @@ Users submit reviews privately through a category-first wizard, preview the fini
 3. South Indian Movies
 4. Other Regional Movies
 5. TV Shows & Series
-6. Anime
-7. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
+6. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
+7. Anime
 8. Leaderboard — automatically refreshed top 20 reviewers
 
 The user chooses a category before entering review details. K/C/J Dramas reuse the TV series year-range and optional season steps; no separate wizard is needed. The bot maps that category to a configured topic ID. The owner creates the forum topics; the bot does not create them automatically.
