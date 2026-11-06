@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { reviews } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft, appendDraftMedia } from '../lib/sessions.js';
-import { categories, isAdmin } from '../lib/config.js';
+import { categories, isAdmin, ratingVerdicts } from '../lib/config.js';
 import {
   buildHelpRichMessage, buildHowToRichMessage, buildReviewRichMessage,
   buildReviewKeyboard, buildEditKeyboard, buildMyReviewsRichMessage,
@@ -144,7 +144,7 @@ async function startReview(message) {
       edit_end_year: 'Send the series end year, or tap Skip end year if it is still ongoing or unknown.',
       genre: 'Optionally send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). We’ll add missing # symbols automatically. Tap Skip genre if you want to leave it blank.',
       season: 'Send the season number, or tap Skip season.',
-      rating: 'Choose your rating from 1 to 10.',
+      rating: 'Choose your review verdict.'
       review_text: 'Write your review in 20–5000 characters. Your review will appear in an expandable quotation.',
       media: 'Send one or more photos, or paste direct HTTPS image links separated by commas. Tap Done when finished, or Skip photos.',
       edit_media: 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.',
@@ -154,7 +154,7 @@ async function startReview(message) {
       category: { inline_keyboard: categories.reduce((rows, item, i) => { const r=Math.floor(i/2); rows[r] ||= []; rows[r].push({text:item.label,callback_data:`rv:category:${item.key}`}); return rows; },[]) },
       genre: { inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] },
       season: { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] },
-      rating: { inline_keyboard: [[1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})) , [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`}))] },
+      rating: ratingKeyboard(),
       year: { inline_keyboard: [[{text:'Skip year',callback_data:'rv:year:skip'}]] },
       end_year: { inline_keyboard: [[{text:'Skip end year',callback_data:'rv:year:skip'}]] },
       edit_year: {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]},
@@ -215,7 +215,7 @@ async function handleDraftInput(message, draft) {
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
     if (['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)) return transition(message, draft, 'season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }, data);
-    return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard(), data);
+    return transition(message, draft, 'rating', 'Choose your review verdict.', ratingKeyboard(), data);
   }
   if (draft.step === 'season' || draft.step === 'edit_season') {
     if (text.toLowerCase() === '/skip') data.season = null;
@@ -226,7 +226,7 @@ async function handleDraftInput(message, draft) {
     }
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'rating', 'Choose your rating from 1 to 10.', ratingKeyboard());
+    return transition(message, draft, 'rating', 'Choose your review verdict.', ratingKeyboard(), data);
   }
   if (draft.step === 'review_text' || draft.step === 'edit_text') {
     if (text.length < 20 || text.length > 5000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 5000 characters for your review.', withBack());
@@ -276,8 +276,8 @@ async function handleDraftInput(message, draft) {
 
 function ratingKeyboard() {
   return { inline_keyboard: [
-    [1,2,3,4,5].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})),
-    [6,7,8,9,10].map(n=>({text:String(n),callback_data:`rv:rating:${n}`})),
+    ratingVerdicts.slice(0, 2).map((v) => ({ text: v.label, callback_data: `rv:rating:${v.key}`, style: v.style })),
+    ratingVerdicts.slice(2).map((v) => ({ text: v.label, callback_data: `rv:rating:${v.key}`, style: v.style })),
   ] };
 }
 function spoilerKeyboard() {
