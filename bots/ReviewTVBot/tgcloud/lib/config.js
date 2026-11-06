@@ -21,7 +21,7 @@ export const getRatingVerdict = (key) => ratingVerdicts.find((item) => item.key 
 
 export function getNumericRatingStyle(rating) {
   const value = Number(rating);
-  if (!Number.isInteger(value) || value < 1 || value > 10) return 'primary';
+  if (!Number.isFinite(value) || value < 1 || value > 10) return 'primary';
   if (value <= 4) return 'danger';
   if (value <= 7) return 'primary';
   return 'success';
