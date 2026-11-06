@@ -106,11 +106,12 @@ export async function setCategoryTopic(message, categoryKey) {
   const isLeaderboard = categoryKey === 'leaderboard';
   const category = isLeaderboard ? { key: 'leaderboard', label: 'Leaderboard' } : getCategory(categoryKey);
   if (!category) {
-    await sendToMessageContext(
-      message,
-      `Unknown category. Valid keys: ${categories.map((item) => item.key).join(', ')}`
-    );
-    return;
+    return sendRichToMessageContext(message, [
+      { type: 'heading', size: 2, text: 'Unknown Topic Key' },
+      { type: 'paragraph', text: 'Choose one of the supported keys below and send the command again from its matching topic.' },
+      { type: 'list', items: categories.map((item) => ({ blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: item.label }, ' — ', { type: 'code', text: item.key }] }] })) },
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Leaderboard' }, ' — ', { type: 'code', text: 'leaderboard' }] },
+    ]);
   }
 
   const config = await getConfig();
@@ -201,7 +202,6 @@ export async function disconnectForum(message, confirmation) {
       { type: 'paragraph', text: ['To proceed, send ', { type: 'code', text: '/disconnect confirm' }, '.'] },
       { type: 'footer', text: 'No changes have been made yet.' },
     ]);
-    return;
   }
 
   await db.update(communityConfig)
