@@ -6,10 +6,10 @@ const paragraph = (text) => ({ type: 'paragraph', text });
 const footer = (text) => ({ type: 'footer', text: plain(text) });
 
 function categoryMediaCaption(categoryKey) {
-  if (categoryKey === 'anime') return '✨ Anime moments';
-  if (categoryKey === 'tv_shows') return '📺 TV series moments';
-  if (categoryKey === 'k_c_j_dramas') return '🎭 Drama moments';
-  return '🎬 Movie moments';
+  if (categoryKey === 'anime') return '✨ A glimpse into the anime';
+  if (categoryKey === 'tv_shows') return '📺 A glimpse of the series';
+  if (categoryKey === 'k_c_j_dramas') return '🎭 A glimpse of the drama';
+  return '🎬 A glimpse of the film';
 }
 
 export function buildReviewRichMessage(data, reviewNumber = null, preview = false, mediaCaptionOverride = null) {
