@@ -201,7 +201,7 @@ export default async function (query) {
         rich_message: { blocks: [
           { type: 'heading', size: 1, text: `Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}.` },
           { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, anime, and dramas.' },
-          { type: 'paragraph', text: 'Submit your review with a personal verdict, genre, and optional poster. Published reviews are organised in the appropriate community topic.' },
+          { type: 'paragraph', text: 'Submit your review with a numeric rating and an optional personal verdict, genre, and poster. Published reviews are organised in the appropriate community topic.' },
           { type: 'divider' },
           { type: 'footer', text: 'Use /help to see available commands.' },
         ] },
@@ -343,7 +343,7 @@ export default async function (query) {
         return preview(chat.id, await getDraft(userId));
       }
       await saveDraft(userId, chat.id, 'rating', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Choose your review verdict.', withBack(ratingKeyboard()));
+      return editPrompt(chat.id, data.promptMessageId, 'Choose your numeric rating from 1 to 10.', withBack(ratingKeyboard()));
     }
 
     if (action === 'rating' && ['rating', 'edit_rating'].includes(draft.step)) {
