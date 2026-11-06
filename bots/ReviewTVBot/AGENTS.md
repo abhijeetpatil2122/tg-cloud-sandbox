@@ -94,7 +94,7 @@ Plan for:
 - users: Telegram ID and minimal display metadata/timestamps.
 - community_config: one connected forum chat ID/title/enabled status and trusted owner ID.
 - category_topics: category key, forum chat ID, topic ID, configured timestamp.
-- reviews: review ID, author ID, category, title, year, optional season, rating, text, optional Telegram poster file ID, spoiler flag, status, timestamps, published message IDs/link.
+- reviews: review ID, author ID, category, title, year, optional season, legacy numeric rating (1–10; `0` for verdict-based reviews), optional verdict key, text, optional Telegram poster file ID, spoiler flag, status, timestamps, published message IDs/link.
 - review_drafts: one active draft per Telegram user, current wizard step, serialized validated payload, and timestamps.
 - Optional aggregate counters for owner stats; avoid storing raw activity unnecessarily.
 
@@ -105,7 +105,7 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 ## Security, privacy, and abuse prevention
 - Every admin action is checked against trusted owner identity on the server.
 - Users can access only their own drafts and review history.
-- Validate category, title, year, rating, season, text length, and media type/size.
+- Validate category, title, year, either a valid legacy numeric rating or one supported verdict, season, text length, and media type/size.
 - Treat all incoming update/callback fields as untrusted.
 - Accept Telegram photo uploads for posters; do not fetch arbitrary user-supplied URLs in MVP.
 - Apply reasonable per-user draft limits and duplicate-submit protection.
@@ -122,7 +122,7 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 ### Phase 2 — Forum configuration (code deployed; database migration and live setup pending)
 - Establish trusted owner identity from the Telegram group creator verified during `/connect`.
 - Connect and validate the forum supergroup and bot administrator status.
-- Configure/verify all six category topic IDs.
+- Configure/verify all eight review-category topic IDs plus the separate leaderboard topic ID.
 - Implement owner-only settings and diagnostics.
 
 ### Phase 3 — Database and wizard (implementation in progress on feature branch)
@@ -188,7 +188,7 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 
 
 ## Leaderboard and reviewer profiles (current feature branch)
-- The review verdict is stored separately from the legacy numeric rating. Historical N/10 reviews remain readable; new reviews use one of the four verdicts.
+- The review verdict is stored separately from the legacy numeric rating. Historical N/10 reviews remain readable; new reviews use one of the four verdicts. For compatibility with the existing NOT NULL numeric column, new verdict-based rows store `0` in `rating`; this sentinel is never displayed as an N/10 score.
 - The leaderboard is one persistent Rich Message in its own forum topic. Configure it by sending `/settopic leaderboard` inside that topic as the connected forum owner.
 - An authorized admin initializes or repairs it from the bot's private chat with `/leaderboard` (also available in the private admin panel). The command edits the stored message when possible and sends a replacement if it was deleted or cannot be edited.
 - The leaderboard displays at most 20 users, ordered by published review count descending. Equal counts are ordered by Telegram user ID for deterministic ranking.
