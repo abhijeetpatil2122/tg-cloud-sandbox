@@ -33,6 +33,15 @@ function categoryKeyboard() {
   rows.push([{ text: 'Cancel review', callback_data: 'rv:cancel', style: 'danger' }]);
   return { inline_keyboard: rows };
 }
+function titlePrompt(categoryKey) {
+  const label = categoryKey === 'tv_shows' ? 'TV series' : categoryKey === 'k_c_j_dramas' ? 'K/C/J drama' : categoryKey === 'anime' ? 'anime' : 'movie';
+  return `Send the ${label} title.`;
+}
+function yearPrompt(categoryKey) {
+  return ['tv_shows', 'k_c_j_dramas'].includes(categoryKey) ? 'Send the first release year. You can add the end year next, or skip if unknown.' : 'Send the release year, or skip if unknown.';
+}
+function genrePrompt() { return 'Optionally add genres separated by commas, or skip this step.'; }
+
 
 function ratingKeyboard() {
   return { inline_keyboard: [
@@ -199,7 +208,7 @@ export default async function (query) {
       return api.editMessageText({
         chat_id: chat.id, message_id: query.message.message_id,
         rich_message: { blocks: [
-          { type: 'heading', size: 1, text: `Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}.` },
+          { type: 'heading', size: 1, text: `👋 Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}` },
           { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, anime, and dramas.' },
           { type: 'paragraph', text: 'Submit your review with a numeric rating and an optional personal verdict, genre, and poster. Published reviews are organised in the appropriate community topic.' },
           { type: 'divider' },
@@ -286,7 +295,7 @@ export default async function (query) {
       };
       await saveDraft(userId, chat.id, 'title', data);
       await answer(query.id);
-      await editPrompt(chat.id, data.promptMessageId, 'Send the movie, show, or anime title.', withBack());
+      await editPrompt(chat.id, data.promptMessageId, titlePrompt(category.key), withBack());
       return;
     }
 
@@ -301,18 +310,18 @@ export default async function (query) {
       if (draft.step.startsWith('edit_')) return preview(chat.id, { ...draft, step: 'complete' });
       const previous = {
         title: ['category', 'Choose the category for your review:', categoryKeyboard()],
-        year: ['title', 'Send the movie, show, or anime title.', null],
+        year: ['title', titlePrompt(data.categoryKey), null],
         genre: ['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)
           ? ['end_year', 'If the series has ended, send its final year, or tap Skip end year.', {inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}]
           : ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
         end_year: ['year', 'Send the release year, or tap Skip year if unsure.', {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}],
-        season: ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
+        season: ['genre', 'Optionally add genres, or skip.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
         rating: ['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)
-          ? ['season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
-          : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
-        verdict: ['rating', 'Choose your numeric rating from 1 to 10.', ratingKeyboard()],
-        review_text: ['verdict', 'Optionally add a personal verdict, or skip this step.', verdictKeyboard()],
-        media: ['review_text', 'Write your review in 20–5000 characters.', null],
+          ? ['season', 'Send a season number, or skip.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
+          : ['genre', 'Optionally add genres, or skip.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
+        verdict: ['rating', 'Choose a rating from 1–10.', ratingKeyboard()],
+        review_text: ['verdict', 'Choose an optional verdict, or skip.', verdictKeyboard()],
+        media: ['review_text', 'Write your review (20–5,000 characters).', null],
         spoiler: ['media', 'Send photos or direct HTTPS image URLs, or tap Skip photos.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
       if (!previous) return preview(chat.id, { ...draft, step: 'complete' });
@@ -329,10 +338,10 @@ export default async function (query) {
       }
       if (['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)) {
         await saveDraft(userId, chat.id, 'season', data);
-        return editPrompt(chat.id, data.promptMessageId, 'Send the season number, or tap Skip season.', withBack({ inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }));
+        return editPrompt(chat.id, data.promptMessageId, 'Send a season number, or skip.', withBack({ inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }));
       }
       await saveDraft(userId, chat.id, 'rating', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Choose your numeric rating from 1 to 10.', withBack(ratingKeyboard()));
+      return editPrompt(chat.id, data.promptMessageId, 'Choose a rating from 1–10.', withBack(ratingKeyboard()));
     }
 
     if (action === 'season' && value === 'skip' && ['season', 'edit_season'].includes(draft.step)) {
@@ -343,7 +352,7 @@ export default async function (query) {
         return preview(chat.id, await getDraft(userId));
       }
       await saveDraft(userId, chat.id, 'rating', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Choose your numeric rating from 1 to 10.', withBack(ratingKeyboard()));
+      return editPrompt(chat.id, data.promptMessageId, 'Choose a rating from 1–10.', withBack(ratingKeyboard()));
     }
 
     if (action === 'rating' && ['rating', 'edit_rating'].includes(draft.step)) {
@@ -359,7 +368,7 @@ export default async function (query) {
         return preview(chat.id, await getDraft(userId));
       }
       await saveDraft(userId, chat.id, 'verdict', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Optionally add a personal verdict, or skip this step.', withBack(verdictKeyboard()));
+      return editPrompt(chat.id, data.promptMessageId, 'Choose an optional verdict, or skip.', withBack(verdictKeyboard()));
     }
 
     if (action === 'verdict' && ['verdict', 'edit_verdict'].includes(draft.step)) {
@@ -375,7 +384,7 @@ export default async function (query) {
         return preview(chat.id, await getDraft(userId));
       }
       await saveDraft(userId, chat.id, 'review_text', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Write your review in 20–5000 characters.', withBack());
+      return editPrompt(chat.id, data.promptMessageId, 'Write your review (20–5,000 characters).', withBack());
     }
 
     if(action==='year'&&value==='skip'&&['year','edit_year','end_year','edit_end_year'].includes(draft.step)){
@@ -426,7 +435,7 @@ export default async function (query) {
         year: ['edit_year', 'Send the corrected release year. For TV series, you’ll also be able to add an end year.'],
         genre: ['edit_genre', 'Send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). Missing # symbols are added automatically, or tap Skip genre.'],
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
-        rating: ['edit_rating', 'Choose your numeric rating from 1 to 10.'],
+        rating: ['edit_rating', 'Choose a rating from 1–10.'],
         verdict: ['edit_verdict', 'Optionally choose a personal verdict, or skip it.'],
         text: ['edit_text', 'Send the corrected review text (20–5000 characters).'],
         media: ['edit_media', 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.'],
