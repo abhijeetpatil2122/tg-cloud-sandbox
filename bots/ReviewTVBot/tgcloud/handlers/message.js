@@ -156,7 +156,7 @@ async function startReview(message) {
       category: 'Choose the category for your review:',
       title: titlePrompt(existing.data.categoryKey),
       year: yearPrompt(existing.data.categoryKey),
-      end_year: 'Send the series end year, or skip if it is ongoing or unknown.',
+      end_year: 'Send the series end year, or skip if it is ongoing.',
       edit_year: yearPrompt(existing.data.categoryKey),
       edit_end_year: 'Send the series end year, or skip if it is ongoing or unknown.',
       genre: genrePrompt(),
@@ -225,7 +225,7 @@ async function handleDraftInput(message, draft) {
   }
   if (draft.step === 'end_year' || draft.step === 'edit_end_year') {
     const endYear=Number(text), maxYear=new Date().getUTCFullYear()+5;
-    if(!/^\d{4}$/.test(text)||!Number.isInteger(endYear)||endYear<1888||endYear>maxYear||(data.year&&endYear<data.year))return editPrompt(chatId,data.promptMessageId,`Please send a valid end year between ${data.year||1888} and ${maxYear}; it cannot be earlier than the start year. Or tap Skip end year.`,withBack({inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}));
+    if(!/^\d{4}$/.test(text)||!Number.isInteger(endYear)||endYear<1888||endYear>maxYear||(data.year&&endYear<data.year))return editPrompt(chatId,data.promptMessageId,`Enter an end year from ${data.year || 1888} to ${maxYear}, or skip.`,withBack({inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}));
     data.endYear=endYear; await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
     return transition(message,draft,'genre',genrePrompt(),{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
@@ -273,7 +273,7 @@ async function handleDraftInput(message, draft) {
       const latest=await getDraft(userId);
       const count=Array.isArray(latest?.data?.media)?latest.data.media.length:0;
       await deleteUserMessage(message);
-      return editPrompt(chatId,data.promptMessageId,count>=10?'You can add up to 10 images. Tap Done to continue.':'This review is no longer accepting images. Send /review to resume.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
+      return editPrompt(chatId,data.promptMessageId,count>=10?'You have added 10 images. Tap Done to continue.':'This review is no longer accepting images. Start /review again.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
     }
     // Each album photo is a separate update. Keep the append atomic, but restore
     // the normal wizard UX: remove the user's upload and refresh the single prompt.
@@ -292,7 +292,13 @@ async function handleDraftInput(message, draft) {
     return;
   }
   if(draft.step==='poster'||draft.step==='edit_poster'){
-    if(Array.isArray(message.photo)&&message.photo.length)data.media=[{type:'photo',media:message.photo[message.photo.length-1].file_id}];else if(/^https:\/\/\S+$/i.test(text))data.media=[{type:'photo',media:text}];else if(text.toLowerCase()==='/skip')data.media=[];else return editPrompt(chatId,data.promptMessageId,'Send a photo or direct HTTPS image URL, or skip.',withBack());
+    const photo = Array.isArray(message.photo) && message.photo.length ? [{type:'photo',media:message.photo[message.photo.length-1].file_id}] : null;
+    const links = text.split(',').map((link) => link.trim()).filter(Boolean);
+    const validLinks = links.length > 0 && links.length <= 10 && links.every((link) => /^https:\/\/[^\\s,]+$/i.test(link));
+    if (photo) data.media = photo;
+    else if (validLinks) data.media = links.map((link) => ({type:'photo',media:link}));
+    else if (text.toLowerCase() === '/skip') data.media = [];
+    else return editPrompt(chatId,data.promptMessageId,'Send Telegram photos or up to 10 comma-separated HTTPS image URLs, or skip.',withBack());
     data.mediaMode='slideshow';await deleteUserMessage(message);if(editing)return saveAndPreview(userId,chatId,data);return transition(message,draft,'spoiler','Does your review contain spoilers?',spoilerKeyboard(),data);
   }
   if (draft.step === 'complete') return showPreview(chatId, draft);
