@@ -1,6 +1,6 @@
 # ReviewTVBot
 
-A Telegram BotFather Serverless bot for community-written movie, TV show, anime, and K/C/J drama reviews.
+A Telegram BotFather Serverless bot for community-written movie, TV show, anime, and drama reviews.
 
 Users submit reviews privately through a category-first wizard, preview the finished post, and confirm publication. The bot also provides reviewer profiles and a persistent top-20 leaderboard. Published reviews include per-user like/dislike buttons; each user can change or remove their vote. Confirmed reviews are posted directly into the matching topic of one configured Telegram forum supergroup.
 
@@ -11,15 +11,16 @@ Users submit reviews privately through a category-first wizard, preview the fini
 3. South Indian Movies
 4. Other Regional Movies
 5. TV Shows & Series
-6. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
-7. Anime
-8. Leaderboard — automatically refreshed top 20 reviewers
+6. International Movies — non-Hollywood international cinema, including Japanese, Chinese, Korean, and other world cinema
+7. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
+8. Anime
+9. Leaderboard — automatically refreshed top 20 reviewers
 
-The user chooses a category before entering review details. K/C/J Dramas reuse the TV series year-range and optional season steps; no separate wizard is needed. The bot maps that category to a configured topic ID. The owner creates the forum topics; the bot does not create them automatically.
+The user chooses a category before entering review details. International Movies is a separate film category; K/C/J Dramas reuse the TV series year-range and optional season steps. The bot maps that category to a configured topic ID. The owner creates the forum topics; the bot does not create them automatically.
 
 ## Review flow
 
-Choose category → enter title and year → optional series end year → genre hashtags → optional TV season → choose rating (1–10) → write review → optional poster → spoiler flag → preview/edit → confirm and publish.
+Choose category → enter title and year → optional series end year → genre hashtags → optional TV season → choose a verdict (Absolute Cinema, Go for It, Timepass, or Skip It) → write review → optional poster → spoiler flag → preview/edit → confirm and publish.
 
 Genres are displayed as hashtags. Review text supports 20–5000 characters and is shown in an expandable blockquote. TV series can include both a start and end year.
 
@@ -52,7 +53,7 @@ Owner actions are restricted to the Telegram creator of the connected forum supe
 2. Obtain the Serverless CLI access token from BotFather → Serverless → CLI Access.
 3. Add it to GitHub repository Actions secrets as `TGCLOUD_TOKEN_REVIEWTVBOT`.
 4. Create a supergroup, enable Topics, add the bot as administrator, and grant required text/media permissions.
-5. Create the six topics listed above.
+5. Create the eight review-category topics listed above, plus the separate Leaderboard topic.
 6. After the forum setup code is deployed and its database schema is migrated, send `/connect` in the supergroup as its creator. Then open each topic and send `/settopic` followed by its category key (for example, `/settopic hollywood_movies`). The bot captures the topic ID from the update, so you do not need to copy IDs manually. Configure the leaderboard topic with `/settopic leaderboard`, then send `/leaderboard` privately to create its persistent message.
 
 The Serverless CLI token is different from the ordinary Bot API token. Never commit either token or place them in source code.
