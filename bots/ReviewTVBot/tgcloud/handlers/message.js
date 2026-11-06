@@ -146,8 +146,8 @@ async function startReview(message) {
       title: titlePrompt(existing.data.categoryKey),
       year: yearPrompt(existing.data.categoryKey),
       end_year: 'If the series has ended, send its final year (for example, 2020). Otherwise tap Skip end year.',
-      edit_year: 'Send the corrected release year. For TV series, you can also update its end year, or tap Skip year if unknown.',
-      edit_end_year: 'Send the series end year, or tap Skip end year if it is still ongoing or unknown.',
+      edit_year: yearPrompt(existing.data.categoryKey),
+      edit_end_year: 'Send the series end year, or skip if it is ongoing or unknown.',
       genre: genrePrompt(),
       season: 'Send a season number, or skip.',
       rating: 'Choose a rating from 1–10.',
@@ -222,7 +222,7 @@ async function handleDraftInput(message, draft) {
   if (draft.step === 'genre' || draft.step === 'edit_genre') {
     if (text.toLowerCase() === '/skip') data.genre = null;
     else {
-      if (text.length < 2 || text.length > 80 || !text.split(',').every((item) => item.trim().length > 0)) return editPrompt(chatId, data.promptMessageId, 'Send genre names separated by commas (up to 80 characters), or tap Skip genre.', withBack({ inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] }));
+      if (text.length < 2 || text.length > 80 || !text.split(',').every((item) => item.trim().length > 0)) return editPrompt(chatId, data.promptMessageId, 'Enter genres separated by commas, or skip.', withBack({ inline_keyboard: [[{text:'Skip genre',callback_data:'rv:genre:skip'}]] }));
       data.genre = normalizeGenres(text);
     }
     await deleteUserMessage(message);
@@ -234,7 +234,7 @@ async function handleDraftInput(message, draft) {
     if (text.toLowerCase() === '/skip') data.season = null;
     else {
       const season = Number(text);
-      if (!/^\d{1,2}$/.test(text) || !Number.isInteger(season) || season < 1 || season > 99) return editPrompt(chatId, data.promptMessageId, 'Send a season number from 1 to 99, or tap Skip season.', withBack({ inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }));
+      if (!/^\d{1,2}$/.test(text) || !Number.isInteger(season) || season < 1 || season > 99) return editPrompt(chatId, data.promptMessageId, 'Enter a season number from 1 to 99, or skip.', withBack({ inline_keyboard: [[{text:'Skip season',callback_data:'rv:season:skip'}]] }));
       data.season = season;
     }
     await deleteUserMessage(message);
@@ -247,7 +247,7 @@ async function handleDraftInput(message, draft) {
     await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
     data.media=[];data.mediaMode='slideshow';
-    return transition(message,draft,'media','Send one or more photos, or paste direct HTTPS image links separated by commas. Tap Done when finished, or Skip photos.',{inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},data);
+    return transition(message,draft,'media','Add up to 10 photos, then tap Done or Skip.',{inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},data);
   }
   if(draft.step==='media'||draft.step==='edit_media'){
     const photo=Array.isArray(message.photo)&&message.photo.length
@@ -256,7 +256,7 @@ async function handleDraftInput(message, draft) {
     const links=text.split(',').map(link=>link.trim()).filter(Boolean);
     const validLinks=links.length>0&&links.every(link=>/^https:\/\/[^\s,]+$/i.test(link));
     const items=photo||(validLinks?links.map(link=>({type:'photo',media:link})):null);
-    if(!items)return editPrompt(chatId,data.promptMessageId,'Send Telegram photos (albums are supported), or paste direct HTTPS image links separated by commas. You can add up to 10 images, then tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+    if(!items)return editPrompt(chatId,data.promptMessageId,'Send photos or direct image links. Add up to 10, then tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
     const appended=await appendDraftMedia(userId,chatId,items);
     if(!appended){
       const latest=await getDraft(userId);
