@@ -10,8 +10,8 @@ Users submit reviews privately through a category-first wizard, preview the fini
 2. Bollywood Movies
 3. South Indian Movies
 4. Other Regional Movies
-5. TV Shows & Series
-6. International Movies — non-Hollywood international cinema, including Japanese, Chinese, Korean, and other world cinema
+5. International Movies — non-Hollywood international cinema, including Japanese, Chinese, Korean, and other world cinema
+6. TV Shows & Series
 7. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
 8. Anime
 9. Leaderboard — automatically refreshed top 20 reviewers
@@ -64,6 +64,6 @@ The initial Serverless scaffold and forum-configuration modules have been deploy
 
 GitHub Actions automatic deployment is enabled for deployable changes under `bots/ReviewTVBot/` pushed to `main`. Pull requests run validation only. Database migrations are never part of automatic deployment and require separate review and approval.
 
-The review wizard supports all eight categories and the four verdict choices. New verdicts are stored separately from historical numeric ratings; old published reviews continue to display their original N/10 score. The schema update requires a separate migration after the code is deployed.
+The review wizard supports all eight categories and the four verdict choices. New verdicts are stored separately from historical numeric ratings; old published reviews continue to display their original N/10 score. Verdict-based rows use `0` as a non-displayed sentinel in the legacy numeric column. The new verdict column requires a separate database migration after the code is deployed.
 
 See [AGENTS.md](./AGENTS.md) for the complete architecture, roadmap, security rules, test checklist, and deployment requirements.
