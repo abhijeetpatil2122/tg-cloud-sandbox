@@ -34,8 +34,17 @@ function categoryKeyboard() {
   return { inline_keyboard: rows };
 }
 function titlePrompt(categoryKey) {
-  const label = categoryKey === 'tv_shows' ? 'TV series' : categoryKey === 'k_c_j_dramas' ? 'K/C/J drama' : categoryKey === 'anime' ? 'anime' : 'movie';
-  return `Send the ${label} title.`;
+  const labels = {
+    hollywood_movies: 'Hollywood movie',
+    bollywood_movies: 'Bollywood movie',
+    south_indian_movies: 'South Indian movie',
+    other_regional_movies: 'regional movie',
+    international_movies: 'international movie',
+    tv_shows: 'TV series',
+    k_c_j_dramas: 'K/C/J drama',
+    anime: 'anime title',
+  };
+  return `Send the ${labels[categoryKey] || 'review'} title.`;
 }
 function yearPrompt(categoryKey) {
   return ['tv_shows', 'k_c_j_dramas'].includes(categoryKey) ? 'Send the first release year. You can add the end year next, or skip if unknown.' : 'Send the release year, or skip if unknown.';
@@ -178,8 +187,8 @@ export default async function (query) {
       if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
       await answer(query.id);
       if (value === 'leaderboard') {
-        try { const result = await refreshLeaderboard(); return api.sendMessage({chat_id:chat.id,text:result.replaced?`Leaderboard repaired (message ID: ${result.messageId}).`:`Leaderboard refreshed (message ID: ${result.messageId}).`}); }
-        catch (error) { return api.sendMessage({chat_id:chat.id,text:error?.message||'Could not initialize the leaderboard.'}); }
+        try { const result = await refreshLeaderboard(); return api.sendRichMessage({chat_id:chat.id,rich_message:{blocks:[{type:'heading',size:2,text:'✓ Leaderboard Updated'},{type:'paragraph',text:result.replaced?'A replacement leaderboard message has been created.':'The community leaderboard is up to date.'}]}}); }
+        catch (error) { console.warn('Leaderboard refresh action failed',error?.description||error?.message||error); return api.sendMessage({chat_id:chat.id,text:'Could not update the leaderboard. Check the forum connection and leaderboard topic configuration.'}); }
       }
       if (value === 'home') return api.editMessageText({
         chat_id: chat.id, message_id: query.message.message_id,
