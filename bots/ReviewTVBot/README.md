@@ -20,7 +20,7 @@ The user chooses a category before entering review details. International Movies
 
 ## Review flow
 
-Choose category → enter title and year → optional series end year → genre hashtags → optional TV season → choose a verdict (Absolute Cinema, Go for It, Timepass, or Skip It) → write review → optional poster → spoiler flag → preview/edit → confirm and publish.
+Choose category → enter title and year → optional series end year → genre hashtags → optional TV season → choose a numeric rating (1–10) → optionally choose a verdict (Absolute Cinema, Go for It, Timepass, or Skip It; or skip) → write review → optional poster → spoiler flag → preview/edit → confirm and publish.
 
 Genres are displayed as hashtags. Review text supports 20–5000 characters and is shown in an expandable blockquote. TV series can include both a start and end year.
 
@@ -64,6 +64,6 @@ The initial Serverless scaffold and forum-configuration modules have been deploy
 
 GitHub Actions automatic deployment is enabled for deployable changes under `bots/ReviewTVBot/` pushed to `main`. Pull requests run validation only. Database migrations are never part of automatic deployment and require separate review and approval.
 
-The review wizard supports all eight categories and the four verdict choices. New verdicts are stored separately from historical numeric ratings; old published reviews continue to display their original N/10 score. Verdict-based rows use `0` as a non-displayed sentinel in the legacy numeric column. The new verdict column requires a separate database migration after the code is deployed.
+The review wizard supports all eight categories, mandatory numeric ratings (1–10), and an optional second verdict choice. Both are stored independently; older reviews retain their numeric scores and new reviews continue to require a numeric score. The nullable `rating_verdict` column requires a separate additive database migration after the code is deployed.
 
 See [AGENTS.md](./AGENTS.md) for the complete architecture, roadmap, security rules, test checklist, and deployment requirements.
