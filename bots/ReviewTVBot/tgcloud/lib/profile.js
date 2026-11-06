@@ -69,7 +69,7 @@ export async function showUserProfile(chatId, user, messageId = null) {
   });
   const blocks = [
     ...(photoFileId ? [{ type: 'photo', photo: { type: 'photo', media: photoFileId } }] : []),
-    { type: 'heading', size: 1, text: 'YOUR PROFILE' },
+    { type: 'heading', size: 1, text: '👤 Your Profile' },
     { type: 'heading', size: 2, text: name },
     ...(user.username ? [{ type: 'paragraph', text: '@' + plain(user.username) }] : []),
     { type: 'divider' },
@@ -99,7 +99,7 @@ export async function showUserProfile(chatId, user, messageId = null) {
     chat_id: chatId,
     rich_message: { blocks },
     reply_markup: { inline_keyboard: [
-      [{ text: 'My Reviews', callback_data: 'rv:reviews:0' }, { text: 'Write a review', callback_data: 'rv:start' }],
+      [{ text: 'My Reviews', callback_data: 'rv:reviews:0' }, { text: 'Write a review', callback_data: 'rv:start', style: 'success' }],
       [{ text: '‹ Back', callback_data: 'rv:home' }],
     ] },
   };

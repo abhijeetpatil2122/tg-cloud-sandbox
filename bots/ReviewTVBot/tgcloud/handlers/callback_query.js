@@ -3,7 +3,7 @@ import { and, eq } from 'sdk/db';
 import { reviewDrafts, reviews, reviewReactions, communityConfig, categoryTopics, topicCounters } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
 import { categories, getCategory, getNumericRatingStyle, getRatingVerdict, isAdmin, ratingVerdicts } from '../lib/config.js';
-import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage, buildMyReviewsRichMessage } from '../lib/formatting.js';
+import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHelpRichMessage, buildHowToRichMessage, buildMyReviewsRichMessage, buildAdminPanelRichMessage, buildAdminStatsRichMessage, buildAdminResetConfirmation } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 import { refreshLeaderboard } from '../lib/leaderboard.js';
 import { showUserProfile } from '../lib/profile.js';
@@ -34,8 +34,17 @@ function categoryKeyboard() {
   return { inline_keyboard: rows };
 }
 function titlePrompt(categoryKey) {
-  const label = categoryKey === 'tv_shows' ? 'TV series' : categoryKey === 'k_c_j_dramas' ? 'K/C/J drama' : categoryKey === 'anime' ? 'anime' : 'movie';
-  return `Send the ${label} title.`;
+  const labels = {
+    hollywood_movies: 'Hollywood movie',
+    bollywood_movies: 'Bollywood movie',
+    south_indian_movies: 'South Indian movie',
+    other_regional_movies: 'regional movie',
+    international_movies: 'international movie',
+    tv_shows: 'TV series',
+    k_c_j_dramas: 'K/C/J drama',
+    anime: 'anime title',
+  };
+  return `Send the ${labels[categoryKey] || 'review'} title.`;
 }
 function yearPrompt(categoryKey) {
   return ['tv_shows', 'k_c_j_dramas'].includes(categoryKey) ? 'Send the first release year. You can add the end year next, or skip if unknown.' : 'Send the release year, or skip if unknown.';
@@ -146,7 +155,7 @@ export default async function (query) {
       if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
       if (value === 'cancel') {
         await answer(query.id, 'Reset cancelled.');
-        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,text:'Database reset cancelled.',reply_markup:{inline_keyboard:[]}});
+        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[{type:'heading',size:2,text:'Reset cancelled'},{type:'paragraph',text:'No database records were changed.'},{type:'footer',text:{type:'button',button:{text:'Admin panel',callback_data:'rv:admin:home',style:'link'}}}]},reply_markup:{inline_keyboard:[]}});
       }
       if (value === 'confirm') {
         await answer(query.id, 'Clearing test data…');
@@ -154,10 +163,16 @@ export default async function (query) {
         await db.delete(reviews).run();
         await db.delete(reviewDrafts).run();
         await db.delete(topicCounters).run();
+        let leaderboardRefreshed = false;
+        try { await refreshLeaderboard(); leaderboardRefreshed = true; }
+        catch (error) { console.warn('Leaderboard refresh after test-data reset failed', error?.description || error?.message || error); }
         return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[
-          {type:'heading',size:2,text:'Test data cleared'},
-          {type:'paragraph',text:'All saved reviews, reaction votes, active drafts, and review-number counters have been cleared.'},
+          {type:'heading',size:2,text:'✓ Test data cleared'},
+          {type:'paragraph',text:'Saved reviews, reaction votes, active drafts and review-number counters have been cleared.'},
           {type:'paragraph',text:'Forum connection and category-topic settings were preserved. Existing posts in Telegram topics were not deleted.'},
+          {type:'paragraph',text:leaderboardRefreshed?'The saved leaderboard message has also been refreshed.':'The leaderboard could not be refreshed automatically. Use /leaderboard after checking its topic configuration.'},
+          {type:'divider'},
+          {type:'footer',text:{type:'button',button:{text:'Admin panel',callback_data:'rv:admin:home',style:'link'}}},
         ]},reply_markup:{inline_keyboard:[]}});
       }
       await answer(query.id, 'Unknown reset action.');
@@ -172,35 +187,52 @@ export default async function (query) {
       if (!isAdmin(userId)) { await answer(query.id, 'Not authorized.'); return; }
       await answer(query.id);
       if (value === 'leaderboard') {
-        try { const result = await refreshLeaderboard(); return api.sendMessage({chat_id:chat.id,text:result.replaced?`Leaderboard repaired (message ID: ${result.messageId}).`:`Leaderboard refreshed (message ID: ${result.messageId}).`}); }
-        catch (error) { return api.sendMessage({chat_id:chat.id,text:error?.message||'Could not initialize the leaderboard.'}); }
+        try { const result = await refreshLeaderboard(); return api.sendRichMessage({chat_id:chat.id,rich_message:{blocks:[{type:'heading',size:2,text:'✓ Leaderboard Updated'},{type:'paragraph',text:result.replaced?'A replacement leaderboard message has been created.':'The community leaderboard is up to date.'}]}}); }
+        catch (error) { console.warn('Leaderboard refresh action failed',error?.description||error?.message||error); return api.sendMessage({chat_id:chat.id,text:'Could not update the leaderboard. Check the forum connection and leaderboard topic configuration.'}); }
       }
-      if (value === 'home') return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[
-        {type:'heading',size:1,text:'ReviewTVBot Admin'},
-        {type:'paragraph',text:'Private administration and publishing controls.'},
-        {type:'list',items:[
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/admin'},' — Open this administration panel']}]},
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/stats'},' — View review totals and category statistics']}]},
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settings'},' — View forum connection and topic mappings']}]},
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/leaderboard'},' — Initialize or repair the top 20 leaderboard']}]},
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/disconnect'},' — Disable the connected review forum']}]},
-          {blocks:[{type:'paragraph',text:[{type:'bold',text:'/resetdb'},' — Temporarily clear test reviews, drafts, and numbering']}]},
-        ]},
-        {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
-      ]},reply_markup:{inline_keyboard:[[{text:'Statistics',callback_data:'rv:admin:stats'},{text:'Settings',callback_data:'rv:admin:settings'}],[{text:'Refresh leaderboard',callback_data:'rv:admin:leaderboard'}]]}});
+      if (value === 'home') return api.editMessageText({
+        chat_id: chat.id, message_id: query.message.message_id,
+        rich_message: buildAdminPanelRichMessage(),
+        reply_markup: { inline_keyboard: [
+          [{ text: 'Statistics', callback_data: 'rv:admin:stats' }, { text: 'Settings', callback_data: 'rv:admin:settings' }],
+          [{ text: 'Refresh leaderboard', callback_data: 'rv:admin:leaderboard' }],
+          [{ text: 'Reset test data', callback_data: 'rv:admin:resetdb', style: 'danger' }],
+        ] },
+      });
       if (value === 'stats') {
-        const all=await db.select().from(reviews).all(); const published=all.filter(row=>row.status==='published');
-        const cells=[[{text:'Category',is_header:true},{text:'Published',is_header:true}],...categories.map(c=>[{text:c.label},{text:String(published.filter(r=>r.categoryKey===c.key).length)}]),[{text:'Total published'},{text:String(published.length)}],[{text:'Draft / failed'},{text:String(all.length-published.length)}]];
-        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks:[{type:'heading',size:1,text:'Review statistics'},{type:'table',cells,is_bordered:true,is_striped:true,is_compact:true},{type:'footer',text:'Counts are based on saved review records.'}]},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}});
+        const rows = await db.select().from(reviews).all();
+        return api.editMessageText({ chat_id: chat.id, message_id: query.message.message_id, rich_message: buildAdminStatsRichMessage(rows) });
+      }
+      if (value === 'resetdb') {
+        return api.editMessageText({ chat_id: chat.id, message_id: query.message.message_id, rich_message: buildAdminResetConfirmation(), reply_markup: { inline_keyboard: [] } });
       }
       if (value === 'settings') {
-        const config=await db.select().from(communityConfig).get(); const mappings=await db.select().from(categoryTopics).all();
-        const blocks=[{type:'heading',size:1,text:'Forum settings'}];
-        if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
-        else blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},{type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'code',text:String(config.chatId)}]},{type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},{type:'divider'},{type:'heading',size:3,text:'Category topics'},{type:'list',items:categories.map(category=>{const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};})},{type:'paragraph',text:[{type:'bold',text:'Leaderboard'},' — ',String(mappings.find(item=>item.categoryKey==='leaderboard'&&item.chatId===config.chatId)?.topicId ?? 'Not configured')]});
-        return api.editMessageText({chat_id:chat.id,message_id:query.message.message_id,rich_message:{blocks},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}});
+        const config = await db.select().from(communityConfig).get();
+        const mappings = await db.select().from(categoryTopics).all();
+        const blocks = [{ type: 'heading', size: 1, text: '⚙️ Forum Settings' }];
+        if (!config) {
+          blocks.push({ type: 'paragraph', text: 'No forum is connected yet. Connect the forum as its creator to begin configuring topics.' });
+        } else {
+          blocks.push(
+            { type: 'paragraph', text: [{ type: 'bold', text: 'Forum: ' }, config.chatTitle || '@Review_Tv'] },
+            { type: 'paragraph', text: [{ type: 'bold', text: 'Chat ID: ' }, { type: 'code', text: String(config.chatId) }] },
+            { type: 'paragraph', text: [{ type: 'bold', text: 'Status: ' }, config.enabled ? 'Connected ✅' : 'Disconnected'] },
+            { type: 'divider' },
+            { type: 'heading', size: 3, text: 'Topic mappings' },
+          );
+          const rows = categories.map((category) => {
+            const mapping = mappings.find((item) => item.categoryKey === category.key && item.chatId === config.chatId);
+            return [{ text: category.label, align: 'left' }, { text: mapping ? String(mapping.topicId) : '—', align: 'right' }];
+          });
+          const leaderboard = mappings.find((item) => item.categoryKey === 'leaderboard' && item.chatId === config.chatId);
+          rows.push([{ text: 'Leaderboard', align: 'left' }, { text: leaderboard ? String(leaderboard.topicId) : '—', align: 'right' }]);
+          blocks.push({ type: 'table', cells: [
+            [{ text: 'Topic', is_header: true, align: 'left' }, { text: 'Topic ID', is_header: true, align: 'right' }],
+            ...rows,
+          ], is_striped: true, caption: 'Configured forum topics' });
+        }
+        blocks.push({ type: 'divider' }, { type: 'footer', text: { type: 'button', button: { text: '‹ Admin panel', callback_data: 'rv:admin:home', style: 'link' } } });
+        return api.editMessageText({ chat_id: chat.id, message_id: query.message.message_id, rich_message: { blocks }, reply_markup: { inline_keyboard: [] } });
       }
     }
     if (action === 'home') {
@@ -212,10 +244,15 @@ export default async function (query) {
           { type: 'paragraph', text: 'Share thoughtful reviews of movies, series, dramas, and anime.' },
           { type: 'paragraph', text: 'Choose a category, give a required 1–10 rating, add an optional verdict, and publish when your preview is ready.' },
           { type: 'paragraph', text: ['Community: ', { type: 'button', button: { text: '@Review_Tv', url: 'https://t.me/Review_Tv' } }] },
-          { type: 'footer', text: 'Use /help for commands or /howtouse for the submission guide.' },
+          { type: 'divider' },
+          { type: 'footer', text: ['Quick access: ', { type: 'button', button: { text: 'Help & Commands', callback_data: 'rv:help', style: 'link' } }, '  ', { type: 'button', button: { text: 'How to use', callback_data: 'rv:howto', style: 'link' } }] },
         ] },
         reply_markup: { inline_keyboard: [[{ text: 'Profile', callback_data: 'rv:profile' }, { text: 'How to use', callback_data: 'rv:howto' }], [{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] },
       });
+    }
+    if (action === 'help') {
+      await answer(query.id);
+      return api.editMessageText({ chat_id: chat.id, message_id: query.message.message_id, rich_message: buildHelpRichMessage(isAdmin(userId)), reply_markup: { inline_keyboard: [[{ text: 'How to use', callback_data: 'rv:howto' }], [{ text: '‹ Back to menu', callback_data: 'rv:home' }]] } });
     }
     if (action === 'reviews') {
       const page=Number(value);
@@ -245,7 +282,7 @@ export default async function (query) {
         chat_id: chat.id,
         message_id: query.message.message_id,
         rich_message: buildHowToRichMessage(),
-        reply_markup: { inline_keyboard: [[{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] },
+        reply_markup: { inline_keyboard: [[{ text: 'Start a review', callback_data: 'rv:start', style: 'success' }], [{ text: '‹ Back to menu', callback_data: 'rv:home' }]] },
       });
       return;
     }
@@ -322,7 +359,7 @@ export default async function (query) {
         verdict: ['rating', 'Choose a rating from 1–10.', ratingKeyboard()],
         review_text: ['verdict', 'Choose an optional verdict, or skip.', verdictKeyboard()],
         media: ['review_text', 'Write your review (20–5,000 characters).', null],
-        spoiler: ['media', 'Add photos or skip this step.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
+        spoiler: ['media', 'Send Telegram photos or direct HTTPS image URLs separated by commas (up to 10 images), or skip.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
       if (!previous) return preview(chat.id, { ...draft, step: 'complete' });
       await saveDraft(userId, chat.id, previous[0], data);

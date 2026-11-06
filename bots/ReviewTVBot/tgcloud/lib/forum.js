@@ -22,6 +22,12 @@ async function sendToMessageContext(message, text) {
   await api.sendMessage(params);
 }
 
+async function sendRichToMessageContext(message, blocks) {
+  const params = { chat_id: message.chat.id, rich_message: { blocks } };
+  if (Number.isInteger(message.message_thread_id)) params.message_thread_id = message.message_thread_id;
+  return api.sendRichMessage(params);
+}
+
 async function getForumCreator(chatId) {
   const administrators = await api.getChatAdministrators({ chat_id: chatId });
   return administrators.find((member) => member.status === 'creator')?.user ?? null;
@@ -84,31 +90,28 @@ export async function connectForum(message) {
     },
   }).run();
 
-  await sendToMessageContext(
-    message,
-    [
-      'ReviewTVBot is connected to this forum.',
-      '',
-      'Next, configure each category from its own topic. Open a topic and send:',
-      '/settopic category_key',
-      '',
-      ...categories.map((category) => `• ${category.label}: ${category.key}`),
-      '• Leaderboard: leaderboard',
-      '',
-      'The command must be sent inside the topic it should map to.'
-    ].join('\n')
-  );
+  return sendRichToMessageContext(message, [
+    { type: 'heading', size: 1, text: '✓ Forum Connected' },
+    { type: 'paragraph', text: ['ReviewTVBot is connected to ', { type: 'bold', text: chat.title ?? message.chat.title ?? 'this forum' }, '.'] },
+    { type: 'paragraph', text: 'Map each review category from its own forum topic. The topic key must be sent from inside the topic it belongs to.' },
+    { type: 'divider' },
+    { type: 'heading', size: 3, text: 'Review topic keys' },
+    { type: 'list', items: categories.map((category) => ({ blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: category.label }, ' — ', { type: 'code', text: category.key }] }] })) },
+    { type: 'paragraph', text: [{ type: 'bold', text: 'Leaderboard' }, ' — ', { type: 'code', text: 'leaderboard' }] },
+    { type: 'footer', text: 'Topic mappings can be changed later by the forum owner.' },
+  ]);
 }
 
 export async function setCategoryTopic(message, categoryKey) {
   const isLeaderboard = categoryKey === 'leaderboard';
   const category = isLeaderboard ? { key: 'leaderboard', label: 'Leaderboard' } : getCategory(categoryKey);
   if (!category) {
-    await sendToMessageContext(
-      message,
-      `Unknown category. Valid keys: ${categories.map((item) => item.key).join(', ')}`
-    );
-    return;
+    return sendRichToMessageContext(message, [
+      { type: 'heading', size: 2, text: 'Unknown Topic Key' },
+      { type: 'paragraph', text: 'Choose one of the supported keys below and send the command again from its matching topic.' },
+      { type: 'list', items: categories.map((item) => ({ blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: item.label }, ' — ', { type: 'code', text: item.key }] }] })) },
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Leaderboard' }, ' — ', { type: 'code', text: 'leaderboard' }] },
+    ]);
   }
 
   const config = await getConfig();
@@ -145,10 +148,11 @@ export async function setCategoryTopic(message, categoryKey) {
     },
   }).run();
 
-  await sendToMessageContext(
-    message,
-    `Topic saved for ${category.label}. Topic ID: ${message.message_thread_id}`
-  );
+  return sendRichToMessageContext(message, [
+    { type: 'heading', size: 2, text: '✓ Topic Saved' },
+    { type: 'paragraph', text: [{ type: 'bold', text: category.label }, ' is now mapped to topic ', { type: 'code', text: String(message.message_thread_id) }, '.'] },
+    { type: 'footer', text: 'This topic is ready for review publishing.' },
+  ]);
 }
 
 export async function showSettings(message) {
@@ -163,26 +167,26 @@ export async function showSettings(message) {
   }
 
   const mappings = await db.select().from(categoryTopics).all();
-  const lines = categories.map((category) => {
+  const rows = categories.map((category) => {
     const mapping = mappings.find((item) => item.categoryKey === category.key && item.chatId === config.chatId);
-    return `${mapping ? '✓' : '—'} ${category.label}: ${mapping ? mapping.topicId : 'Not configured'}`;
+    return [
+      { text: category.label, align: 'left' },
+      { text: mapping ? String(mapping.topicId) : '—', align: 'right' },
+    ];
   });
   const leaderboardMapping = mappings.find((item) => item.categoryKey === 'leaderboard' && item.chatId === config.chatId);
-  lines.push(`${leaderboardMapping ? '✓' : '—'} Leaderboard: ${leaderboardMapping ? leaderboardMapping.topicId : 'Not configured'}`);
+  rows.push([{ text: 'Leaderboard', align: 'left' }, { text: leaderboardMapping ? String(leaderboardMapping.topicId) : '—', align: 'right' }]);
 
-  await sendToMessageContext(
-    message,
-    [
-      'ReviewTVBot forum settings',
-      `Forum: ${config.chatTitle}`,
-      `Chat ID: ${config.chatId}`,
-      `Status: ${config.enabled ? 'Connected' : 'Disconnected'}`,
-      '',
-      ...lines,
-      '',
-      'To configure a mapping, open the relevant topic and send /settopic followed by its category key.'
-    ].join('\n')
-  );
+  return sendRichToMessageContext(message, [
+    { type: 'heading', size: 1, text: '⚙️ Forum Settings' },
+    { type: 'paragraph', text: [{ type: 'bold', text: 'Forum: ' }, config.chatTitle] },
+    { type: 'paragraph', text: [{ type: 'bold', text: 'Status: ' }, config.enabled ? 'Connected ✅' : 'Disconnected'] },
+    { type: 'table', cells: [
+      [{ text: 'Topic', is_header: true, align: 'left' }, { text: 'Topic ID', is_header: true, align: 'right' }],
+      ...rows,
+    ], is_striped: true, caption: 'Configured forum topics' },
+    { type: 'footer', text: 'Topic mapping is restricted to the forum owner.' },
+  ]);
 }
 
 export async function disconnectForum(message, confirmation) {
@@ -192,11 +196,12 @@ export async function disconnectForum(message, confirmation) {
     return;
   }
   if (confirmation !== 'confirm') {
-    await sendToMessageContext(
-      message,
-      'This will pause all review publishing. Existing topic mappings will be kept. To continue, send /disconnect confirm.'
-    );
-    return;
+    return sendRichToMessageContext(message, [
+      { type: 'heading', size: 2, text: '⚠️ Pause review publishing?' },
+      { type: 'paragraph', text: 'The bot will stop publishing new reviews. Your forum connection and topic mappings will remain saved.' },
+      { type: 'paragraph', text: ['To proceed, send ', { type: 'code', text: '/disconnect confirm' }, '.'] },
+      { type: 'footer', text: 'No changes have been made yet.' },
+    ]);
   }
 
   await db.update(communityConfig)
@@ -204,5 +209,8 @@ export async function disconnectForum(message, confirmation) {
     .where(eq(communityConfig.id, CONFIG_ID))
     .run();
 
-  await sendToMessageContext(message, 'The ReviewTVBot forum destination has been disconnected. Existing topic mappings have been kept.');
+  return sendRichToMessageContext(message, [
+    { type: 'heading', size: 2, text: '✓ Publishing Paused' },
+    { type: 'paragraph', text: 'Review publishing is disabled. Your forum connection and topic mappings have been kept.' },
+  ]);
 }

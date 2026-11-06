@@ -6,13 +6,14 @@ import { categories, getNumericRatingStyle, isAdmin, ratingVerdicts } from '../l
 import {
   buildHelpRichMessage, buildHowToRichMessage, buildReviewRichMessage,
   buildReviewKeyboard, buildEditKeyboard, buildMyReviewsRichMessage,
+  buildAdminPanelRichMessage, buildAdminStatsRichMessage, buildAdminResetConfirmation,
 } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 import { refreshLeaderboard } from '../lib/leaderboard.js';
 import { showUserProfile } from '../lib/profile.js';
 import { communityConfig, categoryTopics } from '../schema.js';
 import {
-  connectForum, setCategoryTopic, showSettings, disconnectForum,
+  connectForum, setCategoryTopic, disconnectForum,
 } from '../lib/forum.js';
 
 function normalizeGenres(value) {
@@ -22,8 +23,17 @@ function normalizeGenres(value) {
   }).join(', ');
 }
 function titlePrompt(categoryKey) {
-  const label = categoryKey === 'tv_shows' ? 'TV series' : categoryKey === 'k_c_j_dramas' ? 'K/C/J drama' : categoryKey === 'anime' ? 'anime' : 'movie';
-  return `Send the ${label} title.`;
+  const labels = {
+    hollywood_movies: 'Hollywood movie',
+    bollywood_movies: 'Bollywood movie',
+    south_indian_movies: 'South Indian movie',
+    other_regional_movies: 'regional movie',
+    international_movies: 'international movie',
+    tv_shows: 'TV series',
+    k_c_j_dramas: 'K/C/J drama',
+    anime: 'anime title',
+  };
+  return `Send the ${labels[categoryKey] || 'review'} title.`;
 }
 function yearPrompt(categoryKey) {
   return ['tv_shows', 'k_c_j_dramas'].includes(categoryKey) ? 'Send the first release year. You can add the end year next, or skip if unknown.' : 'Send the release year, or skip if unknown.';
@@ -68,7 +78,8 @@ async function showWelcome(message) {
     { type: 'paragraph', text: 'Share thoughtful reviews of movies, series, dramas, and anime.' },
     { type: 'paragraph', text: 'Choose a category, give a required 1–10 rating, add an optional verdict, and publish when your preview is ready.' },
     { type: 'paragraph', text: ['Community: ', { type: 'button', button: { text: '@Review_Tv', url: 'https://t.me/Review_Tv' } }] },
-    { type: 'footer', text: 'Use /help for commands or /howtouse for the submission guide.' },
+    { type: 'divider' },
+    { type: 'footer', text: ['Quick access: ', { type: 'button', button: { text: 'Help & Commands', callback_data: 'rv:help', style: 'link' } }, '  ', { type: 'button', button: { text: 'How to use', callback_data: 'rv:howto', style: 'link' } }] },
   ] };
   await sendRich(message.chat.id, rich, { inline_keyboard: [[
     { text: 'Profile', callback_data: 'rv:profile' }, { text: 'How to use', callback_data: 'rv:howto' },
@@ -77,14 +88,14 @@ async function showWelcome(message) {
 
 async function showHowTo(chatId) {
   await sendRich(chatId, buildHowToRichMessage(), {
-    inline_keyboard: [[{ text: 'Start a review', callback_data: 'rv:start', style: 'success' }]],
+    inline_keyboard: [[{ text: 'Start a review', callback_data: 'rv:start', style: 'success' }], [{ text: '‹ Back to menu', callback_data: 'rv:home' }]],
   });
 }
 
 async function showHelp(chatId, userId) {
   const rich = buildHelpRichMessage(isAdmin(userId));
   await sendRich(chatId, rich, {
-    inline_keyboard: [[{ text: 'How to use', callback_data: 'rv:howto' }]],
+    inline_keyboard: [[{ text: 'How to use', callback_data: 'rv:howto' }], [{ text: '‹ Back to menu', callback_data: 'rv:home' }]],
   });
 }
 
@@ -145,7 +156,7 @@ async function startReview(message) {
       category: 'Choose the category for your review:',
       title: titlePrompt(existing.data.categoryKey),
       year: yearPrompt(existing.data.categoryKey),
-      end_year: 'Send the series end year, or skip if it is ongoing or unknown.',
+      end_year: 'Send the series end year, or skip if it is ongoing.',
       edit_year: yearPrompt(existing.data.categoryKey),
       edit_end_year: 'Send the series end year, or skip if it is ongoing or unknown.',
       genre: genrePrompt(),
@@ -155,8 +166,8 @@ async function startReview(message) {
       edit_rating: 'Choose a rating from 1–10.',
       edit_verdict: 'Choose an optional verdict, or skip.',
       review_text: 'Write your review (20–5,000 characters).',
-      media: 'Add photos if you like, then tap Done or Skip.',
-      edit_media: 'Add replacement photos, then tap Done or Skip.',
+      media: 'Send Telegram photos or direct HTTPS image URLs separated by commas (up to 10 images). Tap Done when finished, or Skip.',
+      edit_media: 'Send replacement photos or comma-separated HTTPS image URLs (up to 10). Tap Done when finished, or Skip.',
       spoiler: 'Does your review contain spoilers?',
     };
     const keyboards = {
@@ -214,7 +225,7 @@ async function handleDraftInput(message, draft) {
   }
   if (draft.step === 'end_year' || draft.step === 'edit_end_year') {
     const endYear=Number(text), maxYear=new Date().getUTCFullYear()+5;
-    if(!/^\d{4}$/.test(text)||!Number.isInteger(endYear)||endYear<1888||endYear>maxYear||(data.year&&endYear<data.year))return editPrompt(chatId,data.promptMessageId,`Please send a valid end year between ${data.year||1888} and ${maxYear}; it cannot be earlier than the start year. Or tap Skip end year.`,withBack({inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}));
+    if(!/^\d{4}$/.test(text)||!Number.isInteger(endYear)||endYear<1888||endYear>maxYear||(data.year&&endYear<data.year))return editPrompt(chatId,data.promptMessageId,`Enter an end year from ${data.year || 1888} to ${maxYear}, or skip.`,withBack({inline_keyboard:[[{text:'Skip end year',callback_data:'rv:year:skip'}]]}));
     data.endYear=endYear; await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
     return transition(message,draft,'genre',genrePrompt(),{inline_keyboard:[[{text:'Skip genre',callback_data:'rv:genre:skip'}]]},data);
@@ -247,7 +258,7 @@ async function handleDraftInput(message, draft) {
     await deleteUserMessage(message);
     if(editing)return saveAndPreview(userId,chatId,data);
     data.media=[];data.mediaMode='slideshow';
-    return transition(message,draft,'media','Add up to 10 photos, then tap Done or Skip.',{inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},data);
+    return transition(message,draft,'media','Send Telegram photos or direct HTTPS image URLs separated by commas (up to 10 images). Tap Done when finished, or Skip.',{inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]},data);
   }
   if(draft.step==='media'||draft.step==='edit_media'){
     const photo=Array.isArray(message.photo)&&message.photo.length
@@ -256,13 +267,13 @@ async function handleDraftInput(message, draft) {
     const links=text.split(',').map(link=>link.trim()).filter(Boolean);
     const validLinks=links.length>0&&links.every(link=>/^https:\/\/[^\s,]+$/i.test(link));
     const items=photo||(validLinks?links.map(link=>({type:'photo',media:link})):null);
-    if(!items)return editPrompt(chatId,data.promptMessageId,'Send photos or direct image links. Add up to 10, then tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
+    if(!items)return editPrompt(chatId,data.promptMessageId,'Send Telegram photos or direct HTTPS image URLs separated by commas (up to 10 images), then tap Done.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
     const appended=await appendDraftMedia(userId,chatId,items);
     if(!appended){
       const latest=await getDraft(userId);
       const count=Array.isArray(latest?.data?.media)?latest.data.media.length:0;
       await deleteUserMessage(message);
-      return editPrompt(chatId,data.promptMessageId,count>=10?'You can add up to 10 images. Tap Done to continue.':'This review is no longer accepting images. Send /review to resume.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
+      return editPrompt(chatId,data.promptMessageId,count>=10?'You have added 10 images. Tap Done to continue.':'This review is no longer accepting images. Start /review again.',withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'}]]}));
     }
     // Each album photo is a separate update. Keep the append atomic, but restore
     // the normal wizard UX: remove the user's upload and refresh the single prompt.
@@ -272,7 +283,7 @@ async function handleDraftInput(message, draft) {
     const added=items.length;
     const promptText=count>=10
       ? `Received your images. ${count}/10 added — tap Done to continue.`
-      : `Received ${added} image${added===1?'':'s'} (${count}/10). Send more photos or comma-separated links, or tap Done.`;
+      : `Received ${added} image${added===1?'':'s'} (${count}/10). Send more photos or comma-separated HTTPS image URLs, or tap Done.`;
     try {
       await editPrompt(chatId,data.promptMessageId,promptText,withBack({inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}));
     } catch (error) {
@@ -281,7 +292,13 @@ async function handleDraftInput(message, draft) {
     return;
   }
   if(draft.step==='poster'||draft.step==='edit_poster'){
-    if(Array.isArray(message.photo)&&message.photo.length)data.media=[{type:'photo',media:message.photo[message.photo.length-1].file_id}];else if(/^https:\/\/\S+$/i.test(text))data.media=[{type:'photo',media:text}];else if(text.toLowerCase()==='/skip')data.media=[];else return editPrompt(chatId,data.promptMessageId,'Send a photo or direct HTTPS image URL, or skip.',withBack());
+    const photo = Array.isArray(message.photo) && message.photo.length ? [{type:'photo',media:message.photo[message.photo.length-1].file_id}] : null;
+    const links = text.split(',').map((link) => link.trim()).filter(Boolean);
+    const validLinks = links.length > 0 && links.length <= 10 && links.every((link) => /^https:\/\/[^\s,]+$/i.test(link));
+    if (photo) data.media = photo;
+    else if (validLinks) data.media = links.map((link) => ({type:'photo',media:link}));
+    else if (text.toLowerCase() === '/skip') data.media = [];
+    else return editPrompt(chatId,data.promptMessageId,'Send Telegram photos or up to 10 comma-separated HTTPS image URLs, or skip.',withBack());
     data.mediaMode='slideshow';await deleteUserMessage(message);if(editing)return saveAndPreview(userId,chatId,data);return transition(message,draft,'spoiler','Does your review contain spoilers?',spoilerKeyboard(),data);
   }
   if (draft.step === 'complete') return showPreview(chatId, draft);
@@ -333,70 +350,63 @@ async function listMyReviews(chatId, userId, page = 0, messageId = null) {
 async function showAdmin(chatId, userId, command) {
   if (!isAdmin(userId)) return;
   if (command === '/admin') {
-    return sendRich(chatId,{blocks:[
-      {type:'heading',size:1,text:'ReviewTVBot Admin'},
-      {type:'paragraph',text:'Private administration and publishing controls.'},
-      {type:'list',items:[
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/admin'},' — Open this administration panel']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/stats'},' — View review totals and category statistics']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/leaderboard'},' — Initialize or repair the top 20 leaderboard message']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settings'},' — View forum connection and topic mappings']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/connect'},' — Connect the review forum (run by the forum creator)']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/settopic category_key'},' — Assign the current forum topic to a review category']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/disconnect'},' — Disable the connected review forum']}]},
-        {blocks:[{type:'paragraph',text:[{type:'bold',text:'/resetdb'},' — Temporarily clear test reviews, drafts, and numbering (confirmation required)']}]},
-      ]},
-      {type:'footer',text:'Choose a section below. This panel is private to authorized administrators.'},
-    ]},{inline_keyboard:[[
-      {text:'Statistics',callback_data:'rv:admin:stats'},
-      {text:'Settings',callback_data:'rv:admin:settings'},
-    ], [{text:'Refresh leaderboard',callback_data:'rv:admin:leaderboard'}
-    ]]});
+    return sendRich(chatId, buildAdminPanelRichMessage(), { inline_keyboard: [
+      [{ text: 'Statistics', callback_data: 'rv:admin:stats' }, { text: 'Settings', callback_data: 'rv:admin:settings' }],
+      [{ text: 'Refresh leaderboard', callback_data: 'rv:admin:leaderboard' }],
+      [{ text: 'Reset test data', callback_data: 'rv:admin:resetdb', style: 'danger' }],
+    ] });
   }
   if (command === '/stats') return showAdminStats(chatId);
   if (command === '/settings') return showAdminSettings(chatId);
 }
 
 async function showAdminStats(chatId, messageId = null) {
-  const all = await db.select().from(reviews).all();
-  const published = all.filter(row=>row.status==='published');
-  const cells = [
-    [{text:'Category',is_header:true},{text:'Published',is_header:true}],
-    ...categories.map(c=>[{text:c.label},{text:String(published.filter(r=>r.categoryKey===c.key).length)}]),
-    [{text:'Total published'},{text:String(published.length)}],
-    [{text:'Draft / failed'},{text:String(all.length-published.length)}],
-  ];
-  const params={chat_id:chatId,rich_message:{blocks:[
-    {type:'heading',size:1,text:'Review statistics'},
-    {type:'table',cells,is_bordered:true,is_striped:true,is_compact:true},
-    {type:'footer',text:'Counts are based on saved review records.'},
-  ]},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}};
-  if(messageId){params.message_id=messageId;return api.editMessageText(params);}
-  return sendRich(chatId,params.rich_message,params.reply_markup);
+  const rows = await db.select().from(reviews).all();
+  const params = { chat_id: chatId, rich_message: buildAdminStatsRichMessage(rows) };
+  if (messageId) {
+    params.message_id = messageId;
+    return api.editMessageText(params);
+  }
+  return sendRich(chatId, params.rich_message);
 }
 
 async function showAdminSettings(chatId, messageId = null) {
-  const config=await db.select().from(communityConfig).get();
-  const mappings=await db.select().from(categoryTopics).all();
-  const blocks=[{type:'heading',size:1,text:'Forum settings'}];
-  if(!config) blocks.push({type:'paragraph',text:'No forum is connected yet. Run /connect in the forum supergroup as its creator.'});
-  else {
-    blocks.push({type:'paragraph',text:[{type:'bold',text:'Forum:'},' @Review_Tv']},
-      {type:'paragraph',text:[{type:'bold',text:'Chat ID:'},' ',{type:'code',text:String(config.chatId)}]},
-      {type:'paragraph',text:[{type:'bold',text:'Status:'},' ',config.enabled?'Connected ✅':'Disconnected']},
-      {type:'divider'},
-      {type:'heading',size:3,text:'Category topics'},
-      {type:'list',items:categories.map(category=>{
-        const mapping=mappings.find(item=>item.categoryKey===category.key&&item.chatId===config.chatId);
-        return {blocks:[{type:'paragraph',text:[{type:'bold',text:category.label},' — ',mapping?String(mapping.topicId):'Not configured']}]};
-      })},
-      {type:'paragraph',text:[{type:'bold',text:'Leaderboard'},' — ',(mappings.find(item=>item.categoryKey==='leaderboard'&&item.chatId===config.chatId)?.topicId ?? 'Not configured').toString()]},
-      );
+  const config = await db.select().from(communityConfig).get();
+  const mappings = await db.select().from(categoryTopics).all();
+  const blocks = [{ type: 'heading', size: 1, text: '⚙️ Forum Settings' }];
+  if (!config) {
+    blocks.push({ type: 'paragraph', text: 'No forum is connected yet. Connect the forum as its creator to begin configuring topics.' });
+  } else {
+    blocks.push(
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Forum: ' }, config.chatTitle || '@Review_Tv'] },
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Chat ID: ' }, { type: 'code', text: String(config.chatId) }] },
+      { type: 'paragraph', text: [{ type: 'bold', text: 'Status: ' }, config.enabled ? 'Connected ✅' : 'Disconnected'] },
+      { type: 'divider' },
+      { type: 'heading', size: 3, text: 'Topic mappings' },
+    );
+    const rows = categories.map((category) => {
+      const mapping = mappings.find((item) => item.categoryKey === category.key && item.chatId === config.chatId);
+      return [{ text: category.label, align: 'left' }, { text: mapping ? String(mapping.topicId) : '—', align: 'right' }];
+    });
+    const leaderboard = mappings.find((item) => item.categoryKey === 'leaderboard' && item.chatId === config.chatId);
+    rows.push([{ text: 'Leaderboard', align: 'left' }, { text: leaderboard ? String(leaderboard.topicId) : '—', align: 'right' }]);
+    blocks.push({ type: 'table', cells: [
+      [{ text: 'Topic', is_header: true, align: 'left' }, { text: 'Topic ID', is_header: true, align: 'right' }],
+      ...rows,
+    ], is_striped: true, caption: 'Configured forum topics' });
   }
-  const params={chat_id:chatId,rich_message:{blocks},reply_markup:{inline_keyboard:[[{text:'‹ Admin panel',callback_data:'rv:admin:home'}]]}};
-  if(messageId){params.message_id=messageId;return api.editMessageText(params);}
-  return sendRich(chatId,params.rich_message,params.reply_markup);
+  blocks.push(
+    { type: 'divider' },
+    { type: 'footer', text: { type: 'button', button: { text: '‹ Admin panel', callback_data: 'rv:admin:home', style: 'link' } } },
+  );
+  const params = { chat_id: chatId, rich_message: { blocks } };
+  if (messageId) {
+    params.message_id = messageId;
+    return api.editMessageText(params);
+  }
+  return sendRich(chatId, params.rich_message);
 }
+
 export default async function (message) {
   if (!message?.chat?.id) return;
   const text = typeof message.text === 'string' ? message.text : '';
@@ -426,9 +436,13 @@ export default async function (message) {
         if (message.chat.type !== 'private' || !isAdmin(userId)) return;
         try {
           const result = await refreshLeaderboard();
-          return api.sendMessage({ chat_id: message.chat.id, text: result.replaced ? `Leaderboard repaired with a new message (ID: ${result.messageId}).` : `Leaderboard initialized or refreshed successfully (message ID: ${result.messageId}).` });
+          return sendRich(message.chat.id, { blocks: [
+        { type: 'heading', size: 2, text: '✓ Leaderboard Updated' },
+        { type: 'paragraph', text: result.replaced ? 'A replacement leaderboard message has been created.' : 'The community leaderboard is up to date.' },
+      ] });
         } catch (error) {
-          return api.sendMessage({ chat_id: message.chat.id, text: error?.message || 'Could not initialize the leaderboard. Check the forum and topic configuration.' });
+          console.warn('Leaderboard command failed', error?.description || error?.message || error);
+          return sendRich(message.chat.id, { blocks: [{ type: 'paragraph', text: 'Could not update the leaderboard. Check the forum connection and leaderboard topic configuration.' }] });
         }
       }
       if (command === '/myreviews') {
@@ -445,7 +459,7 @@ export default async function (message) {
       }
       if (command === '/resetdb') {
         if (message.chat.type !== 'private' || !isAdmin(userId)) return;
-        return api.sendMessage({chat_id:message.chat.id,text:'⚠️ Reset ReviewTVBot test data? This permanently deletes all saved reviews, active drafts, and review-number counters. Forum connection and category-topic settings will be preserved. Existing Telegram posts in the forum will NOT be deleted.',reply_markup:{inline_keyboard:[[{text:'Yes, clear test data',callback_data:'rv:resetdb:confirm',style:'danger'},{text:'Cancel',callback_data:'rv:resetdb:cancel'}]]}});
+        return sendRich(message.chat.id, buildAdminResetConfirmation());
       }
       if (command === '/connect') {
         if (!isAdmin(userId)) return;
