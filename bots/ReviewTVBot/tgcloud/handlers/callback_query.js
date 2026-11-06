@@ -194,7 +194,7 @@ export default async function (query) {
         rich_message: { blocks: [
           { type: 'heading', size: 1, text: `Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}.` },
           { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, anime, and dramas.' },
-          { type: 'paragraph', text: 'Submit your review with a rating, genre, and optional poster. Published reviews are organised in the appropriate community topic.' },
+          { type: 'paragraph', text: 'Submit your review with a personal verdict, genre, and optional poster. Published reviews are organised in the appropriate community topic.' },
           { type: 'divider' },
           { type: 'footer', text: 'Use /help to see available commands.' },
         ] },
@@ -211,7 +211,7 @@ export default async function (query) {
       const items=published.slice(safe*size,(safe+1)*size);
       const blocks=[
         {type:'heading',size:2,text:'YOUR REVIEWS'},
-        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title}${item.year ? ` (${item.year}${item.endYear ? ` — ${item.endYear}` : ''})` : ''}`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
+        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title}${item.year ? ` (${item.year}${item.endYear ? ` — ${item.endYear}` : ''})` : ''}`},' ',...(item.messageLink?[{type:'button',button:{text:getRatingVerdict(item.ratingVerdict)?.label??`★ ${item.rating}/10`,url:item.messageLink,style:getRatingVerdict(item.ratingVerdict)?.style??'success'}}]:[{type:'bold',text:getRatingVerdict(item.ratingVerdict)?.label??`★ ${item.rating}/10`}])]}]}))},
         {type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`},
       ];
       const nav=[];if(safe>0)nav.push({text:'‹ Previous',callback_data:`rv:reviews:${safe-1}`});if(safe+1<count)nav.push({text:'Next ›',callback_data:`rv:reviews:${safe+1}`});
@@ -324,7 +324,7 @@ export default async function (query) {
         return editPrompt(chat.id, data.promptMessageId, 'Send the season number, or tap Skip season.', withBack({ inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }));
       }
       await saveDraft(userId, chat.id, 'rating', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Choose your rating from 1 to 10.', withBack(ratingKeyboard()));
+      return editPrompt(chat.id, data.promptMessageId, 'Choose your review verdict.', withBack(ratingKeyboard()));
     }
 
     if (action === 'season' && value === 'skip' && ['season', 'edit_season'].includes(draft.step)) {
@@ -403,7 +403,7 @@ export default async function (query) {
         year: ['edit_year', 'Send the corrected release year. For TV series, you’ll also be able to add an end year.'],
         genre: ['edit_genre', 'Send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). Missing # symbols are added automatically, or tap Skip genre.'],
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
-        rating: ['edit_rating', 'Choose the corrected rating.'],
+        rating: ['edit_rating', 'Choose your review verdict.'],
         text: ['edit_text', 'Send the corrected review text (20–5000 characters).'],
         media: ['edit_media', 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.'],
         spoiler: ['edit_spoiler', 'Choose the spoiler setting.'],
