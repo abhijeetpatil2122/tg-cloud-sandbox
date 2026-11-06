@@ -13,7 +13,7 @@ import { refreshLeaderboard } from '../lib/leaderboard.js';
 import { showUserProfile } from '../lib/profile.js';
 import { communityConfig, categoryTopics } from '../schema.js';
 import {
-  connectForum, setCategoryTopic, showSettings, disconnectForum,
+  connectForum, setCategoryTopic, disconnectForum,
 } from '../lib/forum.js';
 
 function normalizeGenres(value) {
@@ -23,8 +23,17 @@ function normalizeGenres(value) {
   }).join(', ');
 }
 function titlePrompt(categoryKey) {
-  const label = categoryKey === 'tv_shows' ? 'TV series' : categoryKey === 'k_c_j_dramas' ? 'K/C/J drama' : categoryKey === 'anime' ? 'anime' : 'movie';
-  return `Send the ${label} title.`;
+  const labels = {
+    hollywood_movies: 'Hollywood movie',
+    bollywood_movies: 'Bollywood movie',
+    south_indian_movies: 'South Indian movie',
+    other_regional_movies: 'regional movie',
+    international_movies: 'international movie',
+    tv_shows: 'TV series',
+    k_c_j_dramas: 'K/C/J drama',
+    anime: 'anime title',
+  };
+  return `Send the ${labels[categoryKey] || 'review'} title.`;
 }
 function yearPrompt(categoryKey) {
   return ['tv_shows', 'k_c_j_dramas'].includes(categoryKey) ? 'Send the first release year. You can add the end year next, or skip if unknown.' : 'Send the release year, or skip if unknown.';
@@ -407,9 +416,13 @@ export default async function (message) {
         if (message.chat.type !== 'private' || !isAdmin(userId)) return;
         try {
           const result = await refreshLeaderboard();
-          return api.sendMessage({ chat_id: message.chat.id, text: result.replaced ? `Leaderboard repaired with a new message (ID: ${result.messageId}).` : `Leaderboard initialized or refreshed successfully (message ID: ${result.messageId}).` });
+          return sendRich(message.chat.id, { blocks: [
+        { type: 'heading', size: 2, text: '✓ Leaderboard Updated' },
+        { type: 'paragraph', text: result.replaced ? 'A replacement leaderboard message has been created.' : 'The community leaderboard is up to date.' },
+      ] });
         } catch (error) {
-          return api.sendMessage({ chat_id: message.chat.id, text: error?.message || 'Could not initialize the leaderboard. Check the forum and topic configuration.' });
+          console.warn('Leaderboard command failed', error?.description || error?.message || error);
+          return sendRich(message.chat.id, { blocks: [{ type: 'paragraph', text: 'Could not update the leaderboard. Check the forum connection and leaderboard topic configuration.' }] });
         }
       }
       if (command === '/myreviews') {
