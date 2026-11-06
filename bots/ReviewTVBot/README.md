@@ -20,9 +20,9 @@ The user chooses a category before entering review details. International Movies
 
 ## Review flow
 
-Choose category → enter title and year → optional series end year → genre hashtags → optional TV season → choose a numeric rating (1–10) → optionally choose a verdict (Absolute Cinema, Go for It, Timepass, or Skip It; or skip) → write review → optional poster → spoiler flag → preview/edit → confirm and publish.
+Choose category → enter title and year → optional series end year → genre hashtags → optional TV season → choose a numeric rating (1–10) → optionally choose a verdict (Absolute Cinema, Go for It, Timepass, or Skip It; or skip) → write review → optional images → spoiler flag → preview/edit → confirm and publish.
 
-Genres are displayed as hashtags. Review text supports 20–5000 characters and is shown in an expandable blockquote. TV series can include both a start and end year.
+Genres are displayed as hashtags. Review text supports 20–5000 characters and is shown in an expandable blockquote. TV series can include both a start and end year. When a review includes multiple images, the slideshow receives an automatic category-specific caption (Movie moments, TV series moments, Drama moments, or Anime moments); the same caption appears in the preview and published forum post.
 
 There is no admin approval queue. The author's final confirmation authorizes publication.
 

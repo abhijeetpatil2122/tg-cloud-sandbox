@@ -5,7 +5,14 @@ const heading = (text, size = 2) => ({ type: 'heading', size, text: plain(text) 
 const paragraph = (text) => ({ type: 'paragraph', text });
 const footer = (text) => ({ type: 'footer', text: plain(text) });
 
-export function buildReviewRichMessage(data, reviewNumber = null, preview = false) {
+function categoryMediaCaption(categoryKey) {
+  if (categoryKey === 'anime') return '✨ A glimpse into the anime';
+  if (categoryKey === 'tv_shows') return '📺 A glimpse of the series';
+  if (categoryKey === 'k_c_j_dramas') return '🎭 A glimpse of the drama';
+  return '🎬 A glimpse of the film';
+}
+
+export function buildReviewRichMessage(data, reviewNumber = null, preview = false, mediaCaptionOverride = null) {
   const blocks = [
     heading(data.categoryKey === 'anime' ? 'ANIME REVIEW' : data.categoryKey === 'tv_shows' ? 'TV SHOW REVIEW' : data.categoryKey === 'k_c_j_dramas' ? 'K/C/J DRAMA REVIEW' : data.categoryKey === 'international_movies' ? 'INTERNATIONAL MOVIE REVIEW' : 'MOVIE REVIEW', 2),
   ];
@@ -14,7 +21,7 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   const selectedMedia=data.mediaMode==='single'?media.slice(0,1):media;
   const photoBlock=item=>({type:'photo',photo:{type:'photo',media:item.media,...(data.hasSpoilers?{has_spoiler:true}:{})}});
   if(selectedMedia.length===1)blocks.push(photoBlock(selectedMedia[0]));
-  else if(selectedMedia.length>1)blocks.push({type:'slideshow',blocks:selectedMedia.map(photoBlock),...(data.mediaCaption?{caption:{text:plain(data.mediaCaption)}}:{})});
+  else if(selectedMedia.length>1)blocks.push({type:'slideshow',blocks:selectedMedia.map(photoBlock),caption:{text:plain(mediaCaptionOverride || categoryMediaCaption(data.categoryKey))}});
   const verdict = getRatingVerdict(data.ratingVerdict) ?? (data.ratingVerdictLabel ? { label: plain(data.ratingVerdictLabel), style: data.ratingVerdictStyle || 'success' } : null);
   const ratingLabel = data.rating != null ? `★ ${plain(data.rating)}/10` : 'Not rated';
   const ratingStyle = getNumericRatingStyle(data.rating);
@@ -115,11 +122,11 @@ export function buildHowToRichMessage() {
       { type: 'photo', media: 'https://image.tmdb.org/t/p/original/tyL4w11gLjensmsZqW46niGBa4V.jpg' },
     ],
     mediaMode: 'slideshow',
-    mediaCaption: 'Ramayana: Rise of a Legend · 2026',
-    reviewText: 'Nitesh Tiwari’s retelling is built for the big screen. Its expansive kingdoms, elaborate production design and large-scale battles create a striking sense of scale, while Hans Zimmer and A. R. Rahman’s score gives the key moments real lift. Ranbir Kapoor plays Rama with restraint, Sai Pallavi brings warmth to Sita, and Yash makes Ravana a commanding presence. The spectacle is occasionally let down by uneven creature effects and slower stretches, but its ambition and visual grandeur make it a memorable theatrical experience. Peak cinema for the scale alone.',
+    
+    reviewText: 'A breathtaking cinematic retelling that brings the world of the Ramayana to life with magnificent visuals, grand kingdoms and spectacular large-scale sequences. The production design is rich with detail, every frame feels crafted for the big screen, and the action delivers an unforgettable sense of scale. Hans Zimmer and A. R. Rahman’s powerful score adds emotion and grandeur throughout. Ranbir Kapoor brings a compelling presence to Rama, Sai Pallavi adds grace and warmth as Sita, and Yash makes Ravana truly commanding. With its visual splendour, moving moments and epic atmosphere, this is a spectacular theatrical experience that celebrates the timeless legend. Absolute peak cinema.',
     authorName: 'ReviewTV Community',
     hasSpoilers: false,
-  }, null, true);
+  }, null, true, 'A glimpse into the legend');
   return { blocks: [
     heading('📖 How to submit a review', 1),
     paragraph('Send /review in your private chat. Your draft is saved as you go and is published only after you confirm the preview.'),
