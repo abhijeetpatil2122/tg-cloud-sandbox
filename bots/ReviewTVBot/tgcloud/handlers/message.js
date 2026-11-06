@@ -57,7 +57,7 @@ async function showWelcome(message) {
   const rich = { blocks: [
     { type: 'heading', size: 1, text: `Welcome, ${fullName}.` },
     { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, and anime.' },
-    { type: 'paragraph', text: 'Submit your review with a personal verdict, genre, and optional poster. Published reviews are organised in the appropriate topic of @Review_Tv.' },
+    { type: 'paragraph', text: 'Submit your review with a numeric rating and an optional personal verdict, genre, and poster. Published reviews are organised in the appropriate topic of @Review_Tv.' },
     { type: 'divider' },
     { type: 'footer', text: ['Review publishing hub: ', { type: 'url', text: '@Review_Tv', url: 'https://t.me/Review_Tv' }, '. Use /help to see available commands.'] },
   ] };
@@ -232,7 +232,7 @@ async function handleDraftInput(message, draft) {
     }
     await deleteUserMessage(message);
     if (editing) return saveAndPreview(userId, chatId, data);
-    return transition(message, draft, 'rating', 'Choose your review verdict.', ratingKeyboard(), data);
+    return transition(message, draft, 'rating', 'Choose your numeric rating from 1 to 10.', ratingKeyboard(), data);
   }
   if (draft.step === 'review_text' || draft.step === 'edit_text') {
     if (text.length < 20 || text.length > 5000) return editPrompt(chatId, data.promptMessageId, 'Please write between 20 and 5000 characters for your review.', withBack());
