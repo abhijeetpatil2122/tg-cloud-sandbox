@@ -15,7 +15,7 @@ The repository root `/AGENTS.md` is authoritative for shared Serverless, GitHub 
 - No external movie metadata provider or Mini App is required for the MVP.
 
 ## Category/topic registry
-Use these seven review categories in this order:
+Use these eight review categories in this order:
 
 | Stable key | Forum topic | Coverage |
 |---|---|---|
@@ -23,6 +23,7 @@ Use these seven review categories in this order:
 | `bollywood_movies` | Bollywood Movies | Hindi-language Bollywood cinema |
 | `south_indian_movies` | South Indian Movies | Tamil, Telugu, Malayalam, Kannada cinema |
 | `other_regional_movies` | Other Regional Movies | Marathi, Bengali, Punjabi, and other regional cinema |
+| `international_movies` | International Movies | Non-Hollywood international cinema, including Japanese, Chinese, Korean, European, and other world cinema |
 | `tv_shows` | TV Shows & Series | Television shows, web series, streaming originals |
 | `k_c_j_dramas` | K/C/J Dramas | Korean, Chinese, and Japanese dramas |
 | `anime` | Anime | Anime films and series |
@@ -42,7 +43,7 @@ Submission flow:
 2. Enter title.
 3. Enter release year.
 4. If category is TV Shows & Series or K/C/J Dramas, ask for an optional series end year and optional season number with Skip. Both categories share the same series metadata flow. Do not ask for season for movies. Anime series season/cour may be optional metadata, never a blocker.
-5. Select rating from 1–10.
+5. Select one review verdict: Absolute Cinema, Go for It, Timepass, or Skip It.
 6. Enter review text.
 7. Optionally upload a poster (or Skip).
 8. Choose whether the review contains spoilers.
@@ -54,7 +55,7 @@ Submission flow:
 The chosen category determines the destination topic. Configure the separate leaderboard topic with `/settopic leaderboard`; it is not a review category and must not appear in the review category picker. Users never enter topic IDs.
 
 ## Review post format
-Use a consistent, clean layout: category/title heading, release year and optional season, rating as N/10, review body, spoiler-protected text when marked, reviewer attribution, and optional poster. Prefer native Telegram Rich Message formatting after verifying the exact current Bot API input schema. Do not assume ordinary Markdown is automatically parsed as Rich Message or that `sendRichMessage` accepts media. If poster and formatted review need separate messages, send both to the same `message_thread_id`, store both message IDs, and implement partial-failure recovery.
+Use a consistent, clean layout: category/title heading, release year and optional season, a personal review verdict with a matching danger/primary/success button style, review body, spoiler-protected text when marked, reviewer attribution, and optional poster. Prefer native Telegram Rich Message formatting after verifying the exact current Bot API input schema. Do not assume ordinary Markdown is automatically parsed as Rich Message or that `sendRichMessage` accepts media. If poster and formatted review need separate messages, send both to the same `message_thread_id`, store both message IDs, and implement partial-failure recovery.
 
 Escape/safely construct user text so it cannot inject Rich Message formatting or links. Spoiler text must actually be protected; a warning label alone is insufficient.
 
@@ -187,6 +188,7 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 
 
 ## Leaderboard and reviewer profiles (current feature branch)
+- The review verdict is stored separately from the legacy numeric rating. Historical N/10 reviews remain readable; new reviews use one of the four verdicts.
 - The leaderboard is one persistent Rich Message in its own forum topic. Configure it by sending `/settopic leaderboard` inside that topic as the connected forum owner.
 - An authorized admin initializes or repairs it from the bot's private chat with `/leaderboard` (also available in the private admin panel). The command edits the stored message when possible and sends a replacement if it was deleted or cannot be edited.
 - The leaderboard displays at most 20 users, ordered by published review count descending. Equal counts are ordered by Telegram user ID for deterministic ranking.
