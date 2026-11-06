@@ -335,7 +335,7 @@ export default async function (query) {
         return preview(chat.id, await getDraft(userId));
       }
       await saveDraft(userId, chat.id, 'rating', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Choose your rating from 1 to 10.', withBack(ratingKeyboard()));
+      return editPrompt(chat.id, data.promptMessageId, 'Choose your review verdict.', withBack(ratingKeyboard()));
     }
 
     if (action === 'rating' && ['rating', 'edit_rating'].includes(draft.step)) {
