@@ -25,20 +25,19 @@ async function getLeaderboardRows() {
 
 export async function buildLeaderboardMessage() {
   const leaders = await getLeaderboardRows();
+  const cell = (text, align = 'left', isHeader = false) => ({ text: String(text), align, valign: 'middle', ...(isHeader ? { is_header: true } : {}) });
   const cells = [
-    [{ text: '#', is_header: true }, { text: 'Reviewer', is_header: true }, { text: 'Reviews', is_header: true }],
+    [cell('#', 'center', true), cell('Reviewer', 'left', true), cell('Reviews', 'right', true)],
     ...leaders.map((item, index) => [
-      { text: index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : String(index + 1) },
-      { text: item.name },
-      { text: String(item.count) },
+      cell(index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1, 'center'),
+      cell(item.name, 'left'),
+      cell(item.count, 'right'),
     ]),
   ];
-  if (!leaders.length) cells.push([{ text: '—' }, { text: 'No reviews published yet' }, { text: '0' }]);
+  if (!leaders.length) cells.push([cell('—', 'center'), cell('No reviews published yet', 'left'), cell('0', 'right')]);
   return { blocks: [
-    { type: 'heading', size: 1, text: '🏆 TOP 20 REVIEWERS' },
-    { type: 'paragraph', text: 'Community leaderboard ranked by the number of successfully published reviews.' },
-    { type: 'table', cells, is_bordered: true, is_striped: true, is_compact: true },
-    { type: 'footer', text: 'Automatically updated after each successful review publication.' },
+    { type: 'heading', size: 1, text: '🏆 Top 20 Reviewers' },
+    { type: 'table', cells, is_striped: true, caption: 'Ranked by published review count' },
   ] };
 }
 
