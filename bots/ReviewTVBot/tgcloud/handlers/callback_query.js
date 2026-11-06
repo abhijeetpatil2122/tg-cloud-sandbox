@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { and, eq } from 'sdk/db';
 import { reviewDrafts, reviews, reviewReactions, communityConfig, categoryTopics, topicCounters } from '../schema.js';
 import { getDraft, saveDraft, deleteDraft } from '../lib/sessions.js';
-import { categories, getCategory, isAdmin } from '../lib/config.js';
+import { categories, getCategory, getNumericRatingStyle, getRatingVerdict, isAdmin, ratingVerdicts } from '../lib/config.js';
 import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHowToRichMessage, buildMyReviewsRichMessage } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 import { refreshLeaderboard } from '../lib/leaderboard.js';
@@ -36,8 +36,15 @@ function categoryKeyboard() {
 
 function ratingKeyboard() {
   return { inline_keyboard: [
-    [1, 2, 3, 4, 5].map(n => ({ text: String(n), callback_data: `rv:rating:${n}` })),
-    [6, 7, 8, 9, 10].map(n => ({ text: String(n), callback_data: `rv:rating:${n}` })),
+    [1, 2, 3, 4, 5].map((rating) => ({ text: String(rating), callback_data: `rv:rating:${rating}`, style: getNumericRatingStyle(rating) })),
+    [6, 7, 8, 9, 10].map((rating) => ({ text: String(rating), callback_data: `rv:rating:${rating}`, style: getNumericRatingStyle(rating) })),
+  ] };
+}
+function verdictKeyboard() {
+  return { inline_keyboard: [
+    ratingVerdicts.slice(0, 2).map((v) => ({ text: v.label, callback_data: `rv:verdict:${v.key}`, style: v.style })),
+    ratingVerdicts.slice(2).map((v) => ({ text: v.label, callback_data: `rv:verdict:${v.key}`, style: v.style })),
+    [{ text: 'Skip verdict', callback_data: 'rv:verdict:skip' }],
   ] };
 }
 
@@ -194,7 +201,7 @@ export default async function (query) {
         rich_message: { blocks: [
           { type: 'heading', size: 1, text: `Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}.` },
           { type: 'paragraph', text: 'A simple place to share thoughtful reviews of movies, series, anime, and dramas.' },
-          { type: 'paragraph', text: 'Submit your review with a rating, genre, and optional poster. Published reviews are organised in the appropriate community topic.' },
+          { type: 'paragraph', text: 'Submit your review with a numeric rating and an optional personal verdict, genre, and poster. Published reviews are organised in the appropriate community topic.' },
           { type: 'divider' },
           { type: 'footer', text: 'Use /help to see available commands.' },
         ] },
@@ -211,7 +218,7 @@ export default async function (query) {
       const items=published.slice(safe*size,(safe+1)*size);
       const blocks=[
         {type:'heading',size:2,text:'YOUR REVIEWS'},
-        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title}${item.year ? ` (${item.year}${item.endYear ? ` — ${item.endYear}` : ''})` : ''}`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:'success'}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
+        {type:'list',items:items.map((item,index)=>({value:safe*size+index+1,type:'1',blocks:[{type:'paragraph',text:[{type:'bold',text:`${item.title}${item.year ? ` (${item.year}${item.endYear ? ` — ${item.endYear}` : ''})` : ''}`},' ',...(item.messageLink?[{type:'button',button:{text:`★ ${item.rating}/10`,url:item.messageLink,style:getNumericRatingStyle(item.rating)}}]:[{type:'bold',text:`★ ${item.rating}/10`}])]}]}))},
         {type:'footer',text:`Showing ${safe*size+1}–${safe*size+items.length} of ${published.length} published reviews • Page ${safe+1}/${count}`},
       ];
       const nav=[];if(safe>0)nav.push({text:'‹ Previous',callback_data:`rv:reviews:${safe-1}`});if(safe+1<count)nav.push({text:'Next ›',callback_data:`rv:reviews:${safe+1}`});
@@ -303,7 +310,8 @@ export default async function (query) {
         rating: ['tv_shows', 'k_c_j_dramas'].includes(data.categoryKey)
           ? ['season', 'Send the season number, or tap Skip season.', { inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }]
           : ['genre', 'Optionally send the genre or genres, or tap Skip genre.', { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }],
-        review_text: ['rating', 'Choose your rating from 1 to 10.', ratingKeyboard()],
+        verdict: ['rating', 'Choose your numeric rating from 1 to 10.', ratingKeyboard()],
+        review_text: ['verdict', 'Optionally add a personal verdict, or skip this step.', verdictKeyboard()],
         media: ['review_text', 'Write your review in 20–5000 characters.', null],
         spoiler: ['media', 'Send photos or direct HTTPS image URLs, or tap Skip photos.', {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}],
       }[draft.step];
@@ -324,7 +332,7 @@ export default async function (query) {
         return editPrompt(chat.id, data.promptMessageId, 'Send the season number, or tap Skip season.', withBack({ inline_keyboard: [[{ text: 'Skip season', callback_data: 'rv:season:skip' }]] }));
       }
       await saveDraft(userId, chat.id, 'rating', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Choose your rating from 1 to 10.', withBack(ratingKeyboard()));
+      return editPrompt(chat.id, data.promptMessageId, 'Choose your numeric rating from 1 to 10.', withBack(ratingKeyboard()));
     }
 
     if (action === 'season' && value === 'skip' && ['season', 'edit_season'].includes(draft.step)) {
@@ -335,7 +343,7 @@ export default async function (query) {
         return preview(chat.id, await getDraft(userId));
       }
       await saveDraft(userId, chat.id, 'rating', data);
-      return editPrompt(chat.id, data.promptMessageId, 'Choose your rating from 1 to 10.', withBack(ratingKeyboard()));
+      return editPrompt(chat.id, data.promptMessageId, 'Choose your numeric rating from 1 to 10.', withBack(ratingKeyboard()));
     }
 
     if (action === 'rating' && ['rating', 'edit_rating'].includes(draft.step)) {
@@ -347,6 +355,22 @@ export default async function (query) {
       data.rating = rating;
       await answer(query.id);
       if (draft.step === 'edit_rating') {
+        await saveDraft(userId, chat.id, 'complete', data);
+        return preview(chat.id, await getDraft(userId));
+      }
+      await saveDraft(userId, chat.id, 'verdict', data);
+      return editPrompt(chat.id, data.promptMessageId, 'Optionally add a personal verdict, or skip this step.', withBack(verdictKeyboard()));
+    }
+
+    if (action === 'verdict' && ['verdict', 'edit_verdict'].includes(draft.step)) {
+      if (value === 'skip') data.ratingVerdict = null;
+      else {
+        const verdict = getRatingVerdict(value);
+        if (!verdict) { await answer(query.id, 'Choose a valid verdict or skip this step.'); return; }
+        data.ratingVerdict = verdict.key;
+      }
+      await answer(query.id);
+      if (draft.step === 'edit_verdict') {
         await saveDraft(userId, chat.id, 'complete', data);
         return preview(chat.id, await getDraft(userId));
       }
@@ -402,7 +426,8 @@ export default async function (query) {
         year: ['edit_year', 'Send the corrected release year. For TV series, you’ll also be able to add an end year.'],
         genre: ['edit_genre', 'Send genre names separated by commas (Action, Drama) or hashtags (#Action, #Drama). Missing # symbols are added automatically, or tap Skip genre.'],
         season: ['edit_season', 'Send a season number, or tap Skip season.'],
-        rating: ['edit_rating', 'Choose the corrected rating.'],
+        rating: ['edit_rating', 'Choose your numeric rating from 1 to 10.'],
+        verdict: ['edit_verdict', 'Optionally choose a personal verdict, or skip it.'],
         text: ['edit_text', 'Send the corrected review text (20–5000 characters).'],
         media: ['edit_media', 'Send replacement photos, or paste direct HTTPS image links separated by commas. Tap Done when finished.'],
         spoiler: ['edit_spoiler', 'Choose the spoiler setting.'],
@@ -416,6 +441,7 @@ export default async function (query) {
       await saveDraft(userId, chat.id, selected[0], data);
       await answer(query.id);
       const keyboard = value === 'rating' ? ratingKeyboard()
+        : value === 'verdict' ? verdictKeyboard()
         : value === 'year' ? {inline_keyboard:[[{text:'Skip year',callback_data:'rv:year:skip'}]]}
         : value === 'genre' ? { inline_keyboard: [[{ text: 'Skip genre', callback_data: 'rv:genre:skip' }]] }
         : value === 'media' ? {inline_keyboard:[[{text:'Done',callback_data:'rv:media:done',style:'success'},{text:'Skip photos',callback_data:'rv:media:skip'}]]}
