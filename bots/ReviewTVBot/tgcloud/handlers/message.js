@@ -303,7 +303,8 @@ async function listMyReviews(chatId, userId, page = 0, messageId = null) {
   const params = { chat_id: chatId, rich_message: buildMyReviewsRichMessage(items, safePage, pageCount, published.length) };
   const buttons = [];
   if (safePage > 0) buttons.push({ text: '‹ Previous', callback_data: `rv:reviews:${safePage - 1}` });
-  if (safePage + 1 < pageCount) buttons.push({ text: 'Next ›', callback_data: `rv:reviews:${safePage + 1}` });\n  buttons.push({ text: '‹ Back to profile', callback_data: 'rv:profile' });
+  if (safePage + 1 < pageCount) buttons.push({ text: 'Next ›', callback_data: `rv:reviews:${safePage + 1}` });
+  buttons.push({ text: '‹ Back to profile', callback_data: 'rv:profile' });
   params.reply_markup = { inline_keyboard: buttons.length ? [buttons] : [] };
   if (messageId) { params.message_id = messageId; return api.editMessageText(params); }
   return api.sendRichMessage(params);
