@@ -5,10 +5,19 @@ export const categories = [
   { key: 'bollywood_movies', label: 'Bollywood Movies' },
   { key: 'south_indian_movies', label: 'South Indian Movies' },
   { key: 'other_regional_movies', label: 'Other Regional Movies' },
+  { key: 'international_movies', label: 'International Movies' },
   { key: 'tv_shows', label: 'TV Shows & Series' },
   { key: 'k_c_j_dramas', label: 'K/C/J Dramas' },
   { key: 'anime', label: 'Anime' },
 ];
+
+export const ratingVerdicts = [
+  { key: 'absolute_cinema', label: 'Absolute Cinema', style: 'success', description: 'Exceptional — a must-watch.' },
+  { key: 'go_for_it', label: 'Go for It', style: 'success', description: 'Worth watching — recommended.' },
+  { key: 'timepass', label: 'Timepass', style: 'primary', description: 'An okay casual watch; keep expectations moderate.' },
+  { key: 'skip_it', label: 'Skip It', style: 'danger', description: 'Not recommended.' },
+];
+export const getRatingVerdict = (key) => ratingVerdicts.find((item) => item.key === key) ?? null;
 
 export const publicCommands = [
   { command: 'start', description: 'Welcome message and main menu' },
