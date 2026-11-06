@@ -118,7 +118,7 @@ export function buildHowToRichMessage() {
     heading('HOW TO POST A REVIEW', 1),
     paragraph('Posting is simple. Start a review and follow the prompts — your draft is saved as you go, and nothing is published until you confirm it.'),
     { type: 'list', items: [
-      { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose the review category, including K/C/J Dramas for Korean, Chinese, or Japanese drama.')] },
+      { value: 1, type: '1', blocks: [paragraph('Send /review in your private chat and choose a category. International Movies is for films from Japan, China, Korea, and other countries; K/C/J Dramas is for drama series.')] },
       { value: 2, type: '1', blocks: [paragraph('Enter the title and release year. For ended series, add the end year too (for example, 2012 — 2020). Add genres separated by commas; missing # symbols are added automatically. TV series and K/C/J drama reviews can also include a season number.')] },
       { value: 3, type: '1', blocks: [paragraph('Choose a personal verdict — Absolute Cinema, Go for It, Timepass, or Skip It — then write a review of 20–5000 characters. It is displayed in an expandable quotation.')] },
       { value: 4, type: '1', blocks: [paragraph('Add one or more photos, or paste multiple direct HTTPS image links separated by commas (or skip), set spoilers, review the preview, and publish.')] },
