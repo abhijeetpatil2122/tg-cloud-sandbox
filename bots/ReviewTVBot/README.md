@@ -6,7 +6,8 @@ Users submit reviews privately through a category-first wizard, preview the fini
 
 ## Forum topics
 
-1. Hollywood Movies
+1. General — main topic for new-review notifications
+2. Hollywood Movies
 2. Bollywood Movies
 3. South Indian Movies
 4. Other Regional Movies
@@ -14,7 +15,9 @@ Users submit reviews privately through a category-first wizard, preview the fini
 6. TV Shows & Series
 7. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
 8. Anime
-9. Leaderboard — automatically refreshed top 20 reviewers
+10. Leaderboard — automatically refreshed top 20 reviewers
+
+The General topic is a separate system destination (key: `general`, topic ID: `1`) for minimal new-review notifications. It is not a review category. After a review is successfully published in its category topic, the bot posts a Rich Message notification in General with the title, destination category name, a View Review link, and a Write Review deep link.
 
 The user chooses a category before entering review details. International Movies is a separate film category; K/C/J Dramas reuse the TV series year-range and optional season steps. The bot maps that category to a configured topic ID. The owner creates the forum topics; the bot does not create them automatically.
 
@@ -38,7 +41,7 @@ There is no admin approval queue. The author's final confirmation authorizes pub
 
 ### Owner
 - `/connect` — connect/verify the forum.
-- `/settopic` — configure a category topic.
+- `/settopic` — configure a category topic, the General notification topic (`/settopic general` from General), or the leaderboard topic.
 - `/settings` — view configuration.
 - `/stats` — private statistics.
 - `/leaderboard` — initialize, refresh, or repair the single leaderboard message (private admin command).
@@ -53,8 +56,8 @@ Owner actions are restricted to the Telegram creator of the connected forum supe
 2. Obtain the Serverless CLI access token from BotFather → Serverless → CLI Access.
 3. Add it to GitHub repository Actions secrets as `TGCLOUD_TOKEN_REVIEWTVBOT`.
 4. Create a supergroup, enable Topics, add the bot as administrator, and grant required text/media permissions.
-5. Create the eight review-category topics listed above, plus the separate Leaderboard topic.
-6. After the forum setup code is deployed and its database schema is migrated, send `/connect` in the supergroup as its creator. Then open each topic and send `/settopic` followed by its category key (for example, `/settopic hollywood_movies`). The bot captures the topic ID from the update, so you do not need to copy IDs manually. Configure the leaderboard topic with `/settopic leaderboard`, then send `/leaderboard` privately to create its persistent message.
+5. Create the eight review-category topics listed above, plus the separate Leaderboard topic. General already exists in every forum and does not need to be created.
+6. After the forum setup code is deployed and its database schema is migrated, send `/connect` in the supergroup as its creator. In General, send `/settopic general` to configure notification delivery (General has the fixed topic ID 1). Then open each review category topic and send `/settopic` followed by its category key (for example, `/settopic hollywood_movies`). Configure the leaderboard topic with `/settopic leaderboard`, then send `/leaderboard` privately to create its persistent message.
 
 The Serverless CLI token is different from the ordinary Bot API token. Never commit either token or place them in source code.
 
