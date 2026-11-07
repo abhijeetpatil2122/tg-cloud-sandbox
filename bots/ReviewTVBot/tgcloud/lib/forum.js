@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { communityConfig, categoryTopics } from '../schema.js';
-import { categories, getCategory, isAdmin } from './config.js';
+import { GENERAL_TOPIC, categories, getCategory, isAdmin } from './config.js';
 
 const CONFIG_ID = 1;
 
@@ -96,6 +96,7 @@ export async function connectForum(message) {
     { type: 'paragraph', text: 'Map each review category from its own forum topic. The topic key must be sent from inside the topic it belongs to.' },
     { type: 'divider' },
     { type: 'heading', size: 3, text: 'Review topic keys' },
+    { type: 'paragraph', text: [{ type: 'bold', text: GENERAL_TOPIC.label }, ' — ', { type: 'code', text: GENERAL_TOPIC.key }, ' (main topic for new-review notifications)'] },
     { type: 'list', items: categories.map((category) => ({ blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: category.label }, ' — ', { type: 'code', text: category.key }] }] })) },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Leaderboard' }, ' — ', { type: 'code', text: 'leaderboard' }] },
     { type: 'footer', text: 'Topic mappings can be changed later by the forum owner.' },
@@ -103,12 +104,15 @@ export async function connectForum(message) {
 }
 
 export async function setCategoryTopic(message, categoryKey) {
+  const isGeneral = categoryKey === GENERAL_TOPIC.key;
   const isLeaderboard = categoryKey === 'leaderboard';
-  const category = isLeaderboard ? { key: 'leaderboard', label: 'Leaderboard' } : getCategory(categoryKey);
+  const category = isGeneral ? GENERAL_TOPIC : isLeaderboard ? { key: 'leaderboard', label: 'Leaderboard' } : getCategory(categoryKey);
+  const topicId = isGeneral ? GENERAL_TOPIC.topicId : message.message_thread_id;
   if (!category) {
     return sendRichToMessageContext(message, [
       { type: 'heading', size: 2, text: 'Unknown Topic Key' },
       { type: 'paragraph', text: 'Choose one of the supported keys below and send the command again from its matching topic.' },
+      { type: 'paragraph', text: [{ type: 'bold', text: GENERAL_TOPIC.label }, ' — ', { type: 'code', text: GENERAL_TOPIC.key }, ' (main topic for new-review notifications)'] },
       { type: 'list', items: categories.map((item) => ({ blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: item.label }, ' — ', { type: 'code', text: item.key }] }] })) },
       { type: 'paragraph', text: [{ type: 'bold', text: 'Leaderboard' }, ' — ', { type: 'code', text: 'leaderboard' }] },
     ]);
@@ -127,22 +131,25 @@ export async function setCategoryTopic(message, categoryKey) {
     await sendToMessageContext(message, 'Only the configured forum owner can change category topics.');
     return;
   }
-  if (message.chat.type !== 'supergroup' || !Number.isInteger(message.message_thread_id)) {
-    await sendToMessageContext(message, 'Send /settopic from inside the forum topic you want to assign. It cannot be set from the General topic or a private chat.');
+  const isGeneralContext = !Number.isInteger(message.message_thread_id) || message.message_thread_id === GENERAL_TOPIC.topicId;
+  if (message.chat.type !== 'supergroup' || (isGeneral ? !isGeneralContext : !Number.isInteger(message.message_thread_id))) {
+    await sendToMessageContext(message, isGeneral
+      ? 'Send /settopic general directly in the General topic (the main topic).'
+      : 'Send /settopic from inside the forum topic you want to assign. General is configured separately with /settopic general.');
     return;
   }
 
   await db.insert(categoryTopics).values({
     categoryKey: category.key,
     chatId: config.chatId,
-    topicId: message.message_thread_id,
+    topicId,
     configuredBy: message.from.id,
     updatedAt: new Date(),
   }).onConflictDoUpdate({
     target: categoryTopics.categoryKey,
     set: {
       chatId: config.chatId,
-      topicId: message.message_thread_id,
+      topicId,
       configuredBy: message.from.id,
       updatedAt: new Date(),
     },
@@ -150,7 +157,7 @@ export async function setCategoryTopic(message, categoryKey) {
 
   return sendRichToMessageContext(message, [
     { type: 'heading', size: 2, text: '✓ Topic Saved' },
-    { type: 'paragraph', text: [{ type: 'bold', text: category.label }, ' is now mapped to topic ', { type: 'code', text: String(message.message_thread_id) }, '.'] },
+    { type: 'paragraph', text: [{ type: 'bold', text: category.label }, ' is now mapped to topic ', { type: 'code', text: String(topicId) }, '.'] },
     { type: 'footer', text: 'This topic is ready for review publishing.' },
   ]);
 }
@@ -167,13 +174,20 @@ export async function showSettings(message) {
   }
 
   const mappings = await db.select().from(categoryTopics).all();
-  const rows = categories.map((category) => {
-    const mapping = mappings.find((item) => item.categoryKey === category.key && item.chatId === config.chatId);
-    return [
-      { text: category.label, align: 'left' },
-      { text: mapping ? String(mapping.topicId) : '—', align: 'right' },
-    ];
-  });
+  const generalMapping = mappings.find((item) => item.categoryKey === GENERAL_TOPIC.key && item.chatId === config.chatId);
+  const rows = [
+    [
+      { text: GENERAL_TOPIC.label, align: 'left' },
+      { text: generalMapping ? String(generalMapping.topicId) : '—', align: 'right' },
+    ],
+    ...categories.map((category) => {
+      const mapping = mappings.find((item) => item.categoryKey === category.key && item.chatId === config.chatId);
+      return [
+        { text: category.label, align: 'left' },
+        { text: mapping ? String(mapping.topicId) : '—', align: 'right' },
+      ];
+    }),
+  ];
   const leaderboardMapping = mappings.find((item) => item.categoryKey === 'leaderboard' && item.chatId === config.chatId);
   rows.push([{ text: 'Leaderboard', align: 'left' }, { text: leaderboardMapping ? String(leaderboardMapping.topicId) : '—', align: 'right' }]);
 
