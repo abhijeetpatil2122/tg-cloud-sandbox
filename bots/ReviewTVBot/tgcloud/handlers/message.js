@@ -9,7 +9,7 @@ import {
   buildAdminPanelRichMessage, buildAdminStatsRichMessage, buildAdminResetConfirmation,
 } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
-import { refreshLeaderboard } from '../lib/leaderboard.js';
+import { refreshLeaderboard, syncLeaderboardMemberTag } from '../lib/leaderboard.js';
 import { showUserProfile } from '../lib/profile.js';
 import { communityConfig, categoryTopics } from '../schema.js';
 import {
@@ -411,6 +411,15 @@ export default async function (message) {
   if (!message?.chat?.id) return;
   const text = typeof message.text === 'string' ? message.text : '';
   try {
+    // General is Telegram's built-in topic; its message_thread_id is omitted
+    // in ordinary updates (some clients/updates may provide the fixed ID 1).
+    if (
+      message.chat.type === 'supergroup' &&
+      message.from?.id &&
+      (message.message_thread_id == null || message.message_thread_id === 1)
+    ) {
+      await syncLeaderboardMemberTag(message.chat.id, message.from.id);
+    }
     if (text.startsWith('/')) {
       const { command, args } = parseCommand(text);
       const userId = message.from?.id;

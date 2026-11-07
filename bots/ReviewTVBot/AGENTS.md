@@ -72,7 +72,7 @@ Suggested owner-only commands:
 - `/stats`: private owner-only aggregate statistics.
 - `/disconnect`: disable publishing after confirmation.
 
-Validate that the destination is a supergroup with forum topics enabled and that the bot has the permissions required to send text and media. Verify each configured topic belongs to the connected group. Do not invent an API method for retrieving topic IDs; inspect current update fields and Bot API methods. If needed, capture `message_thread_id` from a documented update generated inside the target topic.
+Validate that the destination is a supergroup with forum topics enabled and that the bot has the permissions required to send text and media. For leaderboard member tags, also grant the bot the `can_manage_tags` administrator right. Verify each configured topic belongs to the connected group. Do not invent an API method for retrieving topic IDs; inspect current update fields and Bot API methods. If needed, capture `message_thread_id` from a documented update generated inside the target topic.
 
 Owner bootstrap for the initial single-forum setup is based on Telegram's authoritative group creator identity: `/connect` is accepted only when the caller's `from.id` matches the `creator` returned by `getChatAdministrators` for that supergroup. Persist that creator ID as the configured owner. Never let an arbitrary first caller or an ordinary administrator become owner. Check the persisted owner ID server-side on every later admin action; hiding commands from help is not authorization.
 
@@ -208,3 +208,12 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - Preserve community_config, category_topics, and leaderboard_state so the connected forum and persistent leaderboard message remain configured.
 - After clearing records, refresh the existing leaderboard message to its empty state. If that refresh fails, the reset still succeeds and the owner receives a note to refresh the leaderboard separately.
 - The reset never deletes messages already published in Telegram forum topics. It resets database-backed history and numbering only.
+
+
+## Leaderboard member tags
+- Use Telegram's official `setChatMemberTag` Bot API method to apply the exact rank format `#1 Reviewer` through `#20 Reviewer`.
+- The message handler checks only messages in the connected forum's built-in General topic (no `message_thread_id` or fixed ID 1). For each identifiable user message, calculate the user's current position using the same published-review count and deterministic tie-break ordering as the leaderboard.
+- Assign or update the tag for a top-20 regular member. If the user falls outside the top 20, remove only a tag matching this feature's `#N Reviewer` format. Never clear or overwrite an unrelated custom member tag.
+- Do not assign tags to group administrators or the creator. Telegram member tags apply to regular members; admin custom titles are deliberately out of scope.
+- Tag synchronization is best-effort and must never interrupt normal message handling. It occurs when the member next posts in General, not as a background job.
+- The bot must have the `can_manage_tags` administrator right. This feature uses the existing reviews and community configuration tables and requires no schema change or migration.

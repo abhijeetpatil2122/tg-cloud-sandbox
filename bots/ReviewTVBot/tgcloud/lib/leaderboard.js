@@ -5,6 +5,12 @@ import { categoryTopics, communityConfig, leaderboardState, reviews } from '../s
 const STATE_ID = 1;
 const LIMIT = 20;
 
+const LEADERBOARD_TAG_PATTERN = /^#(?:[1-9]|1[0-9]|20) Reviewer$/;
+
+function isLeaderboardTag(tag) {
+  return typeof tag === 'string' && LEADERBOARD_TAG_PATTERN.test(tag);
+}
+
 async function getLeaderboardRows() {
   const rows = await db.select().from(reviews).all();
   const published = rows.filter((row) => row.status === 'published');
@@ -21,6 +27,39 @@ async function getLeaderboardRows() {
   return [...grouped.values()]
     .sort((a, b) => b.count - a.count || a.userId - b.userId)
     .slice(0, LIMIT);
+}
+
+export async function syncLeaderboardMemberTag(chatId, userId) {
+  try {
+    const config = await db.select().from(communityConfig).where(eq(communityConfig.id, 1)).get();
+    if (!config?.enabled || config.chatId !== chatId) return;
+
+    const [leaders, member] = await Promise.all([
+      getLeaderboardRows(),
+      api.getChatMember({ chat_id: chatId, user_id: userId }),
+    ]);
+
+    // Telegram member tags are for regular members, not group administrators.
+    if (!member || member.status === 'creator' || member.status === 'administrator') return;
+    if (member.status !== 'member' && !(member.status === 'restricted' && member.is_member)) return;
+
+    const rankIndex = leaders.findIndex((leader) => leader.userId === userId);
+    const desiredTag = rankIndex >= 0 ? `#${rankIndex + 1} Reviewer` : '';
+    const currentTag = typeof member.tag === 'string' ? member.tag : '';
+
+    if (desiredTag) {
+      if (currentTag === desiredTag) return;
+      // Do not overwrite a tag that is not owned by this leaderboard feature.
+      if (currentTag && !isLeaderboardTag(currentTag)) return;
+    } else if (!isLeaderboardTag(currentTag)) {
+      return;
+    }
+
+    await api.setChatMemberTag({ chat_id: chatId, user_id: userId, tag: desiredTag });
+  } catch (error) {
+    // Tag failures must never interfere with normal General-topic messages.
+    console.warn('Leaderboard member tag sync failed', error?.description || error?.message || error);
+  }
 }
 
 export async function buildLeaderboardMessage() {

@@ -19,6 +19,17 @@ Users submit reviews privately through a category-first wizard, preview the fini
 
 The General topic is a separate system destination (key: `general`, topic ID: `1`) for minimal new-review notifications. It is not a review category. After a review is successfully published in its category topic, the bot posts a Rich Message notification in General with the title, destination category name, a View Review link, and a Write Review deep link.
 
+## Leaderboard member tags
+
+When a regular member sends a message in the forum's General topic, ReviewTVBot checks their current position in the published-review leaderboard and synchronizes their Telegram member tag:
+
+- Rank 1: `#1 Reviewer`
+- Rank 2: `#2 Reviewer`
+- ...
+- Rank 20: `#20 Reviewer`
+
+The tag is updated to the member's current rank when they next post in General. If they are no longer in the top 20, the bot removes a tag in this leaderboard format. It does not assign tags to group administrators and does not overwrite unrelated custom member tags. Tag changes are best-effort and never interrupt message handling. The bot must be an administrator with the `can_manage_tags` right; no database migration is required.
+
 The user chooses a category before entering review details. International Movies is a separate film category; K/C/J Dramas reuse the TV series year-range and optional season steps. The bot maps that category to a configured topic ID. The owner creates the forum topics; the bot does not create them automatically.
 
 ## Review flow
@@ -55,7 +66,7 @@ Owner actions are restricted to the Telegram creator of the connected forum supe
 1. Create the bot in BotFather and enable Serverless.
 2. Obtain the Serverless CLI access token from BotFather → Serverless → CLI Access.
 3. Add it to GitHub repository Actions secrets as `TGCLOUD_TOKEN_REVIEWTVBOT`.
-4. Create a supergroup, enable Topics, add the bot as administrator, and grant required text/media permissions.
+4. Create a supergroup, enable Topics, add the bot as administrator, grant required text/media permissions, and enable `can_manage_tags`.
 5. Create the eight review-category topics listed above, plus the separate Leaderboard topic. General already exists in every forum and does not need to be created.
 6. After the forum setup code is deployed and its database schema is migrated, send `/connect` in the supergroup as its creator. In General, send `/settopic general` to configure notification delivery (General has the fixed topic ID 1). Then open each review category topic and send `/settopic` followed by its category key (for example, `/settopic hollywood_movies`). Configure the leaderboard topic with `/settopic leaderboard`, then send `/leaderboard` privately to create its persistent message.
 
