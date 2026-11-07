@@ -1,5 +1,7 @@
 export const ADMIN_IDS = [8469987057, 1314643983];
 
+export const GENERAL_TOPIC = { key: 'general', label: 'General', topicId: 1 };
+
 export const categories = [
   { key: 'hollywood_movies', label: 'Hollywood Movies' },
   { key: 'bollywood_movies', label: 'Bollywood Movies' },
