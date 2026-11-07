@@ -8,13 +8,13 @@ Users submit reviews privately through a category-first wizard, preview the fini
 
 1. General — main topic for new-review notifications
 2. Hollywood Movies
-2. Bollywood Movies
-3. South Indian Movies
-4. Other Regional Movies
-5. International Movies — non-Hollywood international cinema, including Japanese, Chinese, Korean, and other world cinema
-6. TV Shows & Series
-7. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
-8. Anime
+3. Bollywood Movies
+4. South Indian Movies
+5. Other Regional Movies
+6. International Movies — non-Hollywood international cinema, including Japanese, Chinese, Korean, and other world cinema
+7. TV Shows & Series
+8. K/C/J Dramas — Korean, Chinese, and Japanese drama reviews
+9. Anime
 10. Leaderboard — automatically refreshed top 20 reviewers
 
 The General topic is a separate system destination (key: `general`, topic ID: `1`) for minimal new-review notifications. It is not a review category. After a review is successfully published in its category topic, the bot posts a Rich Message notification in General with the title, destination category name, a View Review link, and a Write Review deep link.
