@@ -36,9 +36,9 @@ async function nextNumber(categoryKey) {
 }
 
 function makeMessageLink(chatId, messageId, topicId, username) {
-  if (username) return `https://t.me/${username}/${messageId}`;
+  if (username) return `https://t.me/${username}/${topicId}/${messageId}`;
   const internalId = String(chatId).replace(/^-100/, '');
-  return `https://t.me/c/${internalId}/${messageId}?thread=${topicId}`;
+  return `https://t.me/c/${internalId}/${topicId}/${messageId}`;
 }
 
 export async function publishReview(userId, draft) {
