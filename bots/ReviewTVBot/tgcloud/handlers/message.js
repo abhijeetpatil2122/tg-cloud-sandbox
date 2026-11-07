@@ -415,6 +415,7 @@ export default async function (message) {
       const { command, args } = parseCommand(text);
       const userId = message.from?.id;
       if (command === '/start') {
+        if (args[0] === 'review' && message.chat.type === 'private') return startReview(message);
         await showWelcome(message);
         return;
       }
