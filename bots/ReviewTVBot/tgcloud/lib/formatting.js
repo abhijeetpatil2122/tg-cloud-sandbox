@@ -48,6 +48,24 @@ export function buildReviewRichMessage(data, reviewNumber = null, preview = fals
   return { blocks };
 }
 
+export function buildNewReviewNotification(data, topicName, reviewLink) {
+  const title = `${plain(data.title)}${data.year ? ` (${plain(data.year)}${data.endYear ? ` — ${plain(data.endYear)}` : ''})` : ''}`;
+  return { blocks: [
+    heading('🔔 New Review Posted', 2),
+    { type: 'divider' },
+    heading(title, 1),
+    footer(`Posted in · ${plain(topicName)}`),
+    {
+      type: 'buttons',
+      align: 'center',
+      buttons: [
+        { text: 'View Review', url: plain(reviewLink) },
+        { text: 'Write Review', url: 'https://t.me/ReviewTvBot?start=review', style: 'success' },
+      ],
+    },
+  ] };
+}
+
 export function buildReviewKeyboard(data, mode = 'preview', reviewId = null, counts = { likes: 0, dislikes: 0 }, userReaction = null) {
   if (mode === 'preview') {
     return { inline_keyboard: [
