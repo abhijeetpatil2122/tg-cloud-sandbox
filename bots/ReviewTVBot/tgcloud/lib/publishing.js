@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { eq, sql } from 'sdk/db';
 import { categoryTopics, communityConfig, reviews, topicCounters } from '../schema.js';
-import { buildReviewKeyboard } from './formatting.js';
+import { buildNewReviewNotification, buildReviewKeyboard } from './formatting.js';
 import { getCategory, getRatingVerdict } from './config.js';
 import { buildReviewRichMessage } from './formatting.js';
 import { refreshLeaderboard } from './leaderboard.js';
@@ -13,6 +13,17 @@ async function getDestination(categoryKey) {
   const mapping = await db.select().from(categoryTopics).where(eq(categoryTopics.categoryKey, categoryKey)).get();
   if (!config?.enabled || !mapping || mapping.chatId !== config.chatId) throw new Error('This review category is not connected to a publishing topic yet.');
   return { config, mapping };
+}
+
+async function notifyGeneralTopic(config, data, category, reviewLink) {
+  const mapping = await db.select().from(categoryTopics)
+    .where(eq(categoryTopics.categoryKey, 'general')).get();
+  if (!mapping || mapping.chatId !== config.chatId || mapping.topicId !== 1) return;
+
+  await api.sendRichMessage({
+    chat_id: config.chatId,
+    rich_message: buildNewReviewNotification(data, category.label, reviewLink),
+  });
 }
 
 async function nextNumber(categoryKey) {
@@ -64,6 +75,11 @@ export async function publishReview(userId, draft) {
     await db.update(reviews).set({
       status: 'published', messageId: sent.message_id, messageLink: link, publishedAt: new Date(),
     }).where(eq(reviews.id, reviewRecord.id)).run();
+    try {
+      await notifyGeneralTopic(config, data, category, link);
+    } catch (notificationError) {
+      console.warn('General topic notification failed after publishing', notificationError?.description || notificationError?.message || notificationError);
+    }
     try { await refreshLeaderboard(); }
     catch (leaderboardError) { console.warn('Leaderboard refresh failed after publishing', leaderboardError?.description || leaderboardError?.message || leaderboardError); }
     return { reviewNumber, link, messageId: sent.message_id, category, topicName: category.label };
