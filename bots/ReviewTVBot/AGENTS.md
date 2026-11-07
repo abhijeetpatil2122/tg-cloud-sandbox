@@ -11,6 +11,7 @@ The repository root `/AGENTS.md` is authoritative for shared Serverless, GitHub 
 - Publishing: immediately after the author's final confirmation.
 - The owner creates the supergroup, enables Topics, adds the bot as admin, creates the topics, and configures their topic IDs.
 - The bot must not create topics automatically in the initial release.
+- The forum's built-in General topic is a separate system destination, configured with `/settopic general` from General. Its fixed topic ID is 1; it is not a review category.
 - Users submit in private chat; reviews are published to the matching configured topic.
 - No external movie metadata provider or Mini App is required for the MVP.
 
@@ -53,7 +54,8 @@ Submission flow:
 12. Publish only after an explicit confirmation callback.
 13. Confirm success and return the published message link if available.
 
-The chosen category determines the destination topic. Configure the separate leaderboard topic with `/settopic leaderboard`; it is not a review category and must not appear in the review category picker. Users never enter topic IDs.
+The chosen category determines the destination topic. Configure the separate General notification topic with `/settopic general` from General (fixed topic ID 1), and the leaderboard topic with `/settopic leaderboard`; neither is a review category and neither appears in the review category picker. Users never enter topic IDs.
+- After a review is successfully published in its category topic, send a compact Rich Message notification to General. Include the title/year, the category's configured display label, a neutral View Review URL button, and a success-styled Write Review deep link. The Write Review link opens the bot's private chat with the `review` start payload and starts the existing review flow. Notification failures must be logged but must not mark an already-published review as failed.
 
 ## Review post format
 Use a consistent, clean layout: category/title heading, release year and optional season, a numeric score with a dynamic danger (1–4), primary (5–7), or success (8–10) button, plus an optional verdict button with its own style, review body, spoiler-protected text when marked, reviewer attribution, and an optional image slideshow. When a slideshow has multiple images, add a hardcoded caption based on the review category: movie, TV series, drama, or anime. Use the same renderer and caption in the user's preview and the published forum-topic post; do not ask users to enter or edit captions. Prefer native Telegram Rich Message formatting after verifying the exact current Bot API input schema. Do not assume ordinary Markdown is automatically parsed as Rich Message or that `sendRichMessage` accepts media. If poster and formatted review need separate messages, send both to the same `message_thread_id`, store both message IDs, and implement partial-failure recovery.
@@ -61,7 +63,7 @@ Use a consistent, clean layout: category/title heading, release year and optiona
 Escape/safely construct user text so it cannot inject Rich Message formatting or links. Spoiler text must actually be protected; a warning label alone is insufficient.
 
 ## Forum setup and owner controls
-After `/connect`, configure topics by sending `/settopic <category_key>` from inside each matching forum topic. The handler reads `message.message_thread_id` from that command update and stores it against the selected category. This avoids manually copying numeric topic IDs.
+After `/connect`, configure the General notification destination by sending `/settopic general` directly in General; General has no `message_thread_id` in ordinary updates and its fixed ID is 1. Configure review-category and leaderboard topics by sending `/settopic <category_key>` from inside each matching forum topic. The handler reads `message.message_thread_id` from that command update and stores it against the selected category. This avoids manually copying numeric topic IDs.
 
 Suggested owner-only commands:
 - `/connect`: connect/verify the current forum supergroup.
@@ -123,7 +125,7 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 ### Phase 2 — Forum configuration (code deployed; database migration and live setup pending)
 - Establish trusted owner identity from the Telegram group creator verified during `/connect`.
 - Connect and validate the forum supergroup and bot administrator status.
-- Configure/verify all eight review-category topic IDs plus the separate leaderboard topic ID.
+- Configure/verify all eight review-category topic IDs, the fixed General notification topic (ID 1), and the separate leaderboard topic ID.
 - Implement owner-only settings and diagnostics.
 
 ### Phase 3 — Database and wizard (implementation in progress on feature branch)
@@ -158,6 +160,8 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 
 ## Test checklist
 - Every category routes to exactly its configured topic.
+- A successful review publication sends one notification to the configured General topic; an unconfigured General mapping or notification send failure never blocks or reverses the category review publication.
+- The General notification's View Review button opens the published review, and Write Review opens the private bot chat and starts the existing review wizard.
 - Missing/invalid topic mapping blocks publication clearly.
 - Non-owners cannot use admin commands.
 - Only forum-enabled supergroups with sufficient bot permissions can connect.
