@@ -1,5 +1,5 @@
 import { api } from 'sdk';
-import { CATEGORIES, getDemo } from '../lib/catalog.js';
+import { CATEGORIES, getDemo, getCategory } from '../lib/catalog.js';
 import { buildWidgetHtml, getInitialState } from '../lib/widget_factory.js';
 
 const HOME = [
@@ -55,28 +55,15 @@ export async function sendDemo(chatId, demoId) {
   }
   const state = getInitialState(demo.id);
   const html = buildWidgetHtml(demo.id, demo.title, demo.description);
-  const shared = demo.shared === true;
   const sent = await api.sendWidget({
     chat_id: chatId,
     html,
     caption: `PWidgetBot · ${demo.title}`,
-    allow_queries: demo.queries !== false,
-    is_shared: shared,
-    ...(shared ? { public_data: JSON.stringify(state) } : { chat_data: JSON.stringify(state) }),
+    allow_queries: false,
+    chat_data: JSON.stringify(state),
   });
 
-  const widgetId = sent?.widget?.id;
-  const markup = widgetId ? {
-    inline_keyboard: [[{ text: 'Send another shared copy', callback_data: `share:${widgetId}` }]],
-  } : undefined;
-  if (markup && sent?.message_id) {
-    await api.sendMessage({
-      chat_id: chatId,
-      text: 'This demo uses a shared widget object. You can send another copy from the same shared state.',
-      reply_parameters: { message_id: sent.message_id },
-      reply_markup: markup,
-    });
-  }
+  return sent;
 }
 
 export default async function (message) {
@@ -114,8 +101,8 @@ export default async function (message) {
       chat_id: message.chat.id,
       rich_message: { blocks: [
         { type: 'heading', size: 2, text: 'About PWidgetBot' },
-        { type: 'paragraph', text: 'A universal showcase for Telegram Bot API 10.4 HTML Widgets, including interactive state, shared widget state, TON wallet query types, and developer examples.' },
-        { type: 'paragraph', text: 'Widgets are self-contained HTML. They cannot access the network; interactions are routed through TelegramWidget.request and answered by this bot.' },
+        { type: 'paragraph', text: 'A showcase for Telegram Bot API 10.4 HTML Widgets, with self-contained interactive demos, TON wallet API references, and developer examples.' },
+        { type: 'paragraph', text: 'Widgets are self-contained HTML. Local interactions run inside the widget. The current Serverless handler registry does not yet accept the Bot API 10.4 widget_query and shared_widget_query update types, so bot round-trips, server-synced state, and wallet query demos are shown as protocol references rather than enabled actions.' },
         { type: 'paragraph', text: 'No seed phrases or private keys are requested or stored.' },
         { type: 'paragraph', text: 'Official Bot API documentation: https://core.telegram.org/bots/api' },
       ] },
