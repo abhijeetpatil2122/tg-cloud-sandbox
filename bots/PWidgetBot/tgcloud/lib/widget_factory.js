@@ -85,7 +85,7 @@ if($('options')&&DEMO_ID==='shared_poll'&&s.votes){$('options').innerHTML=['Inte
 if($('options')&&DEMO_ID==='quick_quiz')$('options').innerHTML=['answerCallbackQuery','answerWidgetQuery','editMessageWidgetData'].map((v,i)=>'<button class="option" data-quiz="'+i+'">'+v+'</button>').join('');
 if($('scores')&&s.scores){$('scores').innerHTML=s.scores.map((v,i)=>'<div class="row between" style="padding:7px 0"><span>'+(i+1)+'. '+v.name+'</span><b>'+v.score+'</b></div>').join('')}
 };
-if(W&&W.onEvent){W.onEvent('chatDataChanged',render);W.onEvent('publicDataChanged',render)}render();
+if(W&&W.onEvent){W.onEvent('chatDataChanged',render);W.onEvent('publicDataChanged',render)}\nif(['shared_poll','reaction_counter','live_dashboard','leaderboard','shared_state'].includes(DEMO_ID)&&W&&typeof W.watchPublicData==='function')W.watchPublicData();\nrender();
 if($('tap'))$('tap').onclick=()=>request('clicker:tap');
 if($('react'))$('react').onclick=()=>request('reaction:add');
 if($('plus'))$('plus').onclick=()=>request('progress:10');
