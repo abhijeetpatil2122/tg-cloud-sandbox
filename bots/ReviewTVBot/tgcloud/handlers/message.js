@@ -87,39 +87,18 @@ async function showWelcome(message) {
   ], [{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] });
 }
 
-async function showProfileWidget(chatId, user, widgetMessageId = null) {
+async function showProfileWidget(chatId, user) {
   try {
     const profile = await getUserProfileWidgetData(user);
-    if (Number.isSafeInteger(Number(widgetMessageId)) && Number(widgetMessageId) > 0) {
-      try {
-        await api.editMessageWidgetData({
-          chat_id: chatId,
-          message_id: Number(widgetMessageId),
-          chat_data: serializeProfileWidgetData(profile, Number(widgetMessageId)),
-        });
-        return;
-      } catch (editError) {
-        console.warn('Could not refresh existing profile widget; sending a new one', editError?.description || editError?.message || editError);
-      }
-    }
-    const sent = await api.sendWidget({
+    return await api.sendWidget({
       chat_id: chatId,
       html: buildProfileWidgetHtml(),
       chat_data: serializeProfileWidgetData(profile),
       caption: 'Your ReviewTV profile · reviewer stats, category insights and recent reviews.',
+      reply_markup: { inline_keyboard: [[
+        { text: '‹ Back to profile', callback_data: 'rv:profile' },
+      ]] },
     });
-    if (sent?.message_id) {
-      try {
-        await api.editMessageWidgetData({
-          chat_id: chatId,
-          message_id: sent.message_id,
-          chat_data: serializeProfileWidgetData(profile, sent.message_id),
-        });
-      } catch (stateError) {
-        console.warn('Could not attach the refresh target to the profile widget', stateError?.description || stateError?.message || stateError);
-      }
-    }
-    return sent;
   } catch (error) {
     console.error('ReviewTVBot widget demo failed', error?.description || error?.message || error);
     return sendRich(chatId, { blocks: [
@@ -471,13 +450,6 @@ export default async function (message) {
         if (message.chat.type === 'private' && message.from?.id) {
           if (args[0] === 'review') return startReview(message);
           if (args[0] === 'widgetdemo') return showProfileWidget(message.chat.id, message.from);
-          if (args[0]?.startsWith('widgetrefresh_')) {
-            const widgetMessageId = Number(args[0].slice('widgetrefresh_'.length));
-            if (Number.isSafeInteger(widgetMessageId) && widgetMessageId > 0) {
-              return showProfileWidget(message.chat.id, message.from, widgetMessageId);
-            }
-            return showProfileWidget(message.chat.id, message.from);
-          }
         }
         await showWelcome(message);
         return;
