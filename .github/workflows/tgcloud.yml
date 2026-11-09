@@ -113,7 +113,7 @@ jobs:
 
       - name: Fetch cloud state and show status
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || inputs.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || inputs.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || inputs.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -123,7 +123,7 @@ jobs:
       - name: Deploy selected bot project
         if: inputs.mode == 'deploy'
         env:
-          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || inputs.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || '' }}
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || inputs.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || inputs.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
