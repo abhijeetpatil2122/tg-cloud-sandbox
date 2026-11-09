@@ -12,4 +12,4 @@ const compressedBytes = deflateSync(Buffer.from(html, 'utf8'), { level: 9 }).byt
 console.log(`ReviewTV profile widget: ${htmlBytes} bytes HTML; ${compressedBytes} bytes zlib-compressed.`);
 if (htmlBytes < 1 || htmlBytes > 32768) throw new Error('Widget HTML must be between 1 and 32768 UTF-8 bytes.');
 if (compressedBytes > 4096) throw new Error('Widget HTML exceeds Telegram’s 4096-byte compressed limit.');
-if (html.includes('\\0')) throw new Error('Widget HTML contains a NUL character.');
+if (html.includes(String.fromCharCode(0))) throw new Error('Widget HTML contains a NUL character.');
