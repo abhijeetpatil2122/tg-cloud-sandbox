@@ -128,6 +128,7 @@ export async function getUserProfileWidgetData(user) {
     : '—';
   const verdicts = ratingVerdicts.map((verdict) => ({
     label: verdict.label,
+    style: verdict.style,
     count: published.filter((row) => row.ratingVerdict === verdict.key).length,
   })).filter((item) => item.count > 0);
   const categoryCounts = categories.map((category) => ({
@@ -154,10 +155,11 @@ export async function getUserProfileWidgetData(user) {
     verdicts,
     categories: categoryCounts,
     recent: published.slice(0, 5).map((row) => ({
-      title: plain(row.title).slice(0, 64),
+      title: plain(row.title),
       year: row.year,
       endYear: row.endYear,
       rating: row.rating,
+      style: getNumericRatingStyle(row.rating),
       verdict: getRatingVerdict(row.ratingVerdict)?.label || '',
       category: categories.find((item) => item.key === row.categoryKey)?.label || 'Other',
       link: /^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(String(row.messageLink || '')) ? row.messageLink : '',
