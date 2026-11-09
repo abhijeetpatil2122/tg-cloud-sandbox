@@ -55,7 +55,8 @@ body{margin:0;padding:12px;color:var(--tg-theme-text-color);background:var(--tg-
 .review{padding:10px 0;border-bottom:1px solid var(--tg-theme-section-separator-color)}
 .review:last-child{border:0}
 .review-title{font-size:13px;font-weight:650;line-height:1.35}
-.review-meta{font-size:11px;color:var(--tg-theme-hint-color);margin-top:4px}\n.open-review{border:0;padding:0;margin-top:6px;background:transparent;color:var(--tg-theme-link-color);font:600 11px system-ui}
+.review-meta{font-size:11px;color:var(--tg-theme-hint-color);margin-top:4px}
+.open-review{border:0;padding:0;margin-top:6px;background:transparent;color:var(--tg-theme-link-color);font:600 11px system-ui}
 .empty{font-size:12px;color:var(--tg-theme-hint-color);padding:14px 4px;text-align:center}
 .actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .refresh{border:0;border-radius:9px;padding:8px 12px;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color);font:600 12px system-ui}
@@ -107,17 +108,15 @@ function render(){
  el('avatar').textContent=initials(data.name);
  el('rank').textContent=data.rank?'#'+data.rank+' Reviewer':'Not in top 20';
  el('content').innerHTML=current==='categories'?categories():current==='verdicts'?verdicts():current==='recent'?recent():overview();
- Array.from(el('tabs').children).forEach(button=>button.className=button.getAttribute('data-tab')===current?'active':'');\n Array.from(document.getElementsByClassName('open-review')).forEach(button=>button.addEventListener('click',()=>W.openTelegramLink(button.getAttribute('data-url'))));
+ Array.from(el('tabs').children).forEach(button=>button.className=button.getAttribute('data-tab')===current?'active':'');
+ Array.from(document.getElementsByClassName('open-review')).forEach(button=>button.addEventListener('click',()=>W.openTelegramLink(button.getAttribute('data-url'))));
 }
 try{data=JSON.parse(W.chatData||'{}')}catch(e){data={}}
 render();
 Array.from(el('tabs').children).forEach(button=>button.addEventListener('click',()=>{current=button.getAttribute('data-tab');render();if(W.HapticFeedback)W.HapticFeedback.selectionChanged()}));
 el('refresh').addEventListener('click',()=>{
- el('status').textContent='Refreshing…';
- W.request('refresh').then(answer=>{
-  try{const refreshed=JSON.parse(answer.result||'{}');if(refreshed.error){el('status').textContent=refreshed.error;return}data=refreshed;current='overview';render();el('status').textContent='Updated just now'}
-  catch(e){el('status').textContent='Could not read updated profile'}
- },error=>{el('status').textContent='Refresh failed: '+(error.code||'ERROR')});
+ el('status').textContent='Opening your bot chat…';
+ W.openTelegramLink('https://t.me/ReviewTvBot?start=widgetdemo');
 });
 W.ready();
 </script></body></html>`;
