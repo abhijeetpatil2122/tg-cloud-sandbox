@@ -161,6 +161,7 @@ export async function getUserProfileWidgetData(user) {
       rating: row.rating,
       style: getNumericRatingStyle(row.rating),
       verdict: getRatingVerdict(row.ratingVerdict)?.label || '',
+      verdictStyle: getRatingVerdict(row.ratingVerdict)?.style || 'primary',
       category: categories.find((item) => item.key === row.categoryKey)?.label || 'Other',
       link: /^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(String(row.messageLink || '')) ? row.messageLink : '',
     })),
