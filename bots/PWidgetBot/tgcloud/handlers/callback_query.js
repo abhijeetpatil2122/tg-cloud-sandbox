@@ -44,7 +44,7 @@ export default async function (query) {
   }
   if (data === 'nav:about') return api.sendMessage({ chat_id: chatId, text: 'PWidgetBot is a universal Telegram HTML Widget playground. Use /demos to explore.' });
   if (data.startsWith('cat:')) return showCategory(chatId, data.slice(4));
-  if (data.startsWith('demo:')) return sendDemo(chatId, data.slice(5));
+  if (data.startsWith('demo:')) {\n    if (query.message?.chat?.type !== 'private') {\n      return api.sendMessage({ chat_id: chatId, text: 'HTML Widgets are currently available in private chats only. Open PWidgetBot privately to launch this demo.' });\n    }\n    return sendDemo(chatId, data.slice(5));\n  }
   if (data.startsWith('share:')) {
     const widgetId = data.slice(6);
     if (!widgetId || widgetId.length > 64) return;
