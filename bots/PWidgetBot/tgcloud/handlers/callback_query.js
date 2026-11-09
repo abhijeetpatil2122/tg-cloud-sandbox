@@ -1,11 +1,14 @@
 import { api } from 'sdk';
-import { getCategory } from '../lib/catalog.js';
+import { getCategory, getDemo } from '../lib/catalog.js';
 import { sendDemo } from './message.js';
 
 async function showCategory(chatId, categoryId) {
   const category = getCategory(categoryId);
   if (!category) return;
-  const rows = category.demos.map((id) => [{ text: id.replaceAll('_', ' '), callback_data: `demo:${id}` }]);
+  const rows = category.demos.map((id) => {
+    const demo = getDemo(id);
+    return [{ text: demo?.title || id, callback_data: `demo:${id}` }];
+  });
   rows.push([{ text: '‹ Main menu', callback_data: 'nav:home' }]);
   await api.sendRichMessage({
     chat_id: chatId,
@@ -23,8 +26,8 @@ export default async function (query) {
   const data = String(query.data || '');
   const chatId = query.message?.chat?.id;
   await api.answerCallbackQuery({ callback_query_id: query.id });
-
   if (!chatId) return;
+
   if (data === 'nav:home') {
     return api.sendRichMessage({
       chat_id: chatId,
@@ -39,19 +42,12 @@ export default async function (query) {
       ] },
     });
   }
-  if (data === 'nav:about') {
-    return api.sendMessage({ chat_id: chatId, text: 'PWidgetBot is a universal Telegram HTML Widget playground. Use /demos to explore.' });
-  }
+  if (data === 'nav:about') return api.sendMessage({ chat_id: chatId, text: 'PWidgetBot is a universal Telegram HTML Widget playground. Use /demos to explore.' });
   if (data.startsWith('cat:')) return showCategory(chatId, data.slice(4));
   if (data.startsWith('demo:')) return sendDemo(chatId, data.slice(5));
   if (data.startsWith('share:')) {
     const widgetId = data.slice(6);
     if (!widgetId || widgetId.length > 64) return;
-    return api.sendSharedWidget({
-      chat_id: chatId,
-      widget_id: widgetId,
-      caption: 'PWidgetBot · Shared widget demo',
-      allow_queries: true,
-    });
+    return api.sendSharedWidget({ chat_id: chatId, widget_id: widgetId, caption: 'PWidgetBot · Shared widget demo' });
   }
 }
