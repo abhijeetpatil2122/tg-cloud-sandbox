@@ -47,7 +47,7 @@ There is no admin approval queue. The author's final confirmation authorizes pub
 - `/review` — submit a review.
 - `/myreviews` — view your published reviews.
 - `/profile` — view your profile, review totals, verdict breakdown, received reactions, category breakdown, and recent reviews.
-- `/widgetdemo` — open an interactive HTML profile widget with Overview, Categories, Verdicts, and Recent Reviews. Its Refresh button updates the existing widget's profile data in place through `editMessageWidgetData`; it does not create another widget. Run `/widgetdemo` again to receive the latest widget design after a redesign. This is separate from `/profile`.
+- `/widgetdemo` — preview an interactive HTML profile widget with Overview, Categories, Verdicts, and Recent Reviews. Use the Back to profile button beneath the widget to return to the standard `/profile` screen. Run `/widgetdemo` again to receive the latest widget design after a redesign. This is separate from `/profile`.
 - `/help` — instructions.
 - `/cancel` — cancel the current draft.
 
