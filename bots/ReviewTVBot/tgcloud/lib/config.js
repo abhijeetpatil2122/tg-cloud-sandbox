@@ -36,6 +36,7 @@ export const publicCommands = [
   { command: 'review', description: 'Write and publish a review' },
   { command: 'myreviews', description: 'View your published reviews' },
   { command: 'profile', description: 'View your reviewer profile and statistics' },
+  { command: 'widgetdemo', description: 'Preview your interactive profile widget' },
   { command: 'cancel', description: 'Cancel your current draft' },
 ];
 

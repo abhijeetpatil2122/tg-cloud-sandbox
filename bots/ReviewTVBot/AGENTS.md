@@ -217,3 +217,12 @@ Publishing states should include `draft`, `publishing`, `published`, and `failed
 - Do not assign tags to group administrators or the creator. Telegram member tags apply to regular members; admin custom titles are deliberately out of scope.
 - Tag synchronization is best-effort and must never interrupt normal message handling. It occurs when the member next posts in General, not as a background job.
 - The bot must have the `can_manage_tags` administrator right. This feature uses the existing reviews and community configuration tables and requires no schema change or migration.
+
+
+## HTML profile widget demo
+- `/widgetdemo` is a private-chat-only demo command. It sends an HTML widget using the official Bot API `sendWidget` method with `allow_queries: true` and user-scoped `chat_data`.
+- The widget shows the same database-backed profile metrics as `/profile`: published review count, average rating, verdict-based review count, received likes/dislikes, top-20 leaderboard rank, verdict breakdown, category breakdown, and up to five recent reviews.
+- The widget has client-side tabs for Overview, Categories, Verdicts, and Recent Reviews, plus a Refresh button. Refresh requests use the official `widget_query` update and `answerWidgetQuery`; the handler must verify that the query is from the same user as the private chat and only ever returns that user's own profile.
+- Keep the widget HTML self-contained (inline CSS/JS, no external resources or network calls), under Telegram's 32 KB HTML and 4 KB compressed limits. Keep `chat_data` within 1024 UTF-8 bytes. Use Telegram theme CSS variables and avoid assumptions about browser APIs.
+- Production widgets currently work only in private chats. Do not implement shared-widget or group behavior in this demo.
+- This feature reuses existing review/reaction tables and requires no database migration. The original `/profile` Rich Message implementation remains unchanged.
