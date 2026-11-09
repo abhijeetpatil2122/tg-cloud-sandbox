@@ -55,7 +55,7 @@ function contentFor(id, title, description) {
     query_roundtrip: `${intro}<div class="card"><b>Request → Bot → Result</b><p>Tap to send a small request to PWidgetBot and display the bot's response.</p><button id="request" class="full">Send request</button><div class="status" id="status">Waiting for your action.</div></div>`,
     message_state: `${intro}<div class="card"><div class="muted">MESSAGE-SCOPED STATE</div><div class="big" id="count">0</div><button id="increment" class="full">Update chat_data</button></div><div class="status" id="status">This state belongs to this message.</div>`,
     shared_state: `${intro}<div class="card"><div class="muted">SHARED PUBLIC STATE</div><div class="big" id="count">0</div><button id="increment" class="full">Update public_data</button></div><div class="status" id="status">This example is sent as a shared widget.</div>`,
-    api_reference: `${intro}<div class="card"><b>Bot API 10.4 widget methods</b><p>sendWidget · sendSharedWidget · answerWidgetQuery · editMessageWidgetData · editSharedWidgetData</p><hr/><b>Widget SDK</b><p>TelegramWidget.request · chatData · publicData · watchPublicData · wallet</p></div>`,
+    api_reference: `${intro}<div class="card"><b>Bot API 10.4 widget methods</b><p>sendWidget · sendSharedWidget · answerWidgetQuery · editMessageWidgetData · editSharedWidgetData</p><hr/><b>Widget SDK</b><p>TelegramWidget.request · chatData · publicData · watchPublicData · wallet.signData · wallet.sendTransaction</p></div>`,
   };
   return map[id] || `${intro}<div class="card">Demo coming soon.</div>`;
 }
