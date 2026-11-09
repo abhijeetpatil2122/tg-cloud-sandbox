@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
 const source = readFileSync(new URL('../tgcloud/lib/profile_widget.js', import.meta.url), 'utf8');
-const match = source.match(/return String\\.raw`([\\s\\S]*?)`;/);
+const match = source.match(/return String\.raw`([\s\S]*?)`;/);
 if (!match) throw new Error('Could not locate the profile widget HTML template.');
 
 const html = match[1];
