@@ -1,5 +1,5 @@
 import { api } from 'sdk';
-import { CATEGORIES, getDemo, getCategory } from '../lib/catalog.js';
+import { CATEGORIES, getDemo } from '../lib/catalog.js';
 import { buildWidgetHtml, getInitialState } from '../lib/widget_factory.js';
 
 const HOME = [
@@ -55,7 +55,6 @@ export async function sendDemo(chatId, demoId) {
   }
   const state = getInitialState(demo.id);
   const html = buildWidgetHtml(demo.id, demo.title, demo.description);
-  const shared = false;
   const sent = await api.sendWidget({
     chat_id: chatId,
     html,
