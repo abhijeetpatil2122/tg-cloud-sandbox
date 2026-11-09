@@ -115,7 +115,7 @@ Array.from(el('tabs').children).forEach(button=>button.addEventListener('click',
 el('refresh').addEventListener('click',()=>{
  el('status').textContent='Refreshing…';
  W.request('refresh').then(answer=>{
-  try{data=JSON.parse(answer.result||'{}');current='overview';render();el('status').textContent='Updated just now'}
+  try{const refreshed=JSON.parse(answer.result||'{}');if(refreshed.error){el('status').textContent=refreshed.error;return}data=refreshed;current='overview';render();el('status').textContent='Updated just now'}
   catch(e){el('status').textContent='Could not read updated profile'}
  },error=>{el('status').textContent='Refresh failed: '+(error.code||'ERROR')});
 });
