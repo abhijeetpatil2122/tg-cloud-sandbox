@@ -9,7 +9,7 @@
     "migrate": "tgcloud migrate",
     "run": "tgcloud run",
     "check:widget": "node scripts/check-widget-size.mjs",
-    "test": "node scripts/check-widget-size.mjs"
+    "test": "npm run check:widget"
   },
   "devDependencies": {
     "@tgcloud/cli": "^0.2.0"
