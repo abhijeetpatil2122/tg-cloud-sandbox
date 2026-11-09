@@ -9,6 +9,6 @@
     "deploy": "tgcloud push",
     "status": "tgcloud status",
     "run": "tgcloud run",
-    "check": "node --check tgcloud/handlers/message.js && node --check tgcloud/handlers/callback_query.js && node --check tgcloud/handlers/widget_query.js && node --check tgcloud/handlers/shared_widget_query.js && node --check tgcloud/lib/catalog.js && node --check tgcloud/lib/widget_factory.js && node --check tgcloud/lib/widget_actions.js"
+    "check": "node --check tgcloud/handlers/message.js && node --check tgcloud/handlers/callback_query.js && node --check tgcloud/handlers/widget_query.js && node --check tgcloud/handlers/shared_widget_query.js && node --check tgcloud/lib/catalog.js && node --check tgcloud/lib/widget_factory.js && node --check tgcloud/lib/widget_actions.js && node scripts/check-widgets.js"
   }
 }
