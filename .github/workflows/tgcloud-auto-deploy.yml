@@ -135,6 +135,15 @@ jobs:
             node --check "$module"
           done < <(find tgcloud -type f -name '*.js' | sort)
 
+      - name: Validate ReviewTVBot widget payload size
+        if: matrix.bot_path == 'bots/ReviewTVBot'
+        env:
+          BOT_PATH: ${{ matrix.bot_path }}
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          npm run check:widget
+
       - name: Validate PWidgetBot widget payloads
         if: matrix.bot_path == 'bots/PWidgetBot'
         env:
