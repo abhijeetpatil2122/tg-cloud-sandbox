@@ -10,7 +10,8 @@ import {
 } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 import { refreshLeaderboard, syncLeaderboardMemberTag } from '../lib/leaderboard.js';
-import { showUserProfile } from '../lib/profile.js';
+import { showUserProfile, getUserProfileWidgetData } from '../lib/profile.js';
+import { buildProfileWidgetHtml, serializeProfileWidgetData } from '../lib/profile_widget.js';
 import { communityConfig, categoryTopics } from '../schema.js';
 import {
   connectForum, setCategoryTopic, disconnectForum,
