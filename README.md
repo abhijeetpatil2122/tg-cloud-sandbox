@@ -20,7 +20,7 @@ Do not copy a project's `.tgcloud/` local state, CLI credentials, `node_modules/
 | `bots/RichDocsBot` | Inline search for Bot API methods/types and related error documentation, rendered as native Rich Messages | `8626465761` | `TGCLOUD_TOKEN_RICHDOCSBOT` | Enabled on `main` |
 | `bots/IdPullBot` | Telegram message inspector with private chunked reports, guest-mode Telegraph links, share keyboard, and aggregate stats | `8288436618` | `TGCLOUD_TOKEN_IDPULLBOT` | Enabled on `main` |
 | `bots/SarvamChatBot` | Sarvam AI private-chat assistant with recoverable streamed Rich Messages, task-aware Telegram thinking states, stoppable drafts, and optional Tavily live search | From scoped token | `TGCLOUD_TOKEN_SARVAMCHATBOT` | Enabled on `main` |
-| `bots/ReviewTVBot` | Movie, TV show, and anime review submissions with category-topic forum publishing | `8789022672` | `TGCLOUD_TOKEN_REVIEWTVBOT` | Enabled on `main` |
+| `bots/ReviewTVBot` | Movie, TV show, and anime review submissions with category-topic forum publishing | `8789022672` | `TGCLOUD_TOKEN_REVIEWTVBOT` | Enabled on `main` |\n| `bots/PWidgetBot` | Universal Telegram HTML Widget playground with interactive demos, games, TON wallet examples, utilities, and developer references | From scoped token | `TGCLOUD_TOKEN_PWIDGETBOT` | Manual only |
 
 IdPullBot, SarvamChatBot, and ReviewTVBot are registered for automatic deployment on `main` when their respective deployable project files change. ReviewTVBot uses app `8789022672`; its wizard and forum setup code are separate from the other bots. The automatic workflow does not run database migrations.
 
