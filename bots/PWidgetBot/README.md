@@ -8,7 +8,7 @@
 - **Games:** number guessing, Tic-tac-toe, and a quick quiz challenge.
 - **Dashboards:** live counter, progress dashboard, and a compact statistics panel.
 - **Utilities:** calculator, random picker, and countdown.
-- **TON & Wallet:** request a Telegram wallet card, inspect the public wallet fields supplied with a query, and demonstrate wallet-signed data / transaction notifications when the Telegram client supports them.
+- **TON & Wallet:** request a Telegram wallet card, inspect public wallet fields, receive wallet-signed data, and handle sent-transaction notifications. The current signed-data demo demonstrates receipt only; it does not cryptographically verify signatures, and the transaction demo does not initiate a transfer.
 - **Developer Lab:** basic widget, theme-aware HTML, query round-trip, per-message state, shared public state, and API method reference.
 
 ## Bot commands
