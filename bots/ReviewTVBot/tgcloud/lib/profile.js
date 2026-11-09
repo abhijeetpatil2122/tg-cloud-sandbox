@@ -109,3 +109,57 @@ export async function showUserProfile(chatId, user, messageId = null) {
   }
   return api.sendRichMessage(params);
 }
+
+
+export async function getUserProfileWidgetData(user) {
+  const userId = Number(user?.id);
+  if (!Number.isSafeInteger(userId) || userId < 1) throw new Error('Could not identify this Telegram profile.');
+  const [allReviews, allVotes, rankingRows] = await Promise.all([
+    db.select().from(reviews).where(eq(reviews.authorId, userId)).all(),
+    db.select().from(reviewReactions).all(),
+    db.select().from(reviews).all(),
+  ]);
+  const published = allReviews.filter((row) => row.status === 'published').sort((a, b) => b.id - a.id);
+  const ownReviewIds = new Set(published.map((row) => row.id));
+  const received = allVotes.filter((vote) => ownReviewIds.has(vote.reviewId));
+  const legacyRated = published.filter((row) => Number.isFinite(Number(row.rating)) && row.rating != null && Number(row.rating) > 0);
+  const average = legacyRated.length
+    ? (legacyRated.reduce((sum, row) => sum + Number(row.rating), 0) / legacyRated.length).toFixed(1)
+    : '—';
+  const verdicts = ratingVerdicts.map((verdict) => ({
+    label: verdict.label,
+    count: published.filter((row) => row.ratingVerdict === verdict.key).length,
+  })).filter((item) => item.count > 0);
+  const categoryCounts = categories.map((category) => ({
+    label: category.label,
+    count: published.filter((row) => row.categoryKey === category.key).length,
+  })).filter((item) => item.count > 0);
+  const totals = new Map();
+  for (const row of rankingRows) {
+    if (row.status === 'published') totals.set(row.authorId, (totals.get(row.authorId) || 0) + 1);
+  }
+  const ranking = [...totals.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+  const rankIndex = ranking.findIndex(([id]) => id === userId);
+  const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
+    || published[0]?.authorName || 'Telegram user';
+  return {
+    name,
+    username: plain(user.username),
+    total: published.length,
+    average,
+    verdictTotal: published.filter((row) => Boolean(getRatingVerdict(row.ratingVerdict))).length,
+    likes: received.filter((vote) => vote.reaction === 'like').length,
+    dislikes: received.filter((vote) => vote.reaction === 'dislike').length,
+    rank: rankIndex >= 0 && rankIndex < 20 ? rankIndex + 1 : null,
+    verdicts,
+    categories: categoryCounts,
+    recent: published.slice(0, 5).map((row) => ({
+      title: plain(row.title).slice(0, 64),
+      year: row.year,
+      endYear: row.endYear,
+      rating: row.rating,
+      verdict: getRatingVerdict(row.ratingVerdict)?.label || '',
+      category: categories.find((item) => item.key === row.categoryKey)?.label || 'Other',
+    })),
+  };
+}
