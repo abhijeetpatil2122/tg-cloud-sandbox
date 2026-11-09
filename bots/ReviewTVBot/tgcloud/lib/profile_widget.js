@@ -55,7 +55,7 @@ body{margin:0;padding:12px;color:var(--tg-theme-text-color);background:var(--tg-
 .review{padding:10px 0;border-bottom:1px solid var(--tg-theme-section-separator-color)}
 .review:last-child{border:0}
 .review-title{font-size:13px;font-weight:650;line-height:1.35}
-.review-meta{font-size:11px;color:var(--tg-theme-hint-color);margin-top:4px}
+.review-meta{font-size:11px;color:var(--tg-theme-hint-color);margin-top:4px}\n.open-review{border:0;padding:0;margin-top:6px;background:transparent;color:var(--tg-theme-link-color);font:600 11px system-ui}
 .empty{font-size:12px;color:var(--tg-theme-hint-color);padding:14px 4px;text-align:center}
 .actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .refresh{border:0;border-radius:9px;padding:8px 12px;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color);font:600 12px system-ui}
@@ -99,7 +99,7 @@ function verdicts(){
 function recent(){
  const items=data.recent||[];
  if(!items.length)return '<div class="empty">No reviews published yet. Start with your first review!</div>';
- return '<div class="section-title">Latest published reviews</div>'+items.map(x=>'<div class="review"><div class="review-title">'+esc(x.title)+(x.year?' ('+esc(x.year)+(x.endYear?' — '+esc(x.endYear):'')+')':'')+'</div><div class="review-meta">'+esc(x.category)+' · ★ '+esc(x.rating)+'/10'+(x.verdict?' · '+esc(x.verdict):'')+'</div></div>').join('');
+ return '<div class="section-title">Latest published reviews</div>'+items.map(x=>'<div class="review"><div class="review-title">'+esc(x.title)+(x.year?' ('+esc(x.year)+(x.endYear?' — '+esc(x.endYear):'')+')':'')+'</div><div class="review-meta">'+esc(x.category)+' · ★ '+esc(x.rating)+'/10'+(x.verdict?' · '+esc(x.verdict):'')+'</div>'+(x.link?'<button class="open-review" data-url="'+esc(x.link)+'">View published review ↗</button>':'')+'</div>').join('');
 }
 function render(){
  el('name').textContent=data.name||'Telegram user';
@@ -107,7 +107,7 @@ function render(){
  el('avatar').textContent=initials(data.name);
  el('rank').textContent=data.rank?'#'+data.rank+' Reviewer':'Not in top 20';
  el('content').innerHTML=current==='categories'?categories():current==='verdicts'?verdicts():current==='recent'?recent():overview();
- Array.from(el('tabs').children).forEach(button=>button.className=button.getAttribute('data-tab')===current?'active':'');
+ Array.from(el('tabs').children).forEach(button=>button.className=button.getAttribute('data-tab')===current?'active':'');\n Array.from(document.getElementsByClassName('open-review')).forEach(button=>button.addEventListener('click',()=>W.openTelegramLink(button.getAttribute('data-url'))));
 }
 try{data=JSON.parse(W.chatData||'{}')}catch(e){data={}}
 render();
