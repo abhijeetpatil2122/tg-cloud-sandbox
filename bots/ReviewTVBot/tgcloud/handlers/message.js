@@ -87,6 +87,16 @@ async function showWelcome(message) {
   ], [{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] });
 }
 
+async function showProfileWidget(chatId, user) {
+  const profile = await getUserProfileWidgetData(user);
+  return api.sendWidget({
+    chat_id: chatId,
+    html: buildProfileWidgetHtml(),
+    chat_data: serializeProfileWidgetData(profile),
+    caption: 'Your ReviewTV profile. Explore the tabs to see your reviewer statistics.',
+  });
+}
+
 async function showHowTo(chatId) {
   await sendRich(chatId, buildHowToRichMessage(), {
     inline_keyboard: [[{ text: 'Start a review', callback_data: 'rv:start', style: 'success' }], [{ text: '‹ Back to menu', callback_data: 'rv:home' }]],
@@ -426,6 +436,7 @@ export default async function (message) {
       const userId = message.from?.id;
       if (command === '/start') {
         if (args[0] === 'review' && message.chat.type === 'private') return startReview(message);
+        if (args[0] === 'widgetdemo' && message.chat.type === 'private' && message.from?.id) return showProfileWidget(message.chat.id, message.from);
         await showWelcome(message);
         return;
       }
@@ -442,6 +453,10 @@ export default async function (message) {
       if (command === '/profile') {
         if (message.chat.type !== 'private' || !userId) return;
         return showUserProfile(message.chat.id, message.from);
+      }
+      if (command === '/widgetdemo') {
+        if (message.chat.type !== 'private' || !userId) return;
+        return showProfileWidget(message.chat.id, message.from);
       }
       if (command === '/leaderboard') {
         if (message.chat.type !== 'private' || !isAdmin(userId)) return;
