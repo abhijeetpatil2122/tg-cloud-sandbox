@@ -274,6 +274,14 @@ export default async function (query) {
     }
     if (action === 'profile') {
       await answer(query.id);
+      if (query.message?.widget) {
+        try {
+          await api.deleteMessage({ chat_id: chat.id, message_id: query.message.message_id });
+        } catch (error) {
+          console.warn('Could not remove the profile demo widget before returning', error?.description || error?.message || error);
+        }
+        return showUserProfile(chat.id, query.from);
+      }
       return showUserProfile(chat.id, query.from, query.message.message_id);
     }
     if (action === 'howto') {
