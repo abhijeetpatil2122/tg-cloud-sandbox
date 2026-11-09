@@ -1,5 +1,5 @@
 import { api } from 'sdk';
-import { CATEGORIES, getDemo } from '../lib/catalog.js';
+import { CATEGORIES, getDemo, getCategory } from '../lib/catalog.js';
 import { buildWidgetHtml, getInitialState } from '../lib/widget_factory.js';
 
 const HOME = [
