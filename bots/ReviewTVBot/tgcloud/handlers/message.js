@@ -88,13 +88,22 @@ async function showWelcome(message) {
 }
 
 async function showProfileWidget(chatId, user) {
-  const profile = await getUserProfileWidgetData(user);
-  return api.sendWidget({
-    chat_id: chatId,
-    html: buildProfileWidgetHtml(),
-    chat_data: serializeProfileWidgetData(profile),
-    caption: 'Your ReviewTV profile. Explore the tabs to see your reviewer statistics.',
-  });
+  try {
+    const profile = await getUserProfileWidgetData(user);
+    return await api.sendWidget({
+      chat_id: chatId,
+      html: buildProfileWidgetHtml(),
+      chat_data: serializeProfileWidgetData(profile),
+      caption: 'Your ReviewTV profile. Explore the tabs to see your reviewer statistics.',
+    });
+  } catch (error) {
+    console.error('ReviewTVBot widget demo failed', error?.description || error?.message || error);
+    return sendRich(chatId, { blocks: [
+      { type: 'heading', size: 2, text: 'Profile dashboard is temporarily unavailable' },
+      { type: 'paragraph', text: 'I could not open the interactive dashboard right now. Your profile data is safe; use the standard profile view instead.' },
+      { type: 'footer', text: { type: 'button', button: { text: 'Open Profile', callback_data: 'rv:profile', style: 'primary' } } },
+    ] });
+  }
 }
 
 async function showHowTo(chatId) {
@@ -455,7 +464,10 @@ export default async function (message) {
         return showUserProfile(message.chat.id, message.from);
       }
       if (command === '/widgetdemo') {
-        if (message.chat.type !== 'private' || !userId) return;
+        if (!userId) return;
+        if (message.chat.type !== 'private') {
+          return api.sendMessage({ chat_id: message.chat.id, text: 'Open @ReviewTvBot in a private chat and send /widgetdemo to view your profile dashboard.' });
+        }
         return showProfileWidget(message.chat.id, message.from);
       }
       if (command === '/leaderboard') {
