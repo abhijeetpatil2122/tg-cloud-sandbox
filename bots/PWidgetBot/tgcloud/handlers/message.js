@@ -1,5 +1,5 @@
 import { api } from 'sdk';
-import { CATEGORIES, getCategory, getDemo } from '../lib/catalog.js';
+import { CATEGORIES, getDemo } from '../lib/catalog.js';
 import { buildWidgetHtml, getInitialState } from '../lib/widget_factory.js';
 
 const HOME = [
@@ -117,7 +117,7 @@ export default async function (message) {
         { type: 'paragraph', text: 'A universal showcase for Telegram Bot API 10.4 HTML Widgets, including interactive state, shared widget state, TON wallet query types, and developer examples.' },
         { type: 'paragraph', text: 'Widgets are self-contained HTML. They cannot access the network; interactions are routed through TelegramWidget.request and answered by this bot.' },
         { type: 'paragraph', text: 'No seed phrases or private keys are requested or stored.' },
-        { type: 'button', button: { text: 'Bot API documentation', url: 'https://core.telegram.org/bots/api', style: 'primary' } },
+        { type: 'paragraph', text: 'Official Bot API documentation: https://core.telegram.org/bots/api' },
       ] },
     });
   }
