@@ -74,7 +74,7 @@ let data={};
 let current='overview';
 const el=(id)=>document.getElementById(id);
 const esc=(value)=>String(value==null?'':value).replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function initials(name){return String(name||'R').trim().split(/\\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'R'}
+function initials(name){return String(name||'R').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'R'}
 function overview(){
  return '<div class="grid">'+
   '<div class="card"><div class="value">'+esc(data.total)+'</div><div class="label">Published reviews</div></div>'+
