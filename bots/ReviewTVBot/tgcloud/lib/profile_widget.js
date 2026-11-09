@@ -1,19 +1,12 @@
 export function serializeProfileWidgetData(profile) {
   const state = {
-    name: profile.name,
-    username: profile.username,
-    total: profile.total,
-    average: profile.average,
-    verdictTotal: profile.verdictTotal,
-    likes: profile.likes,
-    dislikes: profile.dislikes,
-    rank: profile.rank,
-    verdicts: profile.verdicts,
-    categories: profile.categories,
-    recent: profile.recent,
+    name: profile.name, username: profile.username, total: profile.total,
+    average: profile.average, verdictTotal: profile.verdictTotal,
+    likes: profile.likes, dislikes: profile.dislikes, rank: profile.rank,
+    verdicts: profile.verdicts, categories: profile.categories, recent: profile.recent,
   };
-  let encoded = JSON.stringify(state);
   const byteLength = (value) => new TextEncoder().encode(value).length;
+  let encoded = JSON.stringify(state);
   while (byteLength(encoded) > 1000 && state.recent.length) {
     state.recent.pop();
     encoded = JSON.stringify(state);
@@ -29,95 +22,38 @@ export function serializeProfileWidgetData(profile) {
 
 export function buildProfileWidgetHtml() {
   return `<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="color-scheme" content="light dark">
 <style>
-:root{color-scheme:light dark;font-family:system-ui,sans-serif}
-*{box-sizing:border-box}
-body{margin:0;padding:12px;color:var(--tg-theme-text-color);background:var(--tg-theme-bg-color)}
-.header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color);font-size:18px;font-weight:700}
-.name{font-size:17px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
-.handle{font-size:12px;color:var(--tg-theme-hint-color);margin-top:3px}
-.rank{margin-left:auto;white-space:nowrap;border-radius:20px;padding:6px 9px;background:var(--tg-theme-secondary-bg-color);font-size:12px;font-weight:650}
-.tabs{display:flex;gap:6px;overflow:hidden;margin:0 0 12px}
-.tabs button{flex:1;min-width:0;padding:8px 3px;border:0;border-radius:9px;background:var(--tg-theme-secondary-bg-color);color:var(--tg-theme-text-color);font:600 11px system-ui}
-.tabs button.active{background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color)}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.card{padding:11px;border-radius:11px;background:var(--tg-theme-secondary-bg-color);min-width:0}
-.value{font-size:21px;font-weight:750;line-height:1.2}
-.label{font-size:11px;color:var(--tg-theme-hint-color);margin-top:4px}
-.section-title{font-size:14px;font-weight:700;margin:2px 0 10px}
-.row{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px;margin:0 0 5px}
-.muted{color:var(--tg-theme-hint-color)}
-.track{height:6px;border-radius:8px;background:var(--tg-theme-secondary-bg-color);overflow:hidden;margin:0 0 12px}
-.fill{height:100%;border-radius:8px;background:var(--tg-theme-button-color)}
-.pill{display:inline-block;padding:5px 8px;border-radius:20px;background:var(--tg-theme-secondary-bg-color);font-size:11px;margin:0 5px 7px 0}
-.review{padding:10px 0;border-bottom:1px solid var(--tg-theme-section-separator-color)}
-.review:last-child{border:0}
-.review-title{font-size:13px;font-weight:650;line-height:1.35}
-.review-meta{font-size:11px;color:var(--tg-theme-hint-color);margin-top:4px}
-.open-review{border:0;padding:0;margin-top:6px;background:transparent;color:var(--tg-theme-link-color);font:600 11px system-ui}
-.empty{font-size:12px;color:var(--tg-theme-hint-color);padding:14px 4px;text-align:center}
-.actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
-.refresh{border:0;border-radius:9px;padding:8px 12px;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color);font:600 12px system-ui}
-.status{font-size:11px;color:var(--tg-theme-hint-color)}
-.footer{font-size:10px;color:var(--tg-theme-hint-color);margin-top:12px;text-align:center}
-@media(prefers-reduced-motion:no-preference){.card,.fill{transition:all .18s ease}}
-</style></head><body>
-<div class="header"><div class="avatar" id="avatar">R</div><div style="min-width:0"><div class="name" id="name">Reviewer</div><div class="handle" id="handle"></div></div><div class="rank" id="rank">Unranked</div></div>
-<div class="tabs" id="tabs"><button class="active" data-tab="overview">Overview</button><button data-tab="categories">Categories</button><button data-tab="verdicts">Verdicts</button><button data-tab="recent">Recent</button></div>
-<div id="content"></div>
-<div class="actions"><span class="status" id="status">Profile demo</span><button class="refresh" id="refresh">↻ Refresh</button></div>
-<div class="footer">ReviewTV · Profile widget preview</div>
+:root{color-scheme:light dark;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--bg:var(--tg-theme-bg-color,#fff);--surface:var(--tg-theme-section-bg-color,var(--tg-theme-secondary-bg-color,#f2f2f7));--soft:var(--tg-theme-secondary-bg-color,#f2f2f7);--text:var(--tg-theme-text-color,#17212b);--muted:var(--tg-theme-subtitle-text-color,var(--tg-theme-hint-color,#78828c));--accent:var(--tg-theme-accent-text-color,var(--tg-theme-link-color,#2481cc));--link:var(--tg-theme-link-color,#2481cc);--button:var(--tg-theme-button-color,#2481cc);--button-text:var(--tg-theme-button-text-color,#fff);--line:var(--tg-theme-section-separator-color,rgba(127,127,127,.18));--danger:var(--tg-theme-destructive-text-color,#df3f40)}
+*{box-sizing:border-box}html,body{background:var(--bg);color:var(--text)}body{margin:0;padding:14px;font-size:14px;-webkit-font-smoothing:antialiased}button{font:inherit}.shell{max-width:620px;margin:0 auto}
+.profile-head{display:flex;align-items:center;gap:13px;padding:3px 1px 16px}.avatar{width:62px;height:62px;flex:none;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--soft);color:var(--accent);font-size:21px;font-weight:750;border:1px solid var(--line)}.avatar img{width:100%;height:100%;object-fit:cover;display:none}.identity{min-width:0;flex:1}.name{font-size:19px;font-weight:760;line-height:1.2;letter-spacing:-.35px;overflow-wrap:anywhere}.username{font-size:12px;color:var(--muted);margin-top:4px}.rank{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 9px;border-radius:20px;background:var(--soft);color:var(--accent);font-size:11px;font-weight:700}.rank-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}.head-action{border:0;background:transparent;color:var(--link);font-size:12px;font-weight:700;padding:8px 0 8px 6px}
+.hero{border-radius:16px;background:var(--surface);padding:15px;margin-bottom:14px}.hero-top{display:flex;justify-content:space-between;gap:10px}.eyebrow{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.35px;text-transform:uppercase}.score{font-size:35px;font-weight:790;letter-spacing:-1.4px;line-height:1.12;margin-top:5px}.score small{font-size:14px;font-weight:650;color:var(--muted);letter-spacing:0}.score-note{font-size:11px;color:var(--muted);margin-top:5px}.score-mark{width:38px;height:38px;border-radius:12px;background:var(--soft);display:grid;place-items:center;color:var(--accent);font-size:19px}.hero-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);margin-top:14px;padding-top:12px}.mini-value{font-size:17px;font-weight:760;letter-spacing:-.3px}.mini-label{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.25}
+.tabs{display:flex;gap:5px;padding:4px;background:var(--soft);border-radius:12px;margin-bottom:14px}.tabs button{flex:1;min-width:0;border:0;border-radius:9px;background:transparent;color:var(--muted);padding:9px 3px;font-size:11px;font-weight:750;white-space:nowrap}.tabs button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 1px 10px}.section-title{font-size:14px;font-weight:760;letter-spacing:-.15px}.caption{font-size:11px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.metric{background:var(--surface);border-radius:13px;padding:13px;min-width:0}.metric-icon{width:28px;height:28px;border-radius:9px;background:var(--soft);display:grid;place-items:center;color:var(--accent);font-size:13px;font-weight:750}.metric-value{font-size:23px;font-weight:780;letter-spacing:-.7px;margin-top:10px;line-height:1.1}.metric-label{font-size:11px;color:var(--muted);margin-top:5px}.metric-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.panel{background:var(--surface);border-radius:14px;padding:14px;margin-bottom:10px}.bar-row{margin:0 0 14px}.bar-row:last-child{margin-bottom:0}.bar-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;margin-bottom:7px}.bar-label{min-width:0;overflow-wrap:anywhere}.bar-count{font-weight:750;font-variant-numeric:tabular-nums}.track{height:7px;border-radius:20px;background:var(--soft);overflow:hidden}.fill{height:100%;border-radius:20px;background:var(--button);min-width:2px}.pills{display:flex;flex-wrap:wrap;gap:7px}.pill{display:inline-flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;background:var(--soft);font-size:11px;font-weight:650}.pill-count{color:var(--muted);font-variant-numeric:tabular-nums}
+.review-list{background:var(--surface);border-radius:14px;padding:0 13px}.review{padding:13px 1px;border-bottom:1px solid var(--line)}.review:last-child{border:0}.review-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.review-title{font-size:13px;font-weight:720;line-height:1.35;min-width:0;overflow-wrap:anywhere}.rating{flex:none;padding:4px 7px;border-radius:7px;background:var(--soft);font-size:11px;font-weight:750;color:var(--accent);font-variant-numeric:tabular-nums}.review-meta{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4}.open-review{border:0;background:transparent;color:var(--link);font-size:11px;font-weight:750;padding:7px 0 0}.empty{background:var(--surface);border-radius:14px;padding:24px 16px;text-align:center}.empty-mark{width:38px;height:38px;margin:0 auto 10px;border-radius:12px;background:var(--soft);display:grid;place-items:center;color:var(--muted);font-size:17px}.empty-title{font-size:13px;font-weight:750}.empty-copy{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.45}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}.status{font-size:10px;color:var(--muted)}.refresh{border:0;border-radius:9px;padding:9px 12px;background:var(--button);color:var(--button-text);font-size:11px;font-weight:750}.footer{font-size:10px;color:var(--muted);text-align:center;margin-top:13px}button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(min-width:520px){body{padding:18px}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.name{font-size:20px}}@media(prefers-reduced-motion:no-preference){.fill,.tabs button{transition:background .16s ease,color .16s ease}}
+</style></head><body><main class="shell">
+<header class="profile-head"><div class="avatar" id="avatar"><span id="initials">U</span><img id="avatar-image" alt="Profile photo"></div><div class="identity"><div class="name" id="name">Reviewer</div><div class="username" id="username">ReviewTV member</div><div class="rank"><span class="rank-dot"></span><span id="rank-label">Reviewer</span></div></div><button class="head-action" id="refresh-top" type="button">Refresh</button></header>
+<section class="hero"><div class="hero-top"><div><div class="eyebrow">Average rating</div><div class="score" id="average">—<small> / 10</small></div><div class="score-note" id="score-note">Based on published reviews</div></div><div class="score-mark" aria-hidden="true">★</div></div><div class="hero-stats"><div><div class="mini-value" id="total">0</div><div class="mini-label">Published reviews</div></div><div><div class="mini-value" id="likes">0</div><div class="mini-label">Likes received</div></div><div><div class="mini-value" id="dislikes">0</div><div class="mini-label">Dislikes received</div></div></div></section>
+<nav class="tabs" id="tabs" aria-label="Profile sections"><button class="active" data-tab="overview" type="button">Overview</button><button data-tab="categories" type="button">Categories</button><button data-tab="verdicts" type="button">Verdicts</button><button data-tab="recent" type="button">Recent</button></nav>
+<section id="content" aria-live="polite"></section><div class="actions"><span class="status" id="status">Your reviewer dashboard</span><button class="refresh" id="refresh-bottom" type="button">Refresh profile</button></div><footer class="footer">REVIEWTV · YOUR REVIEWER DASHBOARD</footer></main>
 <script>
-const W=window.TelegramWidget;
-let data={};
-let current='overview';
-const el=(id)=>document.getElementById(id);
-const esc=(value)=>String(value==null?'':value).replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function initials(name){return String(name||'R').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'R'}
-function overview(){
- return '<div class="grid">'+
-  '<div class="card"><div class="value">'+esc(data.total)+'</div><div class="label">Published reviews</div></div>'+
-  '<div class="card"><div class="value">'+esc(data.average==='—'?'—':data.average+'/10')+'</div><div class="label">Average score</div></div>'+
-  '<div class="card"><div class="value">'+esc(data.verdictTotal)+'</div><div class="label">Verdict-based reviews</div></div>'+
-  '<div class="card"><div class="value">👍 '+esc(data.likes)+'</div><div class="label">Likes received</div></div>'+
-  '<div class="card"><div class="value">👎 '+esc(data.dislikes)+'</div><div class="label">Dislikes received</div></div>'+
-  '<div class="card"><div class="value">'+esc(data.rank?'#'+data.rank:'—')+'</div><div class="label">Leaderboard · Top 20</div></div>'+
- '</div>';
-}
-function categories(){
- const items=data.categories||[];
- if(!items.length)return '<div class="empty">No published reviews by category yet.</div>';
- const max=Math.max(1,...items.map(x=>x.count));
- return '<div class="section-title">Reviews by category</div>'+items.map(x=>'<div class="row"><span>'+esc(x.label)+'</span><strong>'+esc(x.count)+'</strong></div><div class="track"><div class="fill" style="width:'+Math.round(x.count/max*100)+'%"></div></div>').join('');
-}
-function verdicts(){
- const items=data.verdicts||[];
- if(!items.length)return '<div class="empty">No verdicts selected yet.</div>';
- return '<div class="section-title">Review verdicts</div>'+items.map(x=>'<span class="pill">'+esc(x.label)+' · '+esc(x.count)+'</span>').join('');
-}
-function recent(){
- const items=data.recent||[];
- if(!items.length)return '<div class="empty">No reviews published yet. Start with your first review!</div>';
- return '<div class="section-title">Latest published reviews</div>'+items.map(x=>'<div class="review"><div class="review-title">'+esc(x.title)+(x.year?' ('+esc(x.year)+(x.endYear?' — '+esc(x.endYear):'')+')':'')+'</div><div class="review-meta">'+esc(x.category)+' · ★ '+esc(x.rating)+'/10'+(x.verdict?' · '+esc(x.verdict):'')+'</div>'+(x.link?'<button class="open-review" data-url="'+esc(x.link)+'">View published review ↗</button>':'')+'</div>').join('');
-}
-function render(){
- el('name').textContent=data.name||'Telegram user';
- el('handle').textContent=data.username?'@'+data.username:'ReviewTV reviewer';
- el('avatar').textContent=initials(data.name);
- el('rank').textContent=data.rank?'#'+data.rank+' Reviewer':'Not in top 20';
- el('content').innerHTML=current==='categories'?categories():current==='verdicts'?verdicts():current==='recent'?recent():overview();
- Array.from(el('tabs').children).forEach(button=>button.className=button.getAttribute('data-tab')===current?'active':'');
- Array.from(document.getElementsByClassName('open-review')).forEach(button=>button.addEventListener('click',()=>W.openTelegramLink(button.getAttribute('data-url'))));
-}
+const W=window.TelegramWidget;let data={},current='overview';const el=(id)=>document.getElementById(id);
+const esc=(v)=>String(v==null?'':v).replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function initials(name){return String(name||'User').trim().split(/\\s+/).filter(Boolean).slice(0,2).map((p)=>Array.from(p)[0]||'').join('').toUpperCase()||'U'}
+function setupAvatar(){const img=el('avatar-image'),username=String(data.username||'').replace(/^@/,'');if(!/^[A-Za-z0-9_]{5,32}$/.test(username))return;img.addEventListener('load',()=>{img.style.display='block';el('initials').style.display='none'});img.addEventListener('error',()=>{img.style.display='none';el('initials').style.display='block'});img.src='https://t.me/i/userpic/320/'+encodeURIComponent(username)+'.jpg'}
+function categoryPanel(items){const max=Math.max(1,...items.map((x)=>Number(x.count)||0));return '<div class="panel">'+items.map((x)=>'<div class="bar-row"><div class="bar-meta"><span class="bar-label">'+esc(x.label)+'</span><strong class="bar-count">'+esc(x.count)+'</strong></div><div class="track"><div class="fill" style="width:'+Math.max(0,Math.min(100,Math.round((Number(x.count)||0)/max*100)))+'%"></div></div></div>').join('')+'</div>'}
+function empty(title,copy){return '<div class="empty"><div class="empty-mark">✦</div><div class="empty-title">'+esc(title)+'</div><div class="empty-copy">'+esc(copy)+'</div></div>'}
+function overview(){const cards=[{icon:'R',value:data.verdictTotal||0,label:'Verdict-based reviews',sub:'Reviews with a personal verdict'},{icon:'#',value:data.rank?'#'+data.rank:'—',label:'Leaderboard position',sub:'Top 20 reviewers'},{icon:'★',value:data.total||0,label:'Community contributions',sub:'Published reviews'}];return '<div class="section-head"><div class="section-title">Your activity</div><div class="caption">All-time stats</div></div><div class="grid">'+cards.map((x)=>'<article class="metric"><div class="metric-icon">'+esc(x.icon)+'</div><div class="metric-value">'+esc(x.value)+'</div><div class="metric-label">'+esc(x.label)+'</div><div class="metric-sub">'+esc(x.sub)+'</div></article>').join('')+'</div><div class="section-head" style="margin-top:17px"><div class="section-title">Review breakdown</div></div>'+(data.categories&&data.categories.length?categoryPanel(data.categories.slice(0,4)):empty('Your story starts here','Publish a review and your activity will appear here.'))}
+function categories(){const items=data.categories||[];if(!items.length)return empty('No category activity yet','Your published reviews will be grouped here.');const total=items.reduce((s,x)=>s+(Number(x.count)||0),0);return '<div class="section-head"><div class="section-title">Reviews by category</div><div class="caption">'+total+' total</div></div>'+categoryPanel(items)}
+function verdicts(){const items=data.verdicts||[];if(!items.length)return empty('No verdicts yet','Choose a verdict when publishing a review to build this breakdown.');return '<div class="section-head"><div class="section-title">Your verdicts</div><div class="caption">'+(data.verdictTotal||0)+' reviews</div></div><div class="panel"><div class="pills">'+items.map((x)=>'<span class="pill">'+esc(x.label)+' <span class="pill-count">'+esc(x.count)+'</span></span>').join('')+'</div></div>'}
+function recent(){const items=data.recent||[];if(!items.length)return empty('No published reviews','Your latest community posts will appear here.');return '<div class="section-head"><div class="section-title">Recently published</div><div class="caption">Latest '+items.length+'</div></div><div class="review-list">'+items.map((x)=>'<article class="review"><div class="review-top"><div class="review-title">'+esc(x.title)+(x.year?' ('+esc(x.year)+(x.endYear?' – '+esc(x.endYear):'')+')':'')+'</div><span class="rating">'+esc(x.rating)+'/10</span></div><div class="review-meta">'+esc(x.category)+(x.verdict?' · '+esc(x.verdict):'')+'</div>'+(x.link?'<button class="open-review" type="button" data-url="'+esc(x.link)+'">Open published review ↗</button>':'')+'</article>').join('')+'</div>'}
+function render(){el('content').innerHTML=current==='categories'?categories():current==='verdicts'?verdicts():current==='recent'?recent():overview();Array.from(el('tabs').children).forEach((b)=>b.classList.toggle('active',b.getAttribute('data-tab')===current));Array.from(document.getElementsByClassName('open-review')).forEach((b)=>b.addEventListener('click',()=>W.openTelegramLink(b.getAttribute('data-url'))))}
+function refreshProfile(){el('status').textContent='Opening your bot chat…';W.openTelegramLink('https://t.me/ReviewTvBot?start=widgetdemo')}
 try{data=JSON.parse(W.chatData||'{}')}catch(e){data={}}
-render();
-Array.from(el('tabs').children).forEach(button=>button.addEventListener('click',()=>{current=button.getAttribute('data-tab');render();if(W.HapticFeedback)W.HapticFeedback.selectionChanged()}));
-el('refresh').addEventListener('click',()=>{
- el('status').textContent='Opening your bot chat…';
- W.openTelegramLink('https://t.me/ReviewTvBot?start=widgetdemo');
-});
-W.ready();
+el('name').textContent=data.name||'Telegram user';el('username').textContent=data.username?'@'+data.username:'ReviewTV member';el('initials').textContent=initials(data.name);el('rank-label').textContent=data.rank?'#'+data.rank+' Reviewer':'Not in top 20';el('average').innerHTML=esc(data.average&&data.average!=='—'?data.average:'—')+'<small> / 10</small>';el('score-note').textContent=data.total?'Across '+data.total+' published reviews':'No ratings yet';el('total').textContent=String(data.total||0);el('likes').textContent=String(data.likes||0);el('dislikes').textContent=String(data.dislikes||0);setupAvatar();render();
+Array.from(el('tabs').children).forEach((b)=>b.addEventListener('click',()=>{current=b.getAttribute('data-tab');render();if(W.HapticFeedback)W.HapticFeedback.selectionChanged()}));el('refresh-top').addEventListener('click',refreshProfile);el('refresh-bottom').addEventListener('click',refreshProfile);W.ready();
 </script></body></html>`;
 }
