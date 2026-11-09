@@ -7,7 +7,8 @@
     "deploy": "tgcloud push",
     "status": "tgcloud status",
     "migrate": "tgcloud migrate",
-    "run": "tgcloud run"
+    "run": "tgcloud run",
+    "check:widget": "node scripts/check-widget-size.mjs"
   },
   "devDependencies": {
     "@tgcloud/cli": "^0.2.0"
