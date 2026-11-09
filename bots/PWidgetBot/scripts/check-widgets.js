@@ -1,6 +1,14 @@
 import { deflateSync } from 'node:zlib';
+import { readdirSync } from 'node:fs';
 import { CATEGORIES, getDemo } from '../tgcloud/lib/catalog.js';
 import { buildWidgetHtml } from '../tgcloud/lib/widget_factory.js';
+
+const ALLOWED_HANDLERS = new Set('message edited_message stopped_message_generation channel_post edited_channel_post business_connection business_message edited_business_message deleted_business_messages inline_query chosen_inline_result callback_query guest_message shipping_query pre_checkout_query purchased_paid_media subscription message_reaction message_reaction_count poll poll_answer my_chat_member chat_member chat_join_request chat_boost removed_chat_boost managed_bot'.split(' '));
+for (const file of readdirSync(new URL('../tgcloud/handlers/', import.meta.url))) {
+  if (!file.endsWith('.js')) continue;
+  const name = file.slice(0, -3);
+  if (!ALLOWED_HANDLERS.has(name)) throw new Error(`Unsupported Serverless handler module: ${name}`);
+}
 
 const MAX_HTML_BYTES = 32 * 1024;
 const MAX_COMPRESSED_BYTES = 4 * 1024;
