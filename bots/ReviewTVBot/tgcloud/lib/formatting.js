@@ -115,6 +115,7 @@ export function buildHelpRichMessage(isAdmin = false) {
       { blocks: [paragraph('/howtouse — View the submission guide')] },
       { blocks: [paragraph('/review — Submit a review'), { type: 'list', items: [{ blocks: [paragraph('/myreviews — View your published reviews')] }] }] },
       { blocks: [paragraph('/profile — View your reviewer profile')] },
+      { blocks: [paragraph('/widgetdemo — Preview your interactive profile widget')] },
       { blocks: [paragraph('/cancel — Cancel your active draft')] },
     ] },
     ...(isAdmin ? [{ type: 'divider' }, heading('Administration', 3), paragraph([{ type: 'bold', text: '/admin' }, ' — Open the private admin panel.'])] : []),
