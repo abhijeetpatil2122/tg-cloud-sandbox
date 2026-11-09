@@ -31,7 +31,7 @@ function walletSummary(query) {
     } };
   }
   if (query.type?.type === 'sign_data') {
-    return { ok: true, message: 'Wallet-signed data received. Verify its signature and bot domain before trusting it.', wallet: {
+    return { ok: true, message: 'Wallet-signed data received. This demo does not cryptographically verify the signature or domain.', wallet: {
       address: query.type.wallet?.address || null, signedDataReceived: Boolean(query.type.sign_data),
     } };
   }
