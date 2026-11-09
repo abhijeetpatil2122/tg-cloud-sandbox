@@ -88,19 +88,46 @@ async function showWelcome(message) {
 }
 
 async function showProfileWidget(chatId, user) {
+  let stage = 'load-profile-data';
   try {
     const profile = await getUserProfileWidgetData(user);
+
+    stage = 'build-widget-html';
+    const html = buildProfileWidgetHtml();
+    if (typeof html !== 'string' || !html.trim()) {
+      throw new Error('Widget HTML builder returned an empty payload.');
+    }
+    if (html.includes('\u0000')) {
+      throw new Error('Widget HTML contains a NUL character.');
+    }
+
+    stage = 'serialize-widget-state';
+    const chatData = serializeProfileWidgetData(profile);
+    if (typeof chatData !== 'string' || new TextEncoder().encode(chatData).byteLength > 1024) {
+      throw new Error('Widget chat_data must be a UTF-8 string of at most 1024 bytes.');
+    }
+
+    stage = 'send-widget';
     return await api.sendWidget({
       chat_id: chatId,
-      html: buildProfileWidgetHtml(),
-      chat_data: serializeProfileWidgetData(profile),
+      html,
+      chat_data: chatData,
       caption: 'Your ReviewTV profile · reviewer stats, category insights and recent reviews.',
       reply_markup: { inline_keyboard: [[
         { text: '‹ Back to profile', callback_data: 'rv:profile' },
       ]] },
     });
   } catch (error) {
-    console.error('ReviewTVBot widget demo failed', error?.description || error?.message || error);
+    console.error('ReviewTVBot widget demo failed', {
+      stage,
+      name: error?.name,
+      message: error?.message,
+      description: error?.description,
+      code: error?.code,
+      method: error?.method,
+      parameters: error?.parameters,
+      stack: error?.stack,
+    });
     return sendRich(chatId, { blocks: [
       { type: 'heading', size: 2, text: 'Profile dashboard is temporarily unavailable' },
       { type: 'paragraph', text: 'I could not open the interactive dashboard right now. Your profile data is safe; use the standard profile view instead.' },
