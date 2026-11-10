@@ -163,6 +163,8 @@ export async function getUserProfileWidgetData(user) {
       verdict: getRatingVerdict(row.ratingVerdict)?.label || '',
       verdictStyle: getRatingVerdict(row.ratingVerdict)?.style || 'primary',
       category: categories.find((item) => item.key === row.categoryKey)?.label || 'Other',
+      excerpt: String(row.reviewText || '').replace(/\s+/g, ' ').trim().slice(0, 90),
+      hasSpoilers: Boolean(row.hasSpoilers),
       link: /^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(String(row.messageLink || '')) ? row.messageLink : '',
     })),
   };
