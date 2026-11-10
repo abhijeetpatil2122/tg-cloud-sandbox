@@ -1,4 +1,5 @@
 import { deflateSync } from 'node:zlib';
+import { Script } from 'node:vm';
 import { buildProfileWidgetHtml, serializeProfileWidgetData } from '../tgcloud/lib/profile_widget.js';
 
 const html = buildProfileWidgetHtml();
@@ -8,8 +9,11 @@ console.log(`ReviewTV profile widget: ${htmlBytes} bytes HTML; ${compressedBytes
 if (htmlBytes < 1 || htmlBytes > 32768) throw new Error('Widget HTML must be between 1 and 32768 UTF-8 bytes.');
 if (compressedBytes > 3900) throw new Error('Widget HTML is too close to Telegram’s 4096-byte compressed limit; keep a safety margin.');
 if (html.includes(String.fromCharCode(0))) throw new Error('Widget HTML contains a NUL character.');
+const script = html.match(/<script>([\\s\\S]*?)<\\/script>/);
+if (!script) throw new Error('Widget inline JavaScript was not found.');
+new Script(script[1]);
 
-for (const required of ["impactOccurred('heavy')", 'onclick="setTab(', 'onclick="move(', 'class="cover"', 'class="excerpt"', 'class="open"']) {
+for (const required of ["impactOccurred('heavy')", 'onclick="setTab(', 'onclick="move(', 'class="cover"', 'class="excerpt"', 'class="open"', "addEventListener('pointerup'"]) {
   if (!html.includes(required)) throw new Error(`Widget is missing required interaction or design feature: ${required}`);
 }
 
