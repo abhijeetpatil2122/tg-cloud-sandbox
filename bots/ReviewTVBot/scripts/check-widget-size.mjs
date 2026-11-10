@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import { buildProfileWidgetHtml, serializeProfileWidgetData } from '../tgcloud/lib/profile_widget.js';
 
