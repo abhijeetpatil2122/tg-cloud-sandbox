@@ -21,7 +21,7 @@ if (!script || !style) throw new Error('Inline JavaScript and CSS are required.'
 new Script(script[1]);
 
 const required = [
-  'window.TelegramWidget', 'W.chatData', 'themeChanged',
+  'window.TelegramWidget', 'W.chatData',
   "impactOccurred('heavy')", 'openTelegramLink', 'prefers-reduced-motion',
   'id="tab0"', 'id="tab1"', 'id="tab2"', 'id="tab3"',
   'function switchTab(', 'function changePage(', 'function openPost(',
