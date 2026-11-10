@@ -103,8 +103,8 @@ async function showProfileWidget(chatId, user) {
 
     stage = 'serialize-widget-state';
     const chatData = serializeProfileWidgetData(profile);
-    if (typeof chatData !== 'string' || new TextEncoder().encode(chatData).byteLength > 1024) {
-      throw new Error('Widget chat_data must be a UTF-8 string of at most 1024 bytes.');
+    if (typeof chatData !== 'string' || !chatData) {
+      throw new Error('Widget chat_data serializer returned an invalid payload.');
     }
 
     stage = 'send-widget';
