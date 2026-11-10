@@ -34,7 +34,7 @@ function checkCssBalance(source){
 checkCssBalance(css);
 if(css.split('{').length<35||!css.includes('--danger:var(--tg-theme-destructive-text-color);')||!css.includes('.tabs button.active')||!css.includes('.review'))throw new Error('Widget CSS is missing valid theme or layout rules.');
 new Script(script[1]);
-const required=['window.TelegramWidget','W.chatData',"impactOccurred('heavy')",'openTelegramLink','function switchTab(','function changePage(','function openPost(','class="hero"','class="metrics"','class="recent"','--tg-theme-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-button-color','--tg-theme-button-text-color'];
+const required=['window.TelegramWidget','W.chatData',"impactOccurred('heavy')",'openTelegramLink','function switchTab(','function changePage(','function openPost(','class="hero"','class="metrics"','class="recent"','--tg-theme-secondary-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-button-color','--tg-theme-button-text-color'];
 for(const marker of required)if(!html.includes(marker))throw new Error('Missing widget feature: '+marker);
 for(const forbidden of ['<input','<textarea','<select','fetch(','XMLHttpRequest','WebSocket','<script src=','<link rel=','overflow:auto','overflow:scroll'])if(html.includes(forbidden))throw new Error('Unsupported widget feature: '+forbidden);
 const categories=['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'];
@@ -56,13 +56,13 @@ console.log('ReviewTV /profile2 widget: '+htmlBytes2+' UTF-8 bytes HTML; '+compr
 if(!htmlBytes2||htmlBytes2>32768)throw new Error('/profile2 widget HTML exceeds Telegram’s 32768-byte limit.');
 if(compressedBytes2>3800)throw new Error('/profile2 widget must retain at least 296 bytes below Telegram’s 4096-byte compressed limit.');
 if(html2.includes(String.fromCharCode(0)))throw new Error('/profile2 widget HTML contains a NUL character.');
-if(!html2.startsWith('<style>#p2{')||!html2.includes('</style><div id="p2">')||!html2.endsWith('</div>'))throw new Error('/profile2 widget must be a bare fragment with its stylesheet at the top level.');
-if(/^\\s*<!doctype|^\\s*<html|^\\s*<head|^\\s*<body/i.test(html2))throw new Error('/profile2 widget must not start with a document wrapper.');
-const script2=html2.match(/<script>([\\s\\S]*?)<\\/script>/i);
-if(!script2)throw new Error('/profile2 widget inline script is missing.');
+if(!html2.startsWith('<style>#p2{')||!html2.includes('</style><div id="p2">')||!html2.endsWith('</script>'))throw new Error('/profile2 widget must be a bare fragment with inline style and script.');
+if(html2.startsWith('<!doctype')||html2.startsWith('<html')||html2.startsWith('<head')||html2.startsWith('<body'))throw new Error('/profile2 widget must not start with a document wrapper.');
+const script2Start=html2.indexOf('<script>'),script2End=html2.indexOf('</script>');
+if(script2Start<0||script2End<0||script2End<=script2Start)throw new Error('/profile2 widget inline script is missing.');
 const css2=html2.slice(html2.indexOf('<style>')+7,html2.indexOf('</style>'));
 checkCssBalance(css2);
-new Script(script2[1]);
+new Script(html2.slice(script2Start+8,script2End));
 const required2=['window.TelegramWidget','tw?.chatData',"tw?.onEvent?.('chatDataChanged'","tw?.onEvent?.('themeChanged'","tw?.ready?.()",'localStorage.setItem','function p2tab(','function p2page(','function p2open(','class="mast"','REVIEW LEDGER','env(safe-area-inset-bottom)','--tg-theme-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-link-color'];
 for(const marker of required2)if(!html2.includes(marker))throw new Error('/profile2 widget is missing: '+marker);
 for(const forbidden of ['<input','<textarea','<select','fetch(','XMLHttpRequest','WebSocket','<script src=','<link rel=','overflow:auto','overflow:scroll','100vh','100dvh','100svh','text-shadow','perspective','rotateY','@import'])if(html2.includes(forbidden))throw new Error('/profile2 widget uses unsupported feature: '+forbidden);
