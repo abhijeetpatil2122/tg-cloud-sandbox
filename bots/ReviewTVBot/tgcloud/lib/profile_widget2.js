@@ -1,4 +1,4 @@
-// Independent ReviewTV profile widget redesign; separate from /profile and /widgetdemo.
+// Independent ReviewTV profile widget redesign; separate from /profile and /widgetdemo, within the compact widget budget.
 const utf8=s=>{let n=0;for(const c of String(s??'')){const x=c.codePointAt(0);n+=x<128?1:x<2048?2:x<65536?3:4}return n};
 const cut=(s,n)=>Array.from(String(s??'')).slice(0,n).join('');
 const C=['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'];
