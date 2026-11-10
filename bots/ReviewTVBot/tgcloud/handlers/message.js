@@ -108,7 +108,7 @@ async function showProfileWidget(chatId, user) {
     }
 
     stage = 'send-widget';
-    return await api.sendWidget({
+    const sent = await api.sendWidget({
       chat_id: chatId,
       html,
       chat_data: chatData,
@@ -117,6 +117,12 @@ async function showProfileWidget(chatId, user) {
         { text: '‹ Back to profile', callback_data: 'rv:profile' },
       ]] },
     });
+    console.info('ReviewTV widget sent', {
+      htmlLength: html.length,
+      serverEchoLength: sent?.widget?.html?.length ?? null,
+      serverEchoMatches: sent?.widget?.html === html,
+    });
+    return sent;
   } catch (error) {
     console.error('ReviewTVBot widget demo failed', {
       stage,
