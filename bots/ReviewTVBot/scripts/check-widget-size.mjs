@@ -9,7 +9,7 @@ if (htmlBytes < 1 || htmlBytes > 32768) throw new Error('Widget HTML must be bet
 if (compressedBytes > 3800) throw new Error('Widget HTML is too close to Telegram’s 4096-byte compressed limit; keep a safety margin.');
 if (html.includes(String.fromCharCode(0))) throw new Error('Widget HTML contains a NUL character.');
 
-for (const required of ["impactOccurred('heavy')", 'onclick="setTab(', 'onclick="changePage(', 'class="cover"', 'class="excerpt"', 'class="open-review"']) {
+for (const required of ["impactOccurred('heavy')", 'onclick="setTab(', 'onclick="move(', 'class="cover"', 'class="excerpt"', 'class="open"']) {
   if (!html.includes(required)) throw new Error(`Widget is missing required interaction or design feature: ${required}`);
 }
 
