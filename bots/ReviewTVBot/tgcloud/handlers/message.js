@@ -112,7 +112,9 @@ async function showProfileWidget(chatId, user) {
       chat_id: chatId,
       html,
       chat_data: chatData,
-      caption: 'Your ReviewTV profile · reviewer stats, category insights and recent reviews.',
+      allow_queries: false,
+      height: 580,
+      caption: 'Your ReviewTV profile · live theme-aware stats, category insights and recent reviews.',
       reply_markup: { inline_keyboard: [[
         { text: '‹ Back to profile', callback_data: 'rv:profile' },
       ]] },
