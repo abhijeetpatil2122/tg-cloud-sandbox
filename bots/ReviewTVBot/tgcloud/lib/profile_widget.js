@@ -77,6 +77,6 @@ function load(){
  D={n:p.n||'Telegram user',u:p.u||'',t:Number(p.t)||0,a:p.a||'—',v:Number(p.v)||0,l:Number(p.l)||0,d:Number(p.d)||0,r:Number(p.r)||0,c:Array.isArray(p.c)?p.c:[],q:Array.isArray(p.q)?p.q:[],i:Array.isArray(p.i)?p.i:[]};
  id('name').textContent=D.n;id('username').textContent=D.u?'@'+D.u:'';id('avatar').textContent=first(D.n);render();try{if(W&&W.ready)W.ready()}catch(e){}
 }
-try{load();if(W&&W.onEvent)W.onEvent('chatDataChanged',load)}catch(e){id('content').innerHTML='<div class="empty"><b>Profile unavailable</b>Close this message and send /widgetdemo again.</div>'}
+try{load();if(W&&W.onEvent){W.onEvent('chatDataChanged',load);W.onEvent('themeChanged',render)}}catch(e){id('content').innerHTML='<div class="empty"><b>Profile unavailable</b>Close this message and send /widgetdemo again.</div>'}
 </script></div>`;
 }
