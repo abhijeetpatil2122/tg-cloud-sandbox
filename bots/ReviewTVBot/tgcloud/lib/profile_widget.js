@@ -1,4 +1,4 @@
-// ReviewTV profile dashboard. Self-contained Telegram Widget profile 1 HTML.
+// ReviewTV profile dashboard. Telegram Widget profile 1; all assets are inline.
 const utf8 = value => new TextEncoder().encode(value).length;
 const cut = (value, limit) => Array.from(String(value ?? '')).slice(0, limit).join('');
 const CATEGORY_LABELS = ['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'];
@@ -6,37 +6,35 @@ const VERDICT_LABELS = ['Absolute Cinema','Go for It','Timepass','Skip It'];
 
 export function serializeProfileWidgetData(profile) {
   const styleCode = value => value === 'success' ? 's' : value === 'danger' ? 'd' : 'p';
+  const countBy = (items, label) => Number(items?.find(item => item.label === label)?.count) || 0;
   const state = {
     n: cut(profile.name, 42), u: cut(profile.username, 24),
     t: Number(profile.total) || 0, a: profile.average ?? '—',
     v: Number(profile.verdictTotal) || 0, l: Number(profile.likes) || 0,
     d: Number(profile.dislikes) || 0, r: Number(profile.rank) || 0,
-    c: (profile.categories || []).map(x => Number(x.count) || 0),
-    q: (profile.verdicts || []).map(x => Number(x.count) || 0),
-    i: (profile.recent || []).slice(0, 5).map(x => ({
-      t: cut(x.title, 42), y: x.year || 0, e: x.endYear || 0,
-      r: Number(x.rating) || 0, s: styleCode(x.style),
-      c: CATEGORY_LABELS.indexOf(x.category), v: VERDICT_LABELS.indexOf(x.verdict), q: styleCode(x.verdictStyle),
-      x: x.hasSpoilers ? '' : cut(String(x.excerpt || '').replace(/\s+/g, ' ').trim(), 58),
-      p: Boolean(x.hasSpoilers),
-      k: /^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(String(x.link || '')) ? x.link : ''
+    c: CATEGORY_LABELS.map(label => countBy(profile.categories, label)),
+    q: VERDICT_LABELS.map(label => countBy(profile.verdicts, label)),
+    i: (profile.recent || []).slice(0, 5).map(item => ({
+      t: cut(item.title, 42), y: Number(item.year) || 0, e: Number(item.endYear) || 0,
+      r: Number(item.rating) || 0, s: styleCode(item.style),
+      c: CATEGORY_LABELS.indexOf(item.category), v: VERDICT_LABELS.indexOf(item.verdict),
+      q: styleCode(item.verdictStyle),
+      x: item.hasSpoilers ? '' : cut(String(item.excerpt || '').replace(/\s+/g, ' ').trim(), 58),
+      p: Boolean(item.hasSpoilers),
+      k: /^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(String(item.link || '')) ? item.link : ''
     }))
   };
   let encoded = JSON.stringify(state);
   if (utf8(encoded) > 1024) {
-    for (const item of state.i) {
-      item.t = cut(item.t, 34);
-      item.c = cut(item.c, 14);
-      item.v = cut(item.v, 16);
-      item.x = cut(item.x, 42);
-    }
+    for (const item of state.i) { item.t = cut(item.t, 30); item.x = cut(item.x, 32); }
+    state.n = cut(state.n, 28);
     encoded = JSON.stringify(state);
   }
   if (utf8(encoded) > 1024) {
     for (const item of state.i) item.k = '';
     encoded = JSON.stringify(state);
   }
-  while (utf8(encoded) > 1024 && state.i.length > 2) {
+  while (utf8(encoded) > 1024 && state.i.length > 1) {
     state.i.pop();
     encoded = JSON.stringify(state);
   }
@@ -45,39 +43,42 @@ export function serializeProfileWidgetData(profile) {
 }
 
 export function buildProfileWidgetHtml() {
-  return String.raw`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
-:root{font-family:system-ui,sans-serif;color:var(--tg-theme-text-color);--m:var(--tg-theme-subtitle-text-color,var(--tg-theme-hint-color));--s:var(--tg-theme-secondary-bg-color);--l:var(--tg-theme-section-separator-color,var(--tg-theme-hint-color));--a:var(--tg-theme-accent-text-color,var(--tg-theme-link-color)}
-*{box-sizing:border-box}body{margin:0;padding:9px 11px 13px;background:transparent;color:var(--tg-theme-text-color);font-size:var(--tg-text-font-size,14px);line-height:1.35}button{font:inherit;touch-action:manipulation;cursor:pointer}button:active{transform:scale(.96)}
-.head,.row,.stats,.tabs,.review,.foot,.pager{display:flex;align-items:center}.head{gap:9px;margin:1px 0 10px;animation:in .4s both}.avatar{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:14px;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color);font-size:20px;font-weight:900;animation:pop .5s both}.who,.detail{flex:1;min-width:0}.k,.muted{font-size:9px;font-weight:850;color:var(--m)}.name{font-size:16px;font-weight:850;line-height:1.2;overflow-wrap:anywhere;margin-top:3px}.handle,.meta,.label,.page{font-size:9px;color:var(--m);margin-top:3px}.rank{color:var(--a);font-size:9px;font-weight:850}
-.hero,.panel,.tabs{border:1px solid var(--l);border-radius:14px;background:var(--s)}.hero{padding:12px;margin-bottom:9px;animation:in .45s both}.row{justify-content:space-between;gap:7px}.ratingline{display:flex;align-items:center;gap:9px;margin:8px 0 11px}.ring{width:52px;height:52px;flex:none;border:4px solid var(--tg-theme-button-color);border-right-color:var(--l);border-radius:50%;display:grid;place-items:center;animation:ring .7s both}.score{font-size:19px;font-weight:900;transform:rotate(30deg)}.scorehint{font-size:10px;color:var(--m);margin-top:3px}.stats{border-top:1px solid var(--l);padding-top:9px}.stat{flex:1;min-width:0}.stat+.stat{border-left:1px solid var(--l);margin-left:8px;padding-left:8px}.num{font-size:16px;font-weight:900}
-.tabs{gap:3px;padding:3px;margin:0 0 9px}.tabs button{flex:1;min-width:0;border:0;border-radius:9px;background:transparent;color:var(--m);padding:8px 1px;font-size:9px;font-weight:850}.tabs button.active{background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color)}
-.panel{padding:11px 12px}.item{margin-bottom:10px}.itemhead{display:flex;justify-content:space-between;gap:8px;font-size:10px;margin-bottom:5px}.track{height:6px;border-radius:9px;background:var(--tg-theme-bg-color);overflow:hidden}.fill{height:100%;border-radius:9px;background:var(--tg-theme-button-color);animation:grow .8s both}
-.tag.success{color:var(--tg-theme-button-text-color);background:var(--tg-theme-button-color);border-color:var(--tg-theme-button-color)}.tag.danger{color:var(--tg-theme-destructive-text-color,var(--m));border-color:var(--tg-theme-destructive-text-color,var(--l))}.tag.primary{color:var(--a);border-color:var(--a)}
-.review{gap:8px;align-items:stretch;padding:9px 0;border-bottom:1px solid var(--l);animation:in .3s both}.cover{width:45px;min-height:72px;flex:none;border:1px solid var(--l);border-radius:9px;background:var(--tg-theme-bg-color);display:flex;flex-direction:column;align-items:center;justify-content:center}.cover b{font-size:20px;color:var(--a);line-height:1}.title{font-size:11px;font-weight:900;line-height:1.3;overflow-wrap:anywhere}.tag{flex:none;padding:4px 6px;border:1px solid var(--l);border-radius:7px;font-size:9px;font-weight:900}.excerpt{font-size:9px;line-height:1.4;margin-top:5px;overflow-wrap:anywhere}.foot{justify-content:space-between;gap:5px;margin-top:6px}.verdict{font-size:8px;font-weight:900;color:var(--a)}.open{border:1px solid var(--l);border-radius:8px;background:var(--s);color:var(--a);font-size:8px;font-weight:900;padding:6px 8px}.pager{justify-content:space-between;gap:8px;margin-top:8px}
-@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes pop{from{opacity:0;transform:scale(.8) rotate(-8deg)}to{opacity:1;transform:none}}@keyframes ring{from{transform:rotate(-30deg) scale(.7)}to{transform:rotate(-30deg) scale(1)}}@keyframes grow{from{width:0}to{width:var(--w)}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+  return String.raw\`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+:root{font-family:system-ui,sans-serif;color:var(--tg-theme-text-color);--muted:var(--tg-theme-hint-color);--line:var(--tg-theme-section-separator-color,var(--tg-theme-hint-color));--surface:var(--tg-theme-secondary-bg-color,var(--tg-theme-bg-color));--accent:var(--tg-theme-accent-text-color,var(--tg-theme-link-color));--button:var(--tg-theme-button-color);--buttonText:var(--tg-theme-button-text-color)}
+*{box-sizing:border-box}body{margin:0;padding:10px 11px 12px;font-size:13px;line-height:1.35;color:var(--tg-theme-text-color)}button{font:inherit;cursor:pointer;touch-action:pan-y}button:active{transform:scale(.97)}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:10px;animation:rise .35s both}.avatar{width:46px;height:46px;border-radius:15px;background:var(--button);color:var(--buttonText);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;flex:none}.eyebrow{font-size:9px;letter-spacing:1px;font-weight:900;color:var(--muted)}.name{font-size:16px;font-weight:900;line-height:1.2;margin-top:3px;overflow-wrap:anywhere}.handle{font-size:10px;color:var(--muted);margin-top:3px}.rank{margin-left:auto;border:1px solid var(--line);border-radius:9px;padding:6px 8px;color:var(--accent);font-size:9px;font-weight:900;white-space:nowrap}
+.hero{border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:12px;margin-bottom:9px;animation:rise .4s both}.herohead{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.7px}.scoreline{display:flex;align-items:center;gap:11px;margin:10px 0 12px}.ring{width:58px;height:58px;border-radius:50%;border:4px solid var(--button);border-right-color:var(--line);display:flex;align-items:center;justify-content:center;flex:none;animation:pop .55s both}.score{font-size:19px;font-weight:950}.scoretext{font-size:11px;font-weight:850}.sub{font-size:10px;color:var(--muted);margin-top:3px}.stats{display:flex;border-top:1px solid var(--line);padding-top:9px}.stat{flex:1;min-width:0}.stat+.stat{border-left:1px solid var(--line);padding-left:10px;margin-left:9px}.number{font-size:17px;font-weight:950}.statlabel{font-size:9px;color:var(--muted);margin-top:1px}
+.tabs{display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:9px}.tabs button{flex:1;min-width:0;border:0;border-radius:8px;background:transparent;color:var(--muted);padding:8px 2px;font-size:10px;font-weight:850}.tabs button.active{background:var(--button);color:var(--buttonText)}
+.sectionhead{display:flex;align-items:center;justify-content:space-between;margin:0 2px 7px}.sectiontitle{font-size:12px;font-weight:900}.hint{font-size:9px;color:var(--muted);font-weight:850}.panel{border:1px solid var(--line);border-radius:13px;background:var(--surface);padding:11px}.barrow{margin-bottom:11px}.barrow:last-child{margin-bottom:0}.barhead{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;margin-bottom:5px}.barhead span{overflow-wrap:anywhere}.track{height:7px;border-radius:8px;background:var(--tg-theme-bg-color);overflow:hidden}.fill{height:100%;border-radius:8px;background:var(--button);animation:grow .7s both}.empty{border:1px dashed var(--line);border-radius:12px;padding:17px 12px;text-align:center;color:var(--muted);font-size:10px}.empty b{display:block;color:var(--tg-theme-text-color);font-size:12px;margin-bottom:4px}
+.reviewlist{display:flex;flex-direction:column;gap:8px}.review{display:flex;gap:9px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:9px;animation:rise .3s both}.poster{width:48px;min-height:82px;flex:none;border-radius:9px;background:var(--tg-theme-bg-color);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex-direction:column}.poster b{font-size:23px;line-height:1;color:var(--accent);font-weight:950}.poster span{font-size:7px;color:var(--muted);font-weight:900;margin-top:5px}.reviewbody{flex:1;min-width:0}.reviewtop{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}.title{font-size:11px;font-weight:900;line-height:1.3;overflow-wrap:anywhere}.rating{flex:none;border-radius:7px;padding:4px 6px;background:var(--button);color:var(--buttonText);font-size:9px;font-weight:950}.rating.danger{background:var(--tg-theme-destructive-text-color,var(--button));color:var(--tg-theme-bg-color)}.category{font-size:8px;color:var(--muted);font-weight:850;margin-top:4px}.excerpt{font-size:9px;line-height:1.4;margin-top:6px;overflow-wrap:anywhere}.reviewfoot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:7px}.verdict{font-size:8px;font-weight:900;color:var(--accent)}.viewpost{border:1px solid var(--line);border-radius:7px;padding:5px 7px;background:transparent;color:var(--accent);font-size:8px;font-weight:900}.pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}.pager button{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--surface);color:var(--accent);font-size:9px;font-weight:900}.pager button:disabled{opacity:.35}.page{font-size:9px;color:var(--muted);font-weight:850}
+@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}@keyframes pop{from{opacity:0;transform:scale(.75)}to{opacity:1;transform:scale(1)}}@keyframes grow{from{width:0}to{width:var(--barwidth)}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 </style></head><body>
-<header class="head"><div class="avatar" id="avatar">R</div><div class="who"><div class="k">REVIEWTV PROFILE</div><div class="name" id="name">Reviewer</div><div class="handle" id="handle">Community reviewer</div></div><div class="rank" id="rank">MEMBER</div></header>
-<section class="hero"><div class="row"><span class="muted">YOUR REVIEW SCORE</span><span class="muted">ALL TIME</span></div><div class="ratingline"><div class="ring"><span class="score" id="average">—</span></div><div><div class="muted">AVERAGE RATING</div><div class="scorehint"><b id="totalcaption">0 reviews</b> published by you</div></div></div><div class="stats"><div class="stat"><div class="num" id="total">0</div><div class="label">Reviews</div></div><div class="stat"><div class="num" id="likes">0</div><div class="label">Likes received</div></div><div class="stat"><div class="num" id="dislikes">0</div><div class="label">Dislikes</div></div></div></section>
-<nav class="tabs"><button id="tab0" class="active" onclick="setTab(0)">Overview</button><button id="tab1" onclick="setTab(1)">Categories</button><button id="tab2" onclick="setTab(2)">Verdicts</button><button id="tab3" onclick="setTab(3)">Recent</button></nav><section id="content"></section>
+<div class="top"><div class="avatar" id="avatar">R</div><div style="flex:1;min-width:0"><div class="eyebrow">REVIEWTV · REVIEWER PROFILE</div><div class="name" id="name">Reviewer</div><div class="handle" id="handle">Community member</div></div><div class="rank" id="rank">MEMBER</div></div>
+<div class="hero"><div class="herohead"><span>YOUR REVIEW SCORE</span><span>ALL TIME</span></div><div class="scoreline"><div class="ring"><span class="score" id="average">—</span></div><div><div class="scoretext">Average rating</div><div class="sub"><b id="totalcaption">0 reviews</b> published</div></div></div><div class="stats"><div class="stat"><div class="number" id="total">0</div><div class="statlabel">Reviews</div></div><div class="stat"><div class="number" id="likes">0</div><div class="statlabel">Likes received</div></div><div class="stat"><div class="number" id="dislikes">0</div><div class="statlabel">Dislikes</div></div></div></div>
+<div class="tabs"><button id="tab0" class="active" onclick="switchTab(0)">Overview</button><button id="tab1" onclick="switchTab(1)">Categories</button><button id="tab2" onclick="switchTab(2)">Verdicts</button><button id="tab3" onclick="switchTab(3)">Recent</button></div>
+<div id="content"><div class="empty"><b>Loading profile</b>Your review activity will appear here.</div></div>
 <script>
-var W=window.TelegramWidget,D={},tab=0,page=0,lastHaptic=0,C=['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'],V=['Absolute Cinema','Go for It','Timepass','Skip It'];
-function $(x){return document.getElementById(x)}
-function heavy(){var t=Date.now();if(t-lastHaptic<120)return;lastHaptic=t;try{if(W&&W.HapticFeedback&&typeof W.HapticFeedback.impactOccurred==='function')W.HapticFeedback.impactOccurred('heavy')}catch(e){}}
-function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function sty(v){return v==='s'?'success':v==='d'?'danger':'primary'}
-function cats(){return C.map(function(n,i){return {n:n,c:Number(D.c[i])||0}}).filter(function(x){return x.c>0})}
-function verdicts(){return V.map(function(n,i){return {n:n,c:Number(D.q[i])||0,s:i<2?'success':i===3?'danger':'primary'}}).filter(function(x){return x.c>0})}
-function empty(a,b){return '<div class="empty"><b>'+esc(a)+'</b>'+esc(b)+'</div>'}
-function bars(a){if(!a.length)return empty('Nothing here yet','Publish a few reviews and your breakdown will appear.');var max=Math.max.apply(null,a.map(function(x){return x.c}).concat([1]));return '<div class="panel stagger">'+a.map(function(x){var w=Math.round(x.c/max*100);return '<div class="item"><div class="itemhead"><span>'+esc(x.n)+'</span><b>'+x.c+'</b></div><div class="track"><div class="fill" style="width:'+w+'%;--w:'+w+'%"></div></div></div>'}).join('')+'</div>'}
-function overview(){return '<div class="view"><div class="row" style="margin:0 1px 7px"><b style="font-size:11px">Your activity</b><span class="muted">'+D.v+' VERDICT REVIEWS</span></div>'+bars(cats())+'</div>'}
-function verdictView(){var a=verdicts().map(function(x){return {n:x.n,c:x.c}});return bars(a)}
-function recent(){var a=D.i||[],size=2,pages=Math.max(1,Math.ceil(a.length/size)),p=Math.min(page,pages-1),items=a.slice(p*size,p*size+size);if(!a.length)return empty('No reviews published yet','Your newest reviews will show up here once you publish.');return '<div class="view"><div class="row" style="margin:0 1px 7px"><b style="font-size:11px">Latest reviews</b><span class="muted">'+(p*size+1)+'–'+(p*size+items.length)+' OF '+a.length+'</span></div><div class="panel stagger">'+items.map(function(x){var mark=Array.from(x.t||'R')[0]||'R';return '<article class="review"><div class="cover"><b>'+esc(mark.toLocaleUpperCase())+'</b></div><div class="detail"><div class="row" style="align-items:flex-start"><b class="title">'+esc(x.t)+(x.y?' ('+x.y+(x.e?'–'+x.e:'')+')':'')+'</b><span class="tag '+sty(x.s)+'">★ '+(x.r||'—')+'/10</span></div><div class="meta">'+esc(C[x.c]||'Review')+(x.p?' · SPOILERS':'')+'</div><div class="excerpt">'+(x.p?'Spoiler-protected review. Open the full post to read it.':(x.x?esc(x.x):'No review excerpt available.'))+'</div><div class="foot"><span class="verdict '+sty(x.q)+'">'+(x.v>=0?esc(V[x.v]):'')+'</span>'+(x.k?'<button class="open" data-link="'+esc(x.k)+'" onclick="openReview(this)">VIEW POST ↗</button>':'')+'</div></div></article>'}).join('')+'</div>'+(pages>1?'<div class="pager"><button onclick="move(-1)" '+(p===0?'disabled':'')+'>‹ PREV</button><span class="page">'+(p+1)+' / '+pages+'</span><button onclick="move(1)" '+(p===pages-1?'disabled':'')+'>NEXT ›</button></div>':'')+'</div>'}
-function draw(){var c=$('content');c.innerHTML=tab===1?'<div class="view"><div class="row" style="margin:0 1px 7px"><b style="font-size:11px">Reviews by category</b><span class="muted">ALL TIME</span></div>'+bars(cats())+'</div>':tab===2?verdictView():tab===3?recent():overview();for(var i=0;i<4;i++)$('tab'+i).classList.toggle('active',i===tab)}
-function setTab(n){heavy();if(n===tab)return;tab=n;page=0;draw()}
-function move(n){heavy();page=Math.max(0,page+n);draw()}
-function openReview(b){heavy();var u=b.getAttribute('data-link');if(u&&/^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(u)&&W.openTelegramLink)W.openTelegramLink(u)}
-function load(){try{var s=JSON.parse(W.chatData||'{}');D={n:s.n||'',u:s.u||'',t:s.t||0,a:s.a||'—',v:s.v||0,l:s.l||0,d:s.d||0,r:s.r||0,c:s.c||[],q:s.q||[],i:s.i||[]}}catch(e){D={c:[],q:[],i:[]}}var n=D.n||W.viewer&&W.viewer.first_name||'Reviewer';$('name').textContent=n;$('handle').textContent=D.u?'@'+D.u:'ReviewTV member';$('avatar').textContent=(Array.from(n)[0]||'R').toLocaleUpperCase();$('rank').textContent=D.r?'#'+D.r+' REVIEWER':'MEMBER';$('average').textContent=D.a;$('totalcaption').textContent=D.t+' reviews';draw()}
-document.addEventListener('pointerup',function(e){var n=e.target;while(n&&n!==document){if(n.tagName==='BUTTON'){if(!n.disabled)heavy();return}n=n.parentNode}});
-load();
-</script></body></html>`;
+var W=window.TelegramWidget||null,D={c:[],q:[],i:[]},activeTab=0,currentPage=0;
+var C=['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'];
+var V=['Absolute Cinema','Go for It','Timepass','Skip It'];
+function el(id){return document.getElementById(id)}
+function buzz(){try{if(W&&W.HapticFeedback&&typeof W.HapticFeedback.impactOccurred==='function')W.HapticFeedback.impactOccurred('heavy')}catch(e){}}
+function safe(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function styleName(v){return v==='s'?'success':v==='d'?'danger':'primary'}
+function getCategories(){return C.map(function(n,i){return {name:n,count:Number(D.c[i])||0}}).filter(function(x){return x.count>0})}
+function getVerdicts(){return V.map(function(n,i){return {name:n,count:Number(D.q[i])||0}}).filter(function(x){return x.count>0})}
+function empty(title,desc){return '<div class="empty"><b>'+safe(title)+'</b>'+safe(desc)+'</div>'}
+function bars(items){if(!items.length)return empty('No breakdown yet','Your category and verdict insights will appear after you publish reviews.');var max=Math.max.apply(null,items.map(function(x){return x.count}).concat([1]));return '<div class="panel">'+items.map(function(x){var width=Math.max(3,Math.round(x.count/max*100));return '<div class="barrow"><div class="barhead"><span>'+safe(x.name)+'</span><b>'+x.count+'</b></div><div class="track"><div class="fill" style="width:'+width+'%;--barwidth:'+width+'%"></div></div></div>'}).join('')+'</div>'}
+function overview(){var items=getCategories();return '<div class="sectionhead"><span class="sectiontitle">Your activity</span><span class="hint">'+(Number(D.v)||0)+' VERDICT REVIEWS</span></div>'+bars(items)}
+function categoryView(){return '<div class="sectionhead"><span class="sectiontitle">Reviews by category</span><span class="hint">ALL TIME</span></div>'+bars(getCategories())}
+function verdictView(){return '<div class="sectionhead"><span class="sectiontitle">Your verdicts</span><span class="hint">ALL TIME</span></div>'+bars(getVerdicts())}
+function recentView(){var items=D.i||[],size=2,totalPages=Math.max(1,Math.ceil(items.length/size)),p=Math.min(currentPage,totalPages-1),visible=items.slice(p*size,p*size+size);if(!items.length)return empty('No reviews published yet','Your latest reviews will appear here after your first post.');var cards=visible.map(function(x){var initial=Array.from(x.t||'R')[0]||'R',rating=Number(x.r)||0;return '<div class="review"><div class="poster"><b>'+safe(initial.toLocaleUpperCase())+'</b><span>REVIEW</span></div><div class="reviewbody"><div class="reviewtop"><div class="title">'+safe(x.t)+(x.y?' ('+x.y+(x.e?'–'+x.e:'')+')':'')+'</div><span class="rating '+(x.s==='d'?'danger':'')+'">'+(rating?rating+'/10':'—')+'</span></div><div class="category">'+safe(C[x.c]||'Review')+(x.p?' · SPOILERS':'')+'</div><div class="excerpt">'+(x.p?'Spoiler-protected. Open the post to read the full review.':(x.x?safe(x.x):'No excerpt available for this review.'))+'</div><div class="reviewfoot"><span class="verdict">'+(x.v>=0?safe(V[x.v]):'')+'</span>'+(x.k?'<button class="viewpost" data-url="'+safe(x.k)+'" onclick="openPost(this)">VIEW POST ↗</button>':'')+'</div></div></div>'}).join('');return '<div class="sectionhead"><span class="sectiontitle">Latest reviews</span><span class="hint">'+(p*size+1)+'–'+(p*size+visible.length)+' OF '+items.length+'</span></div><div class="reviewlist">'+cards+'</div>'+(totalPages>1?'<div class="pager"><button onclick="changePage(-1)" '+(p===0?'disabled':'')+'>‹ PREV</button><span class="page">'+(p+1)+' / '+totalPages+'</span><button onclick="changePage(1)" '+(p===totalPages-1?'disabled':'')+'>NEXT ›</button></div>':'')}
+function render(){var target=el('content');if(!target)return;target.innerHTML=activeTab===1?categoryView():activeTab===2?verdictView():activeTab===3?recentView():overview();for(var i=0;i<4;i++){var b=el('tab'+i);if(b)b.classList.toggle('active',i===activeTab)}}
+function switchTab(index){buzz();activeTab=Math.max(0,Math.min(3,Number(index)||0));currentPage=0;render()}
+function changePage(step){buzz();currentPage=Math.max(0,currentPage+(Number(step)||0));render()}
+function openPost(button){buzz();var url=button&&button.getAttribute('data-url');if(url&&/^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(url)&&W&&typeof W.openTelegramLink==='function'){try{W.openTelegramLink(url)}catch(e){}}}
+function loadProfile(){try{var raw=W&&W.chatData?W.chatData:'{}',parsed=JSON.parse(raw);D={n:parsed.n||'',u:parsed.u||'',t:Number(parsed.t)||0,a:parsed.a||'—',v:Number(parsed.v)||0,l:Number(parsed.l)||0,d:Number(parsed.d)||0,r:Number(parsed.r)||0,c:Array.isArray(parsed.c)?parsed.c:[],q:Array.isArray(parsed.q)?parsed.q:[],i:Array.isArray(parsed.i)?parsed.i:[]}}catch(e){D={n:'',u:'',t:0,a:'—',v:0,l:0,d:0,r:0,c:[],q:[],i:[]}}
+var name=D.n||(W&&W.viewer&&W.viewer.first_name)||'Reviewer';el('name').textContent=name;el('handle').textContent=D.u?'@'+D.u:'ReviewTV member';el('avatar').textContent=(Array.from(name)[0]||'R').toLocaleUpperCase();el('rank').textContent=D.r?'#'+D.r+' REVIEWER':'MEMBER';el('average').textContent=D.a;el('totalcaption').textContent=D.t+' reviews';el('total').textContent=D.t;el('likes').textContent=D.l;el('dislikes').textContent=D.d;render();try{if(W&&typeof W.ready==='function')W.ready()}catch(e){}}
+try{loadProfile()}catch(error){var target=el('content');if(target)target.innerHTML='<div class="empty"><b>Profile could not be drawn</b>Please close this message and send /widgetdemo again.</div>'}
+</script></body></html>\`;
 }
