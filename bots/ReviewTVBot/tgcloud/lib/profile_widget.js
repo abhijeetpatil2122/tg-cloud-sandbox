@@ -37,7 +37,7 @@ export function buildProfileWidgetHtml(){
 button{font:inherit;cursor:pointer}button:active{transform:scale(.97)}
 @keyframes rise{from{transform:translateY(4px)}to{transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.screen{animation:none}button{transition:none}}</style><div id="root">
-<header class="top"><div class="avatar" id="avatar">R</div><div class="identity"><div class="eyebrow">REVIEWTV · PROFILE</div><div class="name" id="name">Reviewer</div><div class="username" id="username"></div></div><div class="rank" id="rank">—</div></header>
+<header class="top"><div class="avatar" id="avatar">R</div><div class="identity"><div class="eyebrow">REVIEWTV · PROFILE</div><div class="name" id="name">Reviewer</div><div class="username" id="username"></div></div></header>
 <nav class="tabs"><button id="tab0" class="active" onclick="switchTab(0)">Overview</button><button id="tab1" onclick="switchTab(1)">Categories</button><button id="tab2" onclick="switchTab(2)">Verdicts</button><button id="tab3" onclick="switchTab(3)">Recent</button></nav>
 <main id="content"></main>
 <script>
