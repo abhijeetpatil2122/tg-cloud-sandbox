@@ -11,16 +11,17 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/i);
 if(!script)throw new Error('Inline widget script is missing.');
 if(!html.startsWith('<style>#root{')||!html.includes('</style><div id="root">')||!html.endsWith('</div>'))throw new Error('Widget must be a bare fragment with its stylesheet at the top level.');
 if(/^\s*<!doctype|^\s*<html|^\s*<head|^\s*<body/i.test(html))throw new Error('Widget must not start with a document wrapper.');
-const style=html.match(/<style>([\\s\\S]*?)<\\/style>/i);
-if(!style)throw new Error('Inline widget stylesheet is missing.');
+const styleStart=html.indexOf('<style>'),styleEnd=html.indexOf('</style>');
+if(styleStart<0||styleEnd<0||styleEnd<=styleStart)throw new Error('Inline widget stylesheet is missing.');
+const css=html.slice(styleStart+7,styleEnd);
 function checkCssBalance(source){
- const stack=[];let quote='',comment=false,escape=false;
+ const stack=[],slash=String.fromCharCode(92);let quote='',comment=false;
  for(let i=0;i<source.length;i++){
   const c=source[i],n=source[i+1];
   if(comment){if(c==='*'&&n==='/'){comment=false;i++}continue}
-  if(quote){if(escape){escape=false;continue}if(c==='\\\\'){escape=true;continue}if(c===quote)quote='';continue}
+  if(quote){if(c===quote&&source[i-1]!==slash)quote='';continue}
   if(c==='/'&&n==='*'){comment=true;i++;continue}
-  if(c==='\\''||c==='"'){quote=c;continue}
+  if(c==="'"||c==='"'){quote=c;continue}
   if(c==='('||c==='['||c==='{')stack.push(c);
   else if(c===')'||c===']'||c==='}'){
    const open=stack.pop(),want=c===')'?'(':c===']'?'[':'{';
@@ -29,8 +30,8 @@ function checkCssBalance(source){
  }
  if(quote||comment||stack.length)throw new Error('Widget CSS contains an unclosed string, comment or bracket: '+stack.join(''));
 }
-checkCssBalance(style[1]);
-if(!style[1].includes('--danger:var(--tg-theme-destructive-text-color);')||!style[1].includes('.tabs button.active')||!style[1].includes('.review'))throw new Error('Widget CSS is missing its theme or layout rules.');
+checkCssBalance(css);
+if(css.split('{').length<35||!css.includes('--danger:var(--tg-theme-destructive-text-color);')||!css.includes('.tabs button.active')||!css.includes('.review'))throw new Error('Widget CSS is missing valid theme or layout rules.');
 new Script(script[1]);
 const required=['window.TelegramWidget','W.chatData',"impactOccurred('heavy')",'openTelegramLink','function switchTab(','function changePage(','function openPost(','class="hero"','class="metrics"','class="recent"','--tg-theme-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-button-color','--tg-theme-button-text-color'];
 for(const marker of required)if(!html.includes(marker))throw new Error('Missing widget feature: '+marker);
