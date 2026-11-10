@@ -3,38 +3,35 @@ const utf8 = value => new TextEncoder().encode(value).length;
 const cut = (value, limit) => Array.from(String(value ?? '')).slice(0, limit).join('');
 
 export function serializeProfileWidgetData(profile) {
+  const styleCode = value => value === 'success' ? 's' : value === 'danger' ? 'd' : 'p';
   const state = {
     n: cut(profile.name, 42), u: cut(profile.username, 24),
     t: Number(profile.total) || 0, a: profile.average ?? '—',
     v: Number(profile.verdictTotal) || 0, l: Number(profile.likes) || 0,
     d: Number(profile.dislikes) || 0, r: Number(profile.rank) || 0,
-    c: (profile.categories || []).map(x => ({ n: cut(x.label, 17), c: Number(x.count) || 0 })),
-    q: (profile.verdicts || []).map(x => ({ n: cut(x.label, 20), c: Number(x.count) || 0, s: ['success','primary','danger'].includes(x.style) ? x.style : 'primary' })),
+    c: (profile.categories || []).map(x => Number(x.count) || 0),
+    q: (profile.verdicts || []).map(x => Number(x.count) || 0),
     i: (profile.recent || []).slice(0, 5).map(x => ({
-      t: cut(x.title, 46), y: x.year || 0, e: x.endYear || 0,
-      r: Number(x.rating) || 0, s: ['success','primary','danger'].includes(x.style) ? x.style : 'primary',
-      c: cut(x.category, 18), v: cut(x.verdict, 20),
-      q: ['success','primary','danger'].includes(x.verdictStyle) ? x.verdictStyle : 'primary',
-      x: x.hasSpoilers ? '' : cut(String(x.excerpt || '').replace(/\s+/g, ' ').trim(), 58),
+      t: cut(x.title, 42), y: x.year || 0, e: x.endYear || 0,
+      r: Number(x.rating) || 0, s: styleCode(x.style),
+      c: cut(x.category, 18), v: cut(x.verdict, 20), q: styleCode(x.verdictStyle),
+      x: x.hasSpoilers ? '' : cut(String(x.excerpt || '').replace(/\\s+/g, ' ').trim(), 58),
       p: Boolean(x.hasSpoilers),
       k: /^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(String(x.link || '')) ? x.link : ''
     }))
   };
   let encoded = JSON.stringify(state);
   if (utf8(encoded) > 1024) {
+    for (const item of state.i) {
+      item.t = cut(item.t, 34);
+      item.c = cut(item.c, 14);
+      item.v = cut(item.v, 16);
+      item.x = cut(item.x, 42);
+    }
+    encoded = JSON.stringify(state);
+  }
+  if (utf8(encoded) > 1024) {
     for (const item of state.i) item.k = '';
-    encoded = JSON.stringify(state);
-  }
-  if (utf8(encoded) > 1024) {
-    for (const item of state.i) item.x = cut(item.x, 34);
-    encoded = JSON.stringify(state);
-  }
-  if (utf8(encoded) > 1024) {
-    state.c = state.c.slice(0, 5);
-    encoded = JSON.stringify(state);
-  }
-  if (utf8(encoded) > 1024) {
-    state.q = state.q.slice(0, 3);
     encoded = JSON.stringify(state);
   }
   while (utf8(encoded) > 1024 && state.i.length > 2) {
