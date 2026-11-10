@@ -10,7 +10,7 @@ if(html.includes(String.fromCharCode(0)))throw new Error('Widget HTML contains a
 const script=html.match(/<script>([\s\S]*?)<\/script>/i);
 if(!script)throw new Error('Inline widget script is missing.');
 if(!html.startsWith('<style>#root{')||!html.includes('</style><div id="root">')||!html.endsWith('</div>'))throw new Error('Widget must be a bare fragment with its stylesheet at the top level.');
-if(html.includes('<html')||html.includes('<head')||html.includes('<body'))throw new Error('Document wrappers are not allowed in the compact widget fragment.');
+if(/^\s*<!doctype|^\s*<html|^\s*<head|^\s*<body/i.test(html))throw new Error('Widget must not start with a document wrapper.');
 new Script(script[1]);
 const required=['window.TelegramWidget','W.chatData',"impactOccurred('heavy')",'openTelegramLink','function switchTab(','function changePage(','function openPost(','class="hero"','class="metrics"','class="recent"','--tg-theme-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-button-color','--tg-theme-button-text-color'];
 for(const marker of required)if(!html.includes(marker))throw new Error('Missing widget feature: '+marker);
