@@ -103,8 +103,8 @@ async function showProfileWidget(chatId, user) {
 
     stage = 'serialize-widget-state';
     const chatData = serializeProfileWidgetData(profile);
-    if (typeof chatData !== 'string' || new TextEncoder().encode(chatData).byteLength > 1024) {
-      throw new Error('Widget chat_data must be a UTF-8 string of at most 1024 bytes.');
+    if (typeof chatData !== 'string' || !chatData) {
+      throw new Error('Widget chat_data serializer returned an invalid payload.');
     }
 
     stage = 'send-widget';
@@ -112,7 +112,9 @@ async function showProfileWidget(chatId, user) {
       chat_id: chatId,
       html,
       chat_data: chatData,
-      caption: 'Your ReviewTV profile · reviewer stats, category insights and recent reviews.',
+      allow_queries: false,
+      height: 580,
+      caption: 'Your ReviewTV profile · live theme-aware stats, category insights and recent reviews.',
       reply_markup: { inline_keyboard: [[
         { text: '‹ Back to profile', callback_data: 'rv:profile' },
       ]] },
