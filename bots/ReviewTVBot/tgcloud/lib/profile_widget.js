@@ -58,9 +58,9 @@ export function buildProfileWidgetHtml() {
 <section class="hero"><div class="row"><span class="muted">YOUR REVIEW SCORE</span><span class="muted">ALL TIME</span></div><div class="ratingline"><div class="ring"><span class="score" id="average">—</span></div><div><div class="muted">AVERAGE RATING</div><div class="scorehint"><b id="totalcaption">0 reviews</b> published by you</div></div></div><div class="stats"><div class="stat"><div class="num" id="total">0</div><div class="label">Reviews</div></div><div class="stat"><div class="num" id="likes">0</div><div class="label">Likes received</div></div><div class="stat"><div class="num" id="dislikes">0</div><div class="label">Dislikes</div></div></div></section>
 <nav class="tabs"><button id="tab0" class="active" onclick="setTab(0)">Overview</button><button id="tab1" onclick="setTab(1)">Categories</button><button id="tab2" onclick="setTab(2)">Verdicts</button><button id="tab3" onclick="setTab(3)">Recent</button></nav><section id="content"></section>
 <script>
-var W=window.TelegramWidget,D={},tab=0,page=0,active=true,C=['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'],V=['Absolute Cinema','Go for It','Timepass','Skip It'];
+var W=window.TelegramWidget,D={},tab=0,page=0,lastHaptic=0,C=['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'],V=['Absolute Cinema','Go for It','Timepass','Skip It'];
 function $(x){return document.getElementById(x)}
-function heavy(){try{if(W&&W.HapticFeedback&&typeof W.HapticFeedback.impactOccurred==='function')W.HapticFeedback.impactOccurred('heavy')}catch(e){}}
+function heavy(){var t=Date.now();if(t-lastHaptic<120)return;lastHaptic=t;try{if(W&&W.HapticFeedback&&typeof W.HapticFeedback.impactOccurred==='function')W.HapticFeedback.impactOccurred('heavy')}catch(e){}}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function sty(v){return v==='s'?'success':v==='d'?'danger':'primary'}
 function cats(){return C.map(function(n,i){return {n:n,c:Number(D.c[i])||0}}).filter(function(x){return x.c>0})}
@@ -74,11 +74,8 @@ function draw(){var c=$('content');c.innerHTML=tab===1?'<div class="view"><div c
 function setTab(n){heavy();if(n===tab)return;tab=n;page=0;draw()}
 function move(n){heavy();page=Math.max(0,page+n);draw()}
 function openReview(b){heavy();var u=b.getAttribute('data-link');if(u&&/^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(u)&&W.openTelegramLink)W.openTelegramLink(u)}
-function counter(node,v){var n=Number(v)||0,t=Date.now();function frame(){if(!active)return;var p=Math.min(1,(Date.now()-t)/600);node.textContent=Math.round(n*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(frame)}requestAnimationFrame(frame)}
-function load(){try{var s=JSON.parse(W.chatData||'{}');D={n:s.n||'',u:s.u||'',t:s.t||0,a:s.a||'—',v:s.v||0,l:s.l||0,d:s.d||0,r:s.r||0,c:s.c||[],q:s.q||[],i:s.i||[]}}catch(e){D={c:[],q:[],i:[]}}var n=D.n||W.viewer&&W.viewer.first_name||'Reviewer';$('name').textContent=n;$('handle').textContent=D.u?'@'+D.u:'ReviewTV member';$('avatar').textContent=(Array.from(n)[0]||'R').toLocaleUpperCase();$('rank').textContent=D.r?'#'+D.r+' REVIEWER':'MEMBER';$('average').textContent=D.a;$('totalcaption').textContent=D.t+' reviews';counter($('total'),D.t);counter($('likes'),D.l);counter($('dislikes'),D.d);draw()}
-function activate(){active=true;load()}
-function deactivate(){active=false}
-if(W&&W.onEvent){W.onEvent('activated',activate);W.onEvent('deactivated',deactivate)}
+function load(){try{var s=JSON.parse(W.chatData||'{}');D={n:s.n||'',u:s.u||'',t:s.t||0,a:s.a||'—',v:s.v||0,l:s.l||0,d:s.d||0,r:s.r||0,c:s.c||[],q:s.q||[],i:s.i||[]}}catch(e){D={c:[],q:[],i:[]}}var n=D.n||W.viewer&&W.viewer.first_name||'Reviewer';$('name').textContent=n;$('handle').textContent=D.u?'@'+D.u:'ReviewTV member';$('avatar').textContent=(Array.from(n)[0]||'R').toLocaleUpperCase();$('rank').textContent=D.r?'#'+D.r+' REVIEWER':'MEMBER';$('average').textContent=D.a;$('totalcaption').textContent=D.t+' reviews';draw()}
+document.addEventListener('pointerup',function(e){var n=e.target;while(n&&n!==document){if(n.tagName==='BUTTON'){if(!n.disabled)heavy();return}n=n.parentNode}});
 load();if(W&&W.ready)W.ready();
 </script></body></html>`;
 }
