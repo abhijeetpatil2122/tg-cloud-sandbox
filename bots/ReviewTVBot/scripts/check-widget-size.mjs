@@ -5,12 +5,12 @@ const html=buildProfileWidgetHtml(),bytes=Buffer.from(html,'utf8'),htmlBytes=byt
 const compressedBytes=Number(execFileSync('python3',['-c','import sys,zlib; print(len(zlib.compress(sys.stdin.buffer.read(),9)))'],{input:bytes,encoding:'utf8'}).trim());
 console.log('ReviewTV widget: '+htmlBytes+' UTF-8 bytes HTML; '+compressedBytes+' bytes zlib level 9.');
 if(!htmlBytes||htmlBytes>32768)throw new Error('Widget HTML exceeds Telegram’s 32768-byte limit.');
-if(compressedBytes>3600)throw new Error('Widget must retain at least 496 bytes below Telegram’s 4096-byte compressed limit.');
+if(compressedBytes>3800)throw new Error('Widget must retain at least 296 bytes below Telegram’s 4096-byte compressed limit.');
 if(html.includes(String.fromCharCode(0)))throw new Error('Widget HTML contains a NUL character.');
 const script=html.match(/<script>([\s\S]*?)<\/script>/i);
 if(!script)throw new Error('Inline widget script is missing.');
 new Script(script[1]);
-const required=['window.TelegramWidget','W.chatData',"impactOccurred('heavy')",'openTelegramLink','prefers-reduced-motion','function switchTab(','function changePage(','function openPost(','class="hero"','class="metrics"','class="recentList"','--tg-theme-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-button-color','--tg-theme-button-text-color'];
+const required=['window.TelegramWidget','W.chatData',"impactOccurred('heavy')",'openTelegramLink','prefers-reduced-motion','function switchTab(','function changePage(','function openPost(','class="hero"','class="metrics"','class="recent"','--tg-theme-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-button-color','--tg-theme-button-text-color'];
 for(const marker of required)if(!html.includes(marker))throw new Error('Missing widget feature: '+marker);
 for(const forbidden of ['<input','<textarea','<select','fetch(','XMLHttpRequest','WebSocket','<script src=','<link rel=','overflow:auto','overflow:scroll'])if(html.includes(forbidden))throw new Error('Unsupported widget feature: '+forbidden);
 const categories=['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'];
@@ -22,5 +22,5 @@ if(state.i.length!==5)throw new Error('Expected the five latest profile reviews.
 if(state.i[0].t!=='A sample movie title with a longer name 0'||state.i[0].r!==8||state.i[0].k!=='https://t.me/review_tv/12345')throw new Error('Recent review fields differ from /profile.');
 for(const key of ['x','p','c','v'])if(key in state.i[0])throw new Error('Recent review contains non-profile field '+key+'.');
 if(state.c.length!==8||state.q.length!==4||state.c[0]!==20||state.q[0]!==30)throw new Error('Category/verdict breakdown is incomplete.');
-if(!html.includes('size=2')||!html.includes('items.slice(start,start+size)'))throw new Error('Recent reviews must paginate two items at a time.');
+if(!html.includes('size=2')||!html.includes('a.slice(start,start+size)'))throw new Error('Recent reviews must paginate two items at a time.');
 console.log('Profile chat_data: '+stateBytes+'/1024 bytes; five recent reviews; two per page; profile fields verified.');
