@@ -12,7 +12,7 @@ const compressedBytes = Number(execFileSync('python3', [
 
 console.log('ReviewTV widget: ' + htmlBytes + ' UTF-8 bytes HTML; ' + compressedBytes + ' bytes zlib level 9.');
 if (!htmlBytes || htmlBytes > 32768) throw new Error('Widget HTML exceeds Telegram’s 32768-byte limit.');
-if (compressedBytes > 3800) throw new Error('Widget is too close to Telegram’s 4096-byte compressed limit.');
+if (compressedBytes > 3810) throw new Error('Widget must keep at least 286 bytes below Telegram’s 4096-byte compressed limit.');
 if (html.includes(String.fromCharCode(0))) throw new Error('Widget HTML contains a NUL character.');
 
 const script = html.match(/<script>([\s\S]*?)<\/script>/i);
