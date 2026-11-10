@@ -9,7 +9,7 @@ console.log(`ReviewTV profile widget: ${htmlBytes} bytes HTML; ${compressedBytes
 if (htmlBytes < 1 || htmlBytes > 32768) throw new Error('Widget HTML must be between 1 and 32768 UTF-8 bytes.');
 if (compressedBytes > 3900) throw new Error('Widget HTML is too close to Telegram’s 4096-byte compressed limit; keep a safety margin.');
 if (html.includes(String.fromCharCode(0))) throw new Error('Widget HTML contains a NUL character.');
-const script = html.match(/<script>([\\s\\S]*?)<\\/script>/);
+const script = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!script) throw new Error('Widget inline JavaScript was not found.');
 new Script(script[1]);
 
