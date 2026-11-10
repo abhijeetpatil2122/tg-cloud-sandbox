@@ -76,10 +76,9 @@ function move(n){heavy();page=Math.max(0,page+n);draw()}
 function openReview(b){heavy();var u=b.getAttribute('data-link');if(u&&/^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(u)&&W.openTelegramLink)W.openTelegramLink(u)}
 function counter(node,v){var n=Number(v)||0,t=Date.now();function frame(){if(!active)return;var p=Math.min(1,(Date.now()-t)/600);node.textContent=Math.round(n*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(frame)}requestAnimationFrame(frame)}
 function load(){try{var s=JSON.parse(W.chatData||'{}');D={n:s.n||'',u:s.u||'',t:s.t||0,a:s.a||'—',v:s.v||0,l:s.l||0,d:s.d||0,r:s.r||0,c:s.c||[],q:s.q||[],i:s.i||[]}}catch(e){D={c:[],q:[],i:[]}}var n=D.n||W.viewer&&W.viewer.first_name||'Reviewer';$('name').textContent=n;$('handle').textContent=D.u?'@'+D.u:'ReviewTV member';$('avatar').textContent=(Array.from(n)[0]||'R').toLocaleUpperCase();$('rank').textContent=D.r?'#'+D.r+' REVIEWER':'MEMBER';$('average').textContent=D.a;$('totalcaption').textContent=D.t+' reviews';counter($('total'),D.t);counter($('likes'),D.l);counter($('dislikes'),D.d);draw()}
-function theme(){document.documentElement.style.colorScheme=W.colorScheme==='dark'?'dark':'light'}
 function activate(){active=true;load()}
 function deactivate(){active=false}
-if(W&&W.onEvent){W.onEvent('chatDataChanged',load);W.onEvent('themeChanged',theme);W.onEvent('activated',activate);W.onEvent('deactivated',deactivate)}
-theme();load();if(W&&W.ready)W.ready();
+if(W&&W.onEvent){W.onEvent('activated',activate);W.onEvent('deactivated',deactivate)}
+load();if(W&&W.ready)W.ready();
 </script></body></html>`;
 }
