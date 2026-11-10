@@ -12,7 +12,7 @@ if(!script)throw new Error('Inline widget script is missing.');
 if(!html.startsWith('<style>#root{')||!html.includes('</style><div id="root">')||!html.endsWith('</div>'))throw new Error('Widget must be a bare fragment with its stylesheet at the top level.');
 if(html.includes('<html')||html.includes('<head')||html.includes('<body'))throw new Error('Document wrappers are not allowed in the compact widget fragment.');
 new Script(script[1]);
-const required=['window.TelegramWidget','W.chatData',"impactOccurred('heavy')",'openTelegramLink','<style>#root{','</style><div id="root">','</script></div>`,',';'function switchTab(','function changePage(','function openPost(','class="hero"','class="metrics"','class="recent"','--tg-theme-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-button-color','--tg-theme-button-text-color'];
+const required=['window.TelegramWidget','W.chatData',"impactOccurred('heavy')",'openTelegramLink','function switchTab(','function changePage(','function openPost(','class="hero"','class="metrics"','class="recent"','--tg-theme-bg-color','--tg-theme-text-color','--tg-theme-hint-color','--tg-theme-button-color','--tg-theme-button-text-color'];
 for(const marker of required)if(!html.includes(marker))throw new Error('Missing widget feature: '+marker);
 for(const forbidden of ['<input','<textarea','<select','fetch(','XMLHttpRequest','WebSocket','<script src=','<link rel=','overflow:auto','overflow:scroll'])if(html.includes(forbidden))throw new Error('Unsupported widget feature: '+forbidden);
 const categories=['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'];
