@@ -151,7 +151,7 @@ async function showProfileWidget2(chatId, user) {
 
     stage = 'build-profile2-html';
     const html = buildProfileWidget2Html();
-    if (typeof html !== 'string' || !html.trim() || html.includes('\\u0000')) {
+    if (typeof html !== 'string' || !html.trim() || html.includes(String.fromCharCode(0))) {
       throw new Error('Profile2 widget HTML is empty or contains a NUL character.');
     }
 
