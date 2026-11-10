@@ -1,6 +1,6 @@
 // ReviewTV profile dashboard — Telegram Widget profile 1.
 // The widget is intentionally self-contained: no network, external assets, or widget queries.
-const utf8 = value => new TextEncoder().encode(value).byteLength;
+const utf8 = value => { let size = 0; for (const character of String(value ?? '')) { const code = character.codePointAt(0); size += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4; } return size; };
 const cut = (value, limit) => Array.from(String(value ?? '')).slice(0, limit).join('');
 const CATEGORY_LABELS = ['Hollywood Movies','Bollywood Movies','South Indian Movies','Other Regional Movies','International Movies','TV Shows & Series','K/C/J Dramas','Anime'];
 const VERDICT_LABELS = ['Absolute Cinema','Go for It','Timepass','Skip It'];
@@ -48,7 +48,7 @@ export function serializeProfileWidgetData(profile) {
 }
 
 export function buildProfileWidgetHtml() {
-  return String.raw\`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  return String.raw`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
 :root{font-family:system-ui,-apple-system,sans-serif;color:var(--tg-theme-text-color);--muted:var(--tg-theme-hint-color);--line:var(--tg-theme-section-separator-color,var(--tg-theme-hint-color));--surface:var(--tg-theme-secondary-bg-color,var(--tg-theme-bg-color));--accent:var(--tg-theme-link-color);--button:var(--tg-theme-button-color);--buttonText:var(--tg-theme-button-text-color);--danger:var(--tg-theme-destructive-text-color,var(--tg-theme-button-color))}
 *{box-sizing:border-box}body{margin:0;padding:10px 11px 12px;font-size:12px;line-height:1.35;color:var(--tg-theme-text-color)}button{font:inherit;touch-action:manipulation;cursor:pointer}button:active{transform:scale(.97)}
 .header{display:flex;align-items:center;gap:10px;margin:1px 1px 11px}.avatar{width:43px;height:43px;border-radius:14px;background:var(--button);color:var(--buttonText);display:grid;place-items:center;font-size:19px;font-weight:950;flex:none}.identity{min-width:0;flex:1}.eyebrow{font-size:9px;letter-spacing:1px;font-weight:900;color:var(--muted)}.name{font-size:15px;font-weight:900;line-height:1.2;margin-top:3px;overflow-wrap:anywhere}.handle{font-size:10px;color:var(--muted);margin-top:3px}.rank{border:1px solid var(--line);border-radius:9px;padding:6px 8px;color:var(--accent);font-size:9px;font-weight:900;white-space:nowrap}
@@ -82,5 +82,5 @@ function openPost(index){buzz();var item=D.i[index],url=item&&item.k;if(url&&/^h
 function startReview(){buzz();if(W&&typeof W.openTelegramLink==='function'){try{W.openTelegramLink('https://t.me/ReviewTvBot?start=review')}catch(e){}}}
 function loadProfile(){try{var parsed=JSON.parse(W&&W.chatData?W.chatData:'{}');D={n:parsed.n||'',u:parsed.u||'',t:Number(parsed.t)||0,a:parsed.a||'—',v:Number(parsed.v)||0,l:Number(parsed.l)||0,d:Number(parsed.d)||0,r:Number(parsed.r)||0,c:Array.isArray(parsed.c)?parsed.c:[],q:Array.isArray(parsed.q)?parsed.q:[],i:Array.isArray(parsed.i)?parsed.i:[]}}catch(e){D={n:'',u:'',t:0,a:'—',v:0,l:0,d:0,r:0,c:[],q:[],i:[]}}var name=D.n||(W&&W.viewer&&W.viewer.first_name)||'Reviewer';el('name').textContent=name;el('handle').textContent=D.u?'@'+D.u:'ReviewTV member';el('avatar').textContent=(Array.from(name)[0]||'R').toLocaleUpperCase();el('rank').textContent=D.r?'#'+D.r+' REVIEWER':'MEMBER';el('average').textContent=D.a;el('totalcaption').textContent=D.t+' reviews';el('total').textContent=D.t;el('likes').textContent=D.l;el('dislikes').textContent=D.d;render();try{if(W&&typeof W.ready==='function')W.ready()}catch(e){}}
 try{loadProfile();if(W&&typeof W.onEvent==='function')W.onEvent('themeChanged',function(){render()})}catch(error){var target=el('content');if(target)target.innerHTML='<div class="empty"><b>Dashboard could not load</b>Close this message and send /widgetdemo again.</div>'}
-</script></body></html>\`;
+</script></body></html>`;
 }
