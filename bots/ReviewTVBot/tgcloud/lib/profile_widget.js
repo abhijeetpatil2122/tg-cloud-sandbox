@@ -1,4 +1,4 @@
-// ReviewTV profile dashboard — Telegram Widget profile 1.
+// ReviewTV profile dashboard — compact Telegram Widget profile 1 payload.
 // The widget is intentionally self-contained: no network, external assets, or widget queries.
 const utf8 = value => { let size = 0; for (const character of String(value ?? '')) { const code = character.codePointAt(0); size += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4; } return size; };
 const cut = (value, limit) => Array.from(String(value ?? '')).slice(0, limit).join('');
