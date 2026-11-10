@@ -15,7 +15,7 @@ export function serializeProfileWidgetData(profile) {
       r: Number(x.rating) || 0, s: ['success','primary','danger'].includes(x.style) ? x.style : 'primary',
       c: cut(x.category, 18), v: cut(x.verdict, 20),
       q: ['success','primary','danger'].includes(x.verdictStyle) ? x.verdictStyle : 'primary',
-      x: x.hasSpoilers ? '' : cut(String(x.excerpt || '').replace(/\\s+/g, ' ').trim(), 58),
+      x: x.hasSpoilers ? '' : cut(String(x.excerpt || '').replace(/\s+/g, ' ').trim(), 58),
       p: Boolean(x.hasSpoilers),
       k: /^https:\/\/t\.me\/[A-Za-z0-9_/-]+$/i.test(String(x.link || '')) ? x.link : ''
     }))
