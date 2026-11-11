@@ -10,8 +10,7 @@ import {
 } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 import { refreshLeaderboard, syncLeaderboardMemberTag } from '../lib/leaderboard.js';
-import { showUserProfile, getUserProfileWidgetData } from '../lib/profile.js';
-import { buildProfileWidgetHtml, serializeProfileWidgetData } from '../lib/profile_widget.js';
+import { getUserProfileWidgetData } from '../lib/profile.js';
 import { buildProfileWidget2Html, serializeProfileWidget2Data } from '../lib/profile_widget2.js';
 import { communityConfig, categoryTopics } from '../schema.js';
 import {
@@ -93,72 +92,16 @@ async function showProfileWidget(chatId, user) {
   try {
     const profile = await getUserProfileWidgetData(user);
 
-    stage = 'build-widget-html';
-    const html = buildProfileWidgetHtml();
-    if (typeof html !== 'string' || !html.trim()) {
-      throw new Error('Widget HTML builder returned an empty payload.');
-    }
-    if (html.includes('\u0000')) {
-      throw new Error('Widget HTML contains a NUL character.');
-    }
-
-    stage = 'serialize-widget-state';
-    const chatData = serializeProfileWidgetData(profile);
-    if (typeof chatData !== 'string' || !chatData) {
-      throw new Error('Widget chat_data serializer returned an invalid payload.');
-    }
-
-    stage = 'send-widget';
-    const sent = await api.sendWidget({
-      chat_id: chatId,
-      html,
-      chat_data: chatData,
-      caption: 'Your ReviewTV profile · reviews, ratings, verdicts and community reactions.',
-      reply_markup: { inline_keyboard: [[
-        { text: '‹ Back to profile', callback_data: 'rv:profile' },
-      ]] },
-    });
-    console.info('ReviewTV widget sent', {
-      htmlLength: html.length,
-      serverEchoLength: sent?.widget?.html?.length ?? null,
-      serverEchoMatches: sent?.widget?.html === html,
-    });
-    return sent;
-  } catch (error) {
-    console.error('ReviewTVBot widget demo failed', {
-      stage,
-      name: error?.name,
-      message: error?.message,
-      description: error?.description,
-      code: error?.code,
-      method: error?.method,
-      parameters: error?.parameters,
-      stack: error?.stack,
-    });
-    return sendRich(chatId, { blocks: [
-      { type: 'heading', size: 2, text: 'Profile dashboard is temporarily unavailable' },
-      { type: 'paragraph', text: 'I could not open the interactive dashboard right now. Your profile data is safe; use the standard profile view instead.' },
-      { type: 'footer', text: { type: 'button', button: { text: 'Open Profile', callback_data: 'rv:profile', style: 'primary' } } },
-    ] });
-  }
-}
-
-
-async function showProfileWidget2(chatId, user) {
-  let stage = 'load-profile-data';
-  try {
-    const profile = await getUserProfileWidgetData(user);
-
     stage = 'build-profile2-html';
     const html = buildProfileWidget2Html();
     if (typeof html !== 'string' || !html.trim() || html.includes(String.fromCharCode(0))) {
-      throw new Error('Profile2 widget HTML is empty or contains a NUL character.');
+      throw new Error('Profile widget HTML is empty or contains a NUL character.');
     }
 
     stage = 'serialize-profile2-state';
     const chatData = serializeProfileWidget2Data(profile);
     if (typeof chatData !== 'string' || !chatData) {
-      throw new Error('Profile2 widget chat_data serializer returned an invalid payload.');
+      throw new Error('Profile widget chat_data serializer returned an invalid payload.');
     }
 
     stage = 'send-profile2-widget';
@@ -166,19 +109,19 @@ async function showProfileWidget2(chatId, user) {
       chat_id: chatId,
       html,
       chat_data: chatData,
-      caption: 'Your ReviewTV profile · redesigned reviewer ledger, category breakdown and latest reviews.',
+      caption: 'Your ReviewTV profile · reviewer ledger, category breakdown and latest reviews.',
       reply_markup: { inline_keyboard: [[
         { text: '‹ Back to profile', callback_data: 'rv:profile' },
       ]] },
     });
-    console.info('ReviewTV profile2 widget sent', {
+    console.info('ReviewTV profile widget sent', {
       htmlLength: html.length,
       serverEchoLength: sent?.widget?.html?.length ?? null,
       serverEchoMatches: sent?.widget?.html === html,
     });
     return sent;
   } catch (error) {
-    console.error('ReviewTVBot profile2 widget failed', {
+    console.error('ReviewTVBot profile widget failed', {
       stage,
       name: error?.name,
       message: error?.message,
@@ -535,7 +478,6 @@ export default async function (message) {
       if (command === '/start') {
         if (message.chat.type === 'private' && message.from?.id) {
           if (args[0] === 'review') return startReview(message);
-          if (args[0] === 'widgetdemo') return showProfileWidget(message.chat.id, message.from);
         }
         await showWelcome(message);
         return;
@@ -552,21 +494,7 @@ export default async function (message) {
       }
       if (command === '/profile') {
         if (message.chat.type !== 'private' || !userId) return;
-        return showUserProfile(message.chat.id, message.from);
-      }
-      if (command === '/widgetdemo') {
-        if (!userId) return;
-        if (message.chat.type !== 'private') {
-          return api.sendMessage({ chat_id: message.chat.id, text: 'Open @ReviewTvBot in a private chat and send /widgetdemo to view your profile dashboard.' });
-        }
         return showProfileWidget(message.chat.id, message.from);
-      }
-      if (command === '/profile2') {
-        if (!userId) return;
-        if (message.chat.type !== 'private') {
-          return api.sendMessage({ chat_id: message.chat.id, text: 'Open @ReviewTvBot in a private chat and send /profile2 to view the redesigned reviewer profile.' });
-        }
-        return showProfileWidget2(message.chat.id, message.from);
       }
       if (command === '/leaderboard') {
         if (message.chat.type !== 'private' || !isAdmin(userId)) return;
