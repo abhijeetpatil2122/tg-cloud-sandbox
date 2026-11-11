@@ -6,7 +6,7 @@ import { categories, getCategory, getNumericRatingStyle, getRatingVerdict, isAdm
 import { buildReviewRichMessage, buildReviewKeyboard, buildEditKeyboard, buildHelpRichMessage, buildHowToRichMessage, buildMyReviewsRichMessage, buildAdminPanelRichMessage, buildAdminStatsRichMessage, buildAdminResetConfirmation } from '../lib/formatting.js';
 import { publishReview } from '../lib/publishing.js';
 import { refreshLeaderboard } from '../lib/leaderboard.js';
-import { showUserProfile } from '../lib/profile.js';
+import { showReviewerProfileWidget } from '../lib/profile_widget_sender.js';
 
 async function answer(id, text) {
   const params = { callback_query_id: id };
@@ -274,15 +274,14 @@ export default async function (query) {
     }
     if (action === 'profile') {
       await answer(query.id);
-      if (query.message?.widget) {
+      if (query.message?.message_id) {
         try {
           await api.deleteMessage({ chat_id: chat.id, message_id: query.message.message_id });
         } catch (error) {
-          console.warn('Could not remove the profile demo widget before returning', error?.description || error?.message || error);
+          console.warn('Could not remove the previous profile message', error?.description || error?.message || error);
         }
-        return showUserProfile(chat.id, query.from);
       }
-      return showUserProfile(chat.id, query.from, query.message.message_id);
+      return showReviewerProfileWidget(chat.id, query.from);
     }
     if (action === 'howto') {
       await answer(query.id);
