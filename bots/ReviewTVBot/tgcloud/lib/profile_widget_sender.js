@@ -26,7 +26,7 @@ export async function showReviewerProfileWidget(chatId, user) {
       chat_data: chatData,
       caption: 'Your ReviewTV profile · reviewer ledger, category breakdown and latest reviews.',
       reply_markup: { inline_keyboard: [[
-        { text: '‹ Back to profile', callback_data: 'rv:profile' },
+        { text: '‹ Back to menu', callback_data: 'rv:home' },
       ]] },
     });
     console.info('ReviewTV profile widget sent', {
