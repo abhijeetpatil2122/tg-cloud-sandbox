@@ -237,17 +237,38 @@ export default async function (query) {
     }
     if (action === 'home') {
       await answer(query.id);
+      const welcomeRichMessage = { blocks: [
+        { type: 'heading', size: 1, text: `👋 Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}` },
+        { type: 'paragraph', text: 'Share thoughtful reviews of movies, series, dramas, and anime.' },
+        { type: 'paragraph', text: 'Choose a category, give a required 1–10 rating, add an optional verdict, and publish when your preview is ready.' },
+        { type: 'paragraph', text: ['Community: ', { type: 'button', button: { text: '@Review_Tv', url: 'https://t.me/Review_Tv' } }] },
+        { type: 'divider' },
+        { type: 'footer', text: ['Quick access: ', { type: 'button', button: { text: 'Help & Commands', callback_data: 'rv:help', style: 'link' } }, '  ', { type: 'button', button: { text: 'How to use', callback_data: 'rv:howto', style: 'link' } }] },
+      ] };
+      const welcomeKeyboard = { inline_keyboard: [[
+        { text: 'Profile', callback_data: 'rv:profile' }, { text: 'How to use', callback_data: 'rv:howto' },
+      ], [{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] };
+
+      // Widget messages cannot be edited into Rich Messages; return to the same
+      // welcome screen used by the /start command instead.
+      if (query.message?.widget) {
+        try {
+          await api.deleteMessage({ chat_id: chat.id, message_id: query.message.message_id });
+        } catch (error) {
+          console.warn('Could not remove the profile widget before returning home', error?.description || error?.message || error);
+        }
+        return api.sendRichMessage({
+          chat_id: chat.id,
+          rich_message: welcomeRichMessage,
+          reply_markup: welcomeKeyboard,
+        });
+      }
+
       return api.editMessageText({
-        chat_id: chat.id, message_id: query.message.message_id,
-        rich_message: { blocks: [
-          { type: 'heading', size: 1, text: `👋 Welcome, ${[query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there'}` },
-          { type: 'paragraph', text: 'Share thoughtful reviews of movies, series, dramas, and anime.' },
-          { type: 'paragraph', text: 'Choose a category, give a required 1–10 rating, add an optional verdict, and publish when your preview is ready.' },
-          { type: 'paragraph', text: ['Community: ', { type: 'button', button: { text: '@Review_Tv', url: 'https://t.me/Review_Tv' } }] },
-          { type: 'divider' },
-          { type: 'footer', text: ['Quick access: ', { type: 'button', button: { text: 'Help & Commands', callback_data: 'rv:help', style: 'link' } }, '  ', { type: 'button', button: { text: 'How to use', callback_data: 'rv:howto', style: 'link' } }] },
-        ] },
-        reply_markup: { inline_keyboard: [[{ text: 'Profile', callback_data: 'rv:profile' }, { text: 'How to use', callback_data: 'rv:howto' }], [{ text: 'Write a review', callback_data: 'rv:start', style: 'success' }]] },
+        chat_id: chat.id,
+        message_id: query.message.message_id,
+        rich_message: welcomeRichMessage,
+        reply_markup: welcomeKeyboard,
       });
     }
     if (action === 'help') {
