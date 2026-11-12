@@ -1,8 +1,8 @@
 import { api, db } from 'sdk';
-import { eq } from 'sdk/db';
-import { reportDrafts, scamReports } from '../schema.js';
+import { eq, sql } from 'sdk/db';
+import { reportDrafts, scamReports, botUsers } from '../schema.js';
 import {
-  welcomeMessage, promptMessage, previewMessage, previewKeyboard,
+  welcomeMessage, newUserNotification, promptMessage, previewMessage, previewKeyboard,
   adminPanelMessage, adminPanelKeyboard,
 } from '../lib/formatting.js';
 import {
@@ -19,6 +19,42 @@ async function deleteInput(message) {
   try { await api.deleteMessage({ chat_id: message.chat.id, message_id: message.message_id }); }
   catch (error) { console.warn('Could not delete report input', error?.description || error?.message || error); }
 }
+async function notifyAdminsOfNewUser(user, totalUsers) {
+  const rich = newUserNotification(user, totalUsers);
+  for (const adminId of ADMIN_IDS) {
+    try {
+      await api.sendRichMessage({ chat_id: adminId, rich_message: rich });
+    } catch (error) {
+      console.warn('Could not notify admin about new user', adminId, error?.description || error?.message || error);
+    }
+  }
+}
+async function registerStart(user) {
+  const inserted = await db.insert(botUsers).values({
+    userId: user.id,
+    username: user.username || null,
+    firstName: user.first_name || 'Unknown',
+    lastName: user.last_name || null,
+    firstStartedAt: new Date(),
+    lastStartedAt: new Date(),
+    startCount: 1,
+  }).onConflictDoNothing({ target: botUsers.userId })
+    .returning({ userId: botUsers.userId }).run();
+
+  if (inserted.length) {
+    const totalUsers = await db.$count(botUsers);
+    await notifyAdminsOfNewUser(user, totalUsers);
+    return;
+  }
+
+  await db.update(botUsers).set({
+    username: user.username || null,
+    firstName: user.first_name || 'Unknown',
+    lastName: user.last_name || null,
+    lastStartedAt: new Date(),
+    startCount: sql`${botUsers.startCount} + 1`,
+  }).where(eq(botUsers.userId, user.id)).run();
+}
 async function showHome(chatId, user) {
   await deleteDraft(user.id);
   return api.sendRichMessage({
@@ -30,6 +66,26 @@ async function showHome(chatId, user) {
 async function showAdminPanel(chatId) {
   const title = await getSetting('publish_channel_title');
   return api.sendRichMessage({ chat_id: chatId, rich_message: adminPanelMessage(title), reply_markup: adminPanelKeyboard() });
+}
+async function showStats(chatId) {
+  const [users, reports, pending, published] = await Promise.all([
+    db.$count(botUsers),
+    db.$count(scamReports),
+    db.$count(scamReports, eq(scamReports.status, 'pending_review')),
+    db.$count(scamReports, eq(scamReports.status, 'published')),
+  ]);
+  return api.sendRichMessage({ chat_id: chatId, rich_message: { blocks: [
+    { type: 'heading', size: 2, text: '📊 Bot statistics' },
+    { type: 'paragraph', text: [
+      { type: 'bold', text: 'Total users: ' }, String(users),
+      '\n',
+      { type: 'bold', text: 'Total reports: ' }, String(reports),
+      '\n',
+      { type: 'bold', text: 'Pending review: ' }, String(pending),
+      '\n',
+      { type: 'bold', text: 'Published reports: ' }, String(published),
+    ] },
+  ] } });
 }
 async function configureChannel(message, session) {
   const value = String(message.text || '').trim();
@@ -94,11 +150,18 @@ export default async function (message) {
   const user = message.from;
   const text = typeof message.text === 'string' ? message.text.trim() : '';
 
-  if (text && commandOf(text) === '/start') return showHome(chatId, user);
+  if (text && commandOf(text) === '/start') {
+    await registerStart(user);
+    return showHome(chatId, user);
+  }
   if (text && commandOf(text) === '/admin') {
     if (!isAdmin(user.id)) return;
     await deleteAdminSession(user.id);
     return showAdminPanel(chatId);
+  }
+  if (text && commandOf(text) === '/stats') {
+    if (!isAdmin(user.id)) return;
+    return showStats(chatId);
   }
   if (text && commandOf(text) === '/resetdb') {
     if (!isAdmin(user.id)) return;
