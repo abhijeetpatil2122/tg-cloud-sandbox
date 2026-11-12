@@ -16,7 +16,6 @@ export const reportDrafts = table('report_drafts', {
 export const scamReports = table('scam_reports', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   reporterId: integer('reporter_id').notNull(),
-  reporterName: text('reporter_name').notNull(),
   scammerHandle: text('scammer_handle').notNull(),
   amount: text('amount').notNull(),
   summary: text('summary').notNull(),
