@@ -1,7 +1,7 @@
 # ScamGiveawaysBot — project instructions
 
 ## Purpose and scope
-ScamGiveawaysBot is a Telegram scam-reporting project. Its product workflow is not implemented yet; agree the report intake, evidence handling, moderation, and public lookup behavior before building those features.
+ScamGiveawaysBot is a Telegram scam-reporting project. The minimal private report wizard is implemented in source. Public publishing, moderator review, evidence verification, and correction/appeal flows remain out of scope until separately designed.
 
 ## Platform and repository
 - Repository: `abhijeetpatil2122/tg-cloud-sandbox`
@@ -17,7 +17,7 @@ ScamGiveawaysBot is a Telegram scam-reporting project. Its product workflow is n
 - Do not use Node built-ins, arbitrary npm packages, a persistent process, filesystem state, timers, or background workers in runtime modules.
 - Handler files are directly under `tgcloud/handlers/`; the filename matches the Telegram update type.
 - A handler receives its update payload as the first argument and context as the second; the full update is available as `ctx.update`.
-- Use the built-in SQLite database for persistent state. Await every DB operation.
+- Use the built-in SQLite database for persistent drafts and submissions. Await every DB operation. New schema tables require an explicitly approved migration before runtime use.
 - Deploying `tgcloud/schema.js` does not apply migrations. Never run `npx tgcloud migrate` without separate explicit approval.
 
 ## Safety and privacy requirements
@@ -33,4 +33,5 @@ ScamGiveawaysBot is a Telegram scam-reporting project. Its product workflow is n
 - Run `npm ci` (or the lockfile-compatible install), then `node --check` for every changed runtime module.
 - Use the repository's manual Telegram Serverless CLI workflow with `bots/ScamGiveawaysBot` and `FROM_TOKEN`; run `status` first.
 - Deploy only when explicitly requested. Keep this project out of the auto-deploy registry until its first deployment and live tests are verified.
+- Never run `npx tgcloud migrate` without explicit approval. The report wizard requires the `report_drafts` and `scam_reports` tables to exist before it can run.
 - Read the root `/AGENTS.md` and `docs/tgcloud-sdk.md` before platform changes.
