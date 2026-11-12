@@ -27,6 +27,19 @@ export const botSettings = table('bot_settings', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
 
+export const botUsers = table('bot_users', {
+  userId: integer('user_id').primaryKey(),
+  username: text('username'),
+  firstName: text('first_name').notNull(),
+  lastName: text('last_name'),
+  firstStartedAt: integer('first_started_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  lastStartedAt: integer('last_started_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  startCount: integer('start_count').notNull().default(1),
+}, (t) => ({
+  usernameIdx: index('idx_bot_users_username').on(t.username),
+  firstStartedIdx: index('idx_bot_users_first_started').on(t.firstStartedAt),
+}));
+
 export const scamReports = table('scam_reports', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   reporterId: integer('reporter_id').notNull(),
