@@ -26,7 +26,7 @@ export function welcomeMessage(user) {
 }
 const prompts = {
   handle: ['👤 Scammer username', 'Send the Telegram username of the account you are reporting, including @.'],
-  amount: ['💰 Amount involved', 'Enter the amount and currency or asset exactly as applicable. Examples: $250, 3 GRAM or 0.05 BTC.'],
+  amount: ['💰 Amount involved', 'Enter the amount and currency or asset exactly as applicable. Examples: 250 USD, 3 GRAM or 0.05 BTC.'],
   summary: ['📝 What happened?', 'Briefly explain what happened and why you believe it may be a scam.'],
   proof: ['🔎 Evidence source', 'Send a public Telegram channel username or t.me link where the evidence can be reviewed.'],
   edit_handle: ['👤 Edit username', 'Send the corrected Telegram username, including @.'],
