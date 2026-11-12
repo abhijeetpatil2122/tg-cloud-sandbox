@@ -60,7 +60,7 @@ async function adminAction(query, parts) {
   if (action === 'reset') {
     await answer(query.id);
     return edit(chat.id, query.message.message_id, resetConfirmMessage(), {
-      inline_keyboard: [[{ text: 'Confirm reset', callback_data: 'sg:admin:reset_confirm', style: 'danger' }, { text: 'Cancel', callback_data: 'sg:admin:home' }]],
+      inline_keyboard: [[{ text: 'Confirm reset', callback_data: 'sg:admin:reset_confirm', style: 'danger' }, { text: 'Cancel', callback_data: 'sg:admin:home', style: 'danger' }]],
     });
   }
   if (action === 'reset_cancel') {
@@ -72,10 +72,11 @@ async function adminAction(query, parts) {
     await db.delete(reportDrafts).run();
     await db.delete(scamReports).run();
     await db.delete(adminSessions).run();
+    await db.run("DELETE FROM sqlite_sequence WHERE name = 'scam_reports'");
     return edit(chat.id, query.message.message_id, { blocks: [
       { type: 'heading', size: 2, text: '✅ Test data cleared' },
-      { type: 'paragraph', text: 'All report drafts and stored reports have been deleted. The publishing channel configuration was preserved.' },
-    ] }, { inline_keyboard: [[{ text: 'Back to admin panel', callback_data: 'sg:admin:home' }]] });
+      { type: 'paragraph', text: 'All report drafts and stored reports have been deleted. The next report will start at #1. The publishing channel configuration was preserved.' },
+    ] }, { inline_keyboard: [[{ text: 'Back to admin panel', callback_data: 'sg:admin:home', style: 'primary' }]] });
   }
   if (action === 'approve' || action === 'decline') {
     const reportId = Number(parts[3]);
@@ -169,10 +170,9 @@ export default async function (query) {
         createdAt: new Date(), updatedAt: new Date(),
       });
       return edit(chat.id, query.message.message_id, promptMessage('handle'), {
-        inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel' }]],
+        inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel', style: 'danger' }]],
       });
     }
-
     const draft = await getDraft(user.id);
     if (!draft || draft.chatId !== chat.id || draft.promptMessageId !== query.message.message_id) {
       await answer(query.id, 'This report session has expired. Start a new report.');
@@ -184,7 +184,7 @@ export default async function (query) {
       return edit(chat.id, query.message.message_id, { blocks: [
         { type: 'heading', size: 2, text: '🛑 Report cancelled' },
         { type: 'paragraph', text: 'Your report has been cancelled. Nothing was submitted.' },
-      ] }, { inline_keyboard: [[{ text: '‹ Back to menu', callback_data: 'sg:home' }]] });
+      ] }, { inline_keyboard: [[{ text: '‹ Back to menu', callback_data: 'sg:home', style: 'primary' }]] });
     }
     if (action === 'edit') {
       await answer(query.id);
@@ -198,7 +198,7 @@ export default async function (query) {
       await answer(query.id);
       await db.update(reportDrafts).set({ step: 'edit_' + field, updatedAt: new Date() }).where(eq(reportDrafts.userId, user.id)).run();
       return edit(chat.id, query.message.message_id, promptMessage('edit_' + field), {
-        inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel' }]],
+        inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel', style: 'danger' }]],
       });
     }
     if (action === 'preview') {
@@ -244,7 +244,7 @@ export default async function (query) {
           { type: 'heading', size: 2, text: '✅ Report received' },
           { type: 'paragraph', text: `Your report #${reportId} has been sent to the administrators for review.` },
           { type: 'paragraph', text: 'You will receive a private notification when it is approved or declined. It will not be published before approval.' },
-        ] }, { inline_keyboard: [[{ text: '‹ Back to menu', callback_data: 'sg:home' }]] });
+        ] }, { inline_keyboard: [[{ text: '‹ Back to menu', callback_data: 'sg:home', style: 'primary' }]] });
       } catch (error) {
         await db.update(reportDrafts).set({ step: 'preview', updatedAt: new Date() }).where(eq(reportDrafts.userId, user.id)).run();
         console.error('Report submission failed', error?.description || error?.message || error);
