@@ -40,7 +40,7 @@ export function promptMessage(step) {
 }
 function proofButton(d) {
   return { type: 'buttons', align: 'left', buttons: [
-    { text: 'Open evidence source', style: 'link', url: proofUrl(d.proofChannel) },
+    { text: 'Open evidence source', style: 'primary', url: proofUrl(d.proofChannel) },
   ] };
 }
 export function previewMessage(d) {
