@@ -58,7 +58,48 @@ WHERE status IS NULL;
 
 The result must be `0`.
 
-If `PRAGMA table_info` shows that the existing column is still nullable, the data backfill fixes existing rows but does not change the SQLite column constraint. Do not try to add a second `status` column. Have the migration tool's exact manual-change instruction reviewed before rebuilding the table to enforce the constraint; a table rebuild must preserve every report row and all report indexes.
+If `PRAGMA table_info` shows that the existing column is nullable or has no default, the backfill alone does not fix the column definition. Use this table rebuild to enforce the desired definition while preserving report IDs, report contents, timestamps, review metadata, and all indexes:
+
+```sql
+BEGIN IMMEDIATE;
+
+CREATE TABLE scam_reports_new (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  reporter_id INTEGER NOT NULL,
+  scammer_handle TEXT NOT NULL,
+  amount TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  proof_channel TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending_review',
+  reviewed_by INTEGER,
+  reviewed_at INTEGER,
+  published_chat_id TEXT,
+  published_message_id INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+
+INSERT INTO scam_reports_new (
+  id, reporter_id, scammer_handle, amount, summary, proof_channel,
+  status, reviewed_by, reviewed_at, published_chat_id,
+  published_message_id, created_at
+)
+SELECT
+  id, reporter_id, scammer_handle, amount, summary, proof_channel,
+  COALESCE(status, 'pending_review'), reviewed_by, reviewed_at,
+  published_chat_id, published_message_id, created_at
+FROM scam_reports;
+
+DROP TABLE scam_reports;
+ALTER TABLE scam_reports_new RENAME TO scam_reports;
+
+CREATE INDEX idx_scam_reports_reporter ON scam_reports(reporter_id);
+CREATE INDEX idx_scam_reports_created ON scam_reports(created_at);
+CREATE INDEX idx_scam_reports_status ON scam_reports(status);
+
+COMMIT;
+```
+
+Only use this rebuild when `status` already exists and the live definition does not match. If the column is absent, use section 2A instead. Run it as one transaction and take a database backup first. Do not execute both paths.
 
 ## 3. Verify and finish
 
