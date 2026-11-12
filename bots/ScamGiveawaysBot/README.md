@@ -36,7 +36,8 @@ Authorized administrator IDs are 6522801911 and 1314643983.
 - Auto-deployment: disabled.
 - New schema tables/columns require a deliberate migration. Do not run npx tgcloud migrate without explicit user approval.
 - Deploying schema code is not the same as applying its migration. Existing installations must apply the reviewed migration before using the updated handlers.
-- The bot_users table is additive; existing users are registered the next time they send /start.
+- `scam_reports.status` is required, `NOT NULL`, and defaults to `pending_review`. If `tgcloud migrate` classifies it as manual, follow [the status migration guide](./docs/migrations/scam-reports-status.md); inspect the live column before choosing the add-column or NULL-backfill path.
+- The `bot_users` table is additive; existing users are registered the next time they send `/start`.
 
 ## Runtime layout
 
