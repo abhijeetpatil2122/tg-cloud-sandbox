@@ -77,12 +77,11 @@ export default async function (query) {
       const claim = await db.update(reportDrafts).set({ step: 'publishing', updatedAt: new Date() })
         .where(and(eq(reportDrafts.userId, user.id), eq(reportDrafts.step, 'preview'))).run();
       if (!claim.rowsAffected) return answer(query.id, 'This report is already being submitted.');
-      await answer(query.id, 'Sending your report privately…');
       try {
+        await answer(query.id, 'Sending your report privately…');
         await api.sendRichMessage({ chat_id: chat.id, rich_message: reportPostMessage(draft) });
         await db.insert(scamReports).values({
           reporterId: user.id,
-          reporterName: [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Telegram user',
           scammerHandle: draft.scammerHandle,
           amount: draft.amount,
           summary: draft.summary,
