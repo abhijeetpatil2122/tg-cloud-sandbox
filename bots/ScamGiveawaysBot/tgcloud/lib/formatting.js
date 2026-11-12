@@ -35,6 +35,24 @@ export function welcomeMessage(user) {
     { type: 'paragraph', text: 'Every submission is reviewed by an administrator. Reports are allegations until independently verified.' },
   ] };
 }
+export function newUserNotification(user, totalUsers) {
+  const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() || 'Unknown user';
+  const username = user?.username ? '@' + clean(user.username) : 'Not set';
+  return { blocks: [
+    { type: 'heading', size: 2, text: 'New user started the bot' },
+    { type: 'paragraph', text: [
+      { type: 'url', text: clean(name), url: `tg://user?id=${Number(user.id)}` },
+    ] },
+    { type: 'paragraph', text: [
+      { type: 'bold', text: 'ID: ' }, String(user.id),
+      '\n',
+      { type: 'bold', text: 'Username: ' }, username,
+    ] },
+    { type: 'paragraph', text: [
+      { type: 'bold', text: 'Total users: ' }, String(totalUsers),
+    ] },
+  ] };
+}
 const prompts = {
   handle: ['👤 Scammer username', 'Send the Telegram username of the account you are reporting, including @.'],
   amount: ['💰 Amount involved', 'Enter the amount and currency or asset exactly as applicable. Examples: 250 USD, 3 GRAM or 0.05 BTC.'],
@@ -76,13 +94,14 @@ export function editKeyboard() {
 }
 export function reportPostMessage(d, reportId, admin = false) {
   const blocks = [
-    { type: 'heading', size: 1, text: `🛡️ Scam report #${reportId}` },
+    { type: 'heading', size: 1, text: admin ? `🛡️ Scam report #${reportId}` : '🛡️ Scam report' },
     detailList(d),
     { type: 'heading', size: 3, text: '📝 Summary' },
     { type: 'expandable_blockquote', text: clean(d.summary) },
     evidenceHeading(d),
+    ...(!admin ? [{ type: 'paragraph', text: 'This report is an allegation and has not been independently verified.' }] : []),
     { type: 'divider' },
-    { type: 'footer', text: admin ? 'Status: Pending administrator review · Allegation not yet verified' : 'Status: Published after administrator review · Allegation, not a legal finding' },
+    { type: 'footer', text: admin ? 'Status: Pending administrator review · Allegation not yet verified' : 'Submit a report: @ScamGiveawaysBot' },
   ];
   return { blocks };
 }
@@ -107,8 +126,8 @@ export function resetConfirmMessage() {
   ] };
 }
 export function adminReviewKeyboard(id) {
-  return { inline_keyboard: [
-    [{ text: 'Approve and publish', callback_data: `sg:admin:approve:${id}`, style: 'success' }],
-    [{ text: 'Decline report', callback_data: `sg:admin:decline:${id}`, style: 'danger' }],
-  ] };
+  return { inline_keyboard: [[
+    { text: 'Approve and publish', callback_data: `sg:admin:approve:${id}`, style: 'success' },
+    { text: 'Decline report', callback_data: `sg:admin:decline:${id}`, style: 'danger' },
+  ]] };
 }
