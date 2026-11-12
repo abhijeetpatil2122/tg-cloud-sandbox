@@ -55,7 +55,7 @@ async function adminAction(query, parts) {
       { type: 'heading', size: 2, text: '📢 Configure publishing channel' },
       { type: 'paragraph', text: 'Send the public channel username (for example @channelname) or its numeric channel ID beginning with -100.' },
       { type: 'paragraph', text: 'The bot must be an administrator with permission to post messages.' },
-    ] }, { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:admin:home' }]] });
+    ] }, { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:admin:home', style: 'danger' }]] });
   }
   if (action === 'reset') {
     await answer(query.id);
