@@ -1,38 +1,40 @@
 # ScamGiveawaysBot
 
-A Telegram bot project for collecting and reviewing reports about suspected scams, fake giveaways, impersonation, phishing, and related abuse on Telegram.
+A minimal Telegram bot for submitting reports about suspected scam accounts and fake giveaways.
 
-**Status:** project scaffolded; product workflow and first deployment are pending.
+**Status:** report wizard implemented in source; database migration, first deployment, and live Telegram testing are pending.
+
+## User flow
+
+1. `/start` shows a clean welcome message with the user's first and last name and one **Report** button.
+2. The report wizard edits that same bot message through four steps: scammer handle, amount involved, short summary, and proof channel.
+3. The user's submitted text messages are deleted after each step. The bot prompt stays in place and includes **Cancel ❌**.
+4. Cancellation edits the prompt to a cancellation notice with a Back to menu button.
+5. A complete preview offers Edit report, Publish, and Cancel. Edit lets the user correct any of the four fields.
+6. Publish sends a formatted report post to the user's private chat and stores it as a `private_test` submission. No public channel is connected yet.
+
+Reports are allegations, not verified findings. Do not publish them publicly until moderation, evidence review, privacy, and correction/appeal procedures are implemented.
 
 ## Project setup
 
 - Serverless CLI: `@tgcloud/cli@0.2.0`
 - Project path: `bots/ScamGiveawaysBot`
 - GitHub Actions secret: `TGCLOUD_TOKEN_SCAMGIVEAWAYSBOT`
-- Serverless app ID: derived from the scoped CLI token; do not hardcode or guess it.
-- Manual workflow: **Actions → Telegram Serverless CLI**; choose `bots/ScamGiveawaysBot`, `FROM_TOKEN`, and `status` first.
-- Automatic deployment: intentionally disabled until the initial deployment and live Telegram tests are verified.
+- Manual deployment: **Actions → Telegram Serverless CLI**; select `bots/ScamGiveawaysBot`, `FROM_TOKEN`, and run `status` before any deploy.
+- Auto-deployment: disabled.
+- Validation: `.github/workflows/scamgiveaways-validation.yml` installs the pinned CLI dependencies and syntax-checks runtime modules.
 
-## Current scaffold
+## Runtime layout
 
-- `tgcloud/handlers/message.js` — starter message handler, to be replaced with scam-reporting flows.
-- `tgcloud/schema.js` — currently empty schema placeholder.
-- `tgcloud.jsonc` — Serverless project configuration; no Mini App/static hosting is configured.
-- `docs/tgcloud-sdk.md` — generated SDK reference.
-- `AGENTS.md` — project-specific coding, safety, and deployment rules.
+- `tgcloud/handlers/message.js` — commands, step input, validation, and deleting user submissions.
+- `tgcloud/handlers/callback_query.js` — Report, Cancel, Back, Edit, Preview, and Publish actions.
+- `tgcloud/lib/formatting.js` — welcome, prompt, preview, and private report Rich Messages.
+- `tgcloud/lib/sessions.js` — persistent draft helpers.
+- `tgcloud/schema.js` — `report_drafts` and `scam_reports` tables.
+- `docs/tgcloud-sdk.md` — generated Serverless SDK reference.
 
-## Product decisions still needed
+## Important deployment note
 
-Before implementing the report workflow, decide:
-1. What users can submit (Telegram profile/channel/group, giveaway, message, URL, wallet address, or other evidence).
-2. Whether reports go to a private moderator group/channel, an admin inbox, or both.
-3. Whether reports are published publicly, searchable, or kept private until moderators confirm them.
-4. How users track a report and request a correction or appeal.
+The new tables require a database migration. Deploying `schema.js` alone does not create them. Review the migration plan and obtain explicit approval before running `npx tgcloud migrate`. No migration or production deployment has been run as part of this implementation.
 
-Reports must be treated as allegations until reviewed. Do not expose reporter identity or publish accusations as verified facts without a moderation policy and evidence review.
-
-## Serverless notes
-
-The runtime is Telegram's isolated V8 environment. Use documented `sdk` APIs and the built-in SQLite database; do not rely on Node.js built-ins, arbitrary npm packages, a persistent process, or local filesystem storage at runtime.
-
-Deploy code with `npx tgcloud push`. Schema deployment does not apply database changes; migrations are separate and require explicit review and approval. Never commit `.tgcloud/`, `node_modules/`, tokens, or credentials.
+Runtime modules use only documented Serverless SDK imports; no Node.js built-ins or third-party runtime dependencies are used.
