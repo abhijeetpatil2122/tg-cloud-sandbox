@@ -1,0 +1,56 @@
+name: Scaffold ScamGiveawaysBot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/scaffold-scamgiveaways.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scaffold-scamgiveawaysbot
+  cancel-in-progress: false
+
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out sandbox
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run the official Telegram Serverless project creator
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e bots/ScamGiveawaysBot
+          cd bots
+          npm create @tgcloud/bot ScamGiveawaysBot
+          cd ScamGiveawaysBot
+          test -f package.json
+          test -f tgcloud.jsonc
+          test -d tgcloud
+          test -f tgcloud/handlers/message.js
+          rm -rf node_modules .tgcloud
+          cd ../..
+
+      - name: Commit generated scaffold
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/scaffold-scamgiveaways.yml
+          git add -A bots/ScamGiveawaysBot .github/workflows/scaffold-scamgiveaways.yml
+          git commit -m "Scaffold ScamGiveawaysBot with official tgcloud CLI"
+          git push
