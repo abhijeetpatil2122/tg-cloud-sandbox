@@ -79,7 +79,7 @@ function validate(step, value) {
     const handle = text.startsWith('@') ? text.slice(1) : '';
     return /^[A-Za-z0-9_]{5,32}$/.test(handle) ? { value: '@' + handle } : { error: 'Enter a valid Telegram username in the format @username.' };
   }
-  if (step === 'amount') return text.length > 0 && text.length <= 100 ? { value: text } : { error: 'Enter the amount involved (up to 100 characters), for example $250 or 3 GRAM.' };
+  if (step === 'amount') return text.length > 0 && text.length <= 100 ? { value: text } : { error: 'Enter the amount involved (up to 100 characters), for example 250 USD or 3 GRAM.' };
   if (step === 'summary') return text.length >= 10 && text.length <= 700 ? { value: text } : { error: 'Please provide a summary between 10 and 700 characters.' };
   if (step === 'proof') {
     const username = /^@[A-Za-z0-9_]{5,32}$/.test(text);
