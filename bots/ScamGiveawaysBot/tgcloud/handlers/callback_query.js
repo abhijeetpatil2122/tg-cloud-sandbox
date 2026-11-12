@@ -90,7 +90,7 @@ async function adminAction(query, parts) {
       if (!changed.rowsAffected) return answer(query.id, 'This report has already been reviewed.', true);
       await answer(query.id, 'Report declined.');
       await notifyReporter(report, {
-        heading: 'Report not approved',
+        heading: '⛔ Report not approved',
         body: `Your report #${reportId} was reviewed by an administrator and was not approved for publication.`,
       });
       return edit(chat.id, query.message.message_id, { blocks: [
