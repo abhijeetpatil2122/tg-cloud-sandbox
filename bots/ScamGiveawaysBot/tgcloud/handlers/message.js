@@ -70,6 +70,7 @@ export default async function (message) {
       rich_message: { blocks: [
         { type: 'heading', size: 2, text: 'Text response required' },
         { type: 'paragraph', text: 'Please send your answer as a text message.' },
+        ...promptMessage(draft.step).blocks,
       ] },
       reply_markup: { inline_keyboard: [[{ text: 'Cancel ❌', callback_data: 'sg:cancel', style: 'danger' }]] },
     });
