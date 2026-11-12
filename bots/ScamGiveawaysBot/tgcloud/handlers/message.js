@@ -42,7 +42,7 @@ async function configureChannel(message, session) {
         { type: 'heading', size: 2, text: '⚠️ Invalid channel' },
         { type: 'paragraph', text: 'Send a public channel username such as @channelname or its numeric channel ID beginning with -100.' },
       ] },
-      reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:admin:home' }]] },
+      reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:admin:home', style: 'danger' }]] },
     });
   }
   try {
@@ -69,7 +69,7 @@ async function configureChannel(message, session) {
         { type: 'paragraph', text: String(error?.description || error?.message || 'Could not verify this channel.') },
         { type: 'paragraph', text: 'Check the channel ID and confirm that the bot is an administrator with permission to post.' },
       ] },
-      reply_markup: { inline_keyboard: [[{ text: 'Try again', callback_data: 'sg:admin:configure' }, { text: 'Back', callback_data: 'sg:admin:home' }]] },
+      reply_markup: { inline_keyboard: [[{ text: 'Try again', callback_data: 'sg:admin:configure', style: 'primary' }, { text: 'Back', callback_data: 'sg:admin:home', style: 'primary' }]] },
     });
   }
 }
@@ -106,10 +106,10 @@ export default async function (message) {
       chat_id: chatId,
       rich_message: { blocks: [
         { type: 'heading', size: 2, text: '⚠️ Reset test data?' },
-        { type: 'paragraph', text: 'This deletes all stored report drafts and reports. Your publishing channel configuration will be kept.' },
-        { type: 'paragraph', text: 'Confirm only when you are sure. This cannot be undone.' },
+        { type: 'paragraph', text: 'This permanently deletes all report drafts and reports. The publishing channel configuration will be kept.' },
+        { type: 'paragraph', text: 'This action cannot be undone.' },
       ] },
-      reply_markup: { inline_keyboard: [[{ text: 'Confirm reset', callback_data: 'sg:admin:reset_confirm', style: 'danger' }, { text: 'Cancel', callback_data: 'sg:admin:home' }]] },
+      reply_markup: { inline_keyboard: [[{ text: 'Confirm reset', callback_data: 'sg:admin:reset_confirm', style: 'danger' }, { text: 'Cancel', callback_data: 'sg:admin:home', style: 'danger' }]] },
     });
   }
 
@@ -130,7 +130,7 @@ export default async function (message) {
         { type: 'heading', size: 2, text: '🛑 Report cancelled' },
         { type: 'paragraph', text: 'Your report has been cancelled. Nothing was submitted.' },
       ] },
-      reply_markup: { inline_keyboard: [[{ text: '‹ Back to menu', callback_data: 'sg:home' }]] },
+      reply_markup: { inline_keyboard: [[{ text: '‹ Back to menu', callback_data: 'sg:home', style: 'primary' }]] },
     });
   }
 
@@ -151,7 +151,7 @@ export default async function (message) {
         { type: 'paragraph', text: 'Please send your answer as a text message.' },
         ...promptMessage(draft.step).blocks,
       ] },
-      reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel' }]] },
+      reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel', style: 'danger' }]] },
     });
   }
   const checked = validate(step, text);
@@ -164,7 +164,7 @@ export default async function (message) {
         { type: 'paragraph', text: checked.error },
         ...promptMessage(draft.step).blocks,
       ] },
-      reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel' }]] },
+      reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel', style: 'danger' }]] },
     });
   }
 
@@ -183,6 +183,6 @@ export default async function (message) {
   return api.editMessageText({
     chat_id: chatId, message_id: draft.promptMessageId,
     rich_message: promptMessage(next),
-    reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel' }]] },
+    reply_markup: { inline_keyboard: [[{ text: 'Cancel', callback_data: 'sg:cancel', style: 'danger' }]] },
   });
 }
