@@ -40,4 +40,5 @@ ScamGiveawaysBot is a global Telegram scam-reporting bot. Reports are allegation
 - Use the repository's manual Telegram Serverless CLI workflow with bots/ScamGiveawaysBot and FROM_TOKEN; run status first.
 - Deploy only when explicitly requested. Keep this project out of the auto-deploy registry.
 - Never run npx tgcloud migrate without explicit approval. The updated handlers require the new admin_sessions and bot_settings tables, the new bot_users table, and the moderation columns on scam_reports.
+- scam_reports.status must be declared as text('status').notNull().default('pending_review'). If the CLI reports a manual change, follow docs/migrations/scam-reports-status.md; inspect the live column and never add a duplicate column or drop existing reports.
 - Read the root /AGENTS.md and docs/tgcloud-sdk.md before platform changes.
