@@ -47,9 +47,9 @@ export const scamReports = table('scam_reports', {
   amount: text('amount').notNull(),
   summary: text('summary').notNull(),
   proofChannel: text('proof_channel').notNull(),
-  // Nullable for SQLite's additive migration path; all new inserts set this explicitly.
-  // Existing rows receive the pending_review default when the column is added.
-  status: text('status').default('pending_review'),
+  // Existing rows are initialized to pending_review during the SQLite migration.
+  // Keep the default so every future insert has a valid moderation state.
+  status: text('status').notNull().default('pending_review'),
   reviewedBy: integer('reviewed_by'),
   reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
   publishedChatId: text('published_chat_id'),
