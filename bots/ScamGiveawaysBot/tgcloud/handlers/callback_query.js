@@ -73,7 +73,7 @@ async function adminAction(query, parts) {
     await db.delete(scamReports).run();
     await db.delete(adminSessions).run();
     return edit(chat.id, query.message.message_id, { blocks: [
-      { type: 'heading', size: 2, text: '✓ Test data cleared' },
+      { type: 'heading', size: 2, text: '✅ Test data cleared' },
       { type: 'paragraph', text: 'All report drafts and stored reports have been deleted. The publishing channel configuration was preserved.' },
     ] }, { inline_keyboard: [[{ text: 'Back to admin panel', callback_data: 'sg:admin:home' }]] });
   }
@@ -117,11 +117,11 @@ async function adminAction(query, parts) {
         publishedMessageId: posted.message_id,
       }).where(eq(scamReports.id, reportId)).run();
       await notifyReporter(report, {
-        heading: '✓ Report approved',
+        heading: '✅ Report approved',
         body: `Your report #${reportId} was approved and published to the configured reporting channel.`,
       });
       return edit(chat.id, query.message.message_id, { blocks: [
-        { type: 'heading', size: 2, text: '✓ Report approved and published' },
+        { type: 'heading', size: 2, text: '✅ Report approved and published' },
         { type: 'paragraph', text: `Report #${reportId} is now published in the configured channel.` },
       ] });
     } catch (error) {
@@ -221,6 +221,7 @@ export default async function (query) {
         }).returning({ id: scamReports.id });
         const reportId = inserted[0].id;
         const adminMessage = reportPostMessage(draft, reportId, true);
+        let deliveredToAdmin = 0;
         for (const adminId of ADMIN_IDS) {
           try {
             await api.sendRichMessage({
@@ -228,14 +229,19 @@ export default async function (query) {
               rich_message: adminMessage,
               reply_markup: adminReviewKeyboard(reportId),
             });
+            deliveredToAdmin += 1;
           } catch (error) {
             console.warn('Could not deliver report to admin', adminId, error?.description || error?.message || error);
           }
         }
+        if (deliveredToAdmin === 0) {
+          await db.delete(scamReports).where(eq(scamReports.id, reportId)).run();
+          throw new Error('The bot could not deliver this report to either administrator. Ask both administrators to open the bot and try again.');
+        }
         await deleteDraft(user.id);
         await answer(query.id, 'Report submitted for review.');
         return edit(chat.id, query.message.message_id, { blocks: [
-          { type: 'heading', size: 2, text: '✓ Report received' },
+          { type: 'heading', size: 2, text: '✅ Report received' },
           { type: 'paragraph', text: `Your report #${reportId} has been sent to the administrators for review.` },
           { type: 'paragraph', text: 'You will receive a private notification when it is approved or declined. It will not be published before approval.' },
         ] }, { inline_keyboard: [[{ text: '‹ Back to menu', callback_data: 'sg:home' }]] });
