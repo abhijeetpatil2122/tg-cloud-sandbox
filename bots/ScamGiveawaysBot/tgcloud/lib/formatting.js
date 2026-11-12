@@ -16,6 +16,17 @@ function detailList(d) {
     ],
   };
 }
+function evidenceHeading(d) {
+  return {
+    type: 'heading',
+    size: 3,
+    text: [
+      { type: 'bold', text: '🔗 Evidence source' },
+      ' ',
+      { type: 'button', button: { text: 'Source', style: 'primary', url: proofUrl(d.proofChannel) } },
+    ],
+  };
+}
 export function welcomeMessage(user) {
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() || 'there';
   return { blocks: [
@@ -38,20 +49,13 @@ export function promptMessage(step) {
   const [title, body] = prompts[step] || prompts.handle;
   return { blocks: [{ type: 'heading', size: 2, text: title }, { type: 'paragraph', text: body }] };
 }
-function proofButton(d) {
-  return { type: 'buttons', align: 'left', buttons: [
-    { text: 'Open evidence source', style: 'primary', url: proofUrl(d.proofChannel) },
-  ] };
-}
 export function previewMessage(d) {
   return { blocks: [
     { type: 'heading', size: 1, text: '🧾 Report preview' },
     detailList(d),
     { type: 'heading', size: 3, text: '📝 Summary' },
     { type: 'expandable_blockquote', text: clean(d.summary) },
-    { type: 'heading', size: 3, text: '🔗 Evidence source' },
-    { type: 'paragraph', text: 'The evidence link is available below.' },
-    proofButton(d),
+    evidenceHeading(d),
     { type: 'divider' },
     { type: 'footer', text: 'Please check all details. Your report will be sent to administrators for review, not published immediately.' },
   ] };
@@ -59,15 +63,15 @@ export function previewMessage(d) {
 export function previewKeyboard() {
   return { inline_keyboard: [
     [{ text: 'Edit report', callback_data: 'sg:edit', style: 'primary' }],
-    [{ text: 'Submit for review', callback_data: 'sg:submit', style: 'success' }, { text: 'Cancel', callback_data: 'sg:cancel' }],
+    [{ text: 'Submit for review', callback_data: 'sg:submit', style: 'success' }, { text: 'Cancel', callback_data: 'sg:cancel', style: 'danger' }],
   ] };
 }
 export function editKeyboard() {
   return { inline_keyboard: [
-    [{ text: 'Username', callback_data: 'sg:field:handle' }, { text: 'Amount', callback_data: 'sg:field:amount' }],
-    [{ text: 'Summary', callback_data: 'sg:field:summary' }, { text: 'Evidence', callback_data: 'sg:field:proof' }],
-    [{ text: '‹ Back to preview', callback_data: 'sg:preview' }],
-    [{ text: 'Cancel', callback_data: 'sg:cancel' }],
+    [{ text: 'Username', callback_data: 'sg:field:handle', style: 'primary' }, { text: 'Amount', callback_data: 'sg:field:amount', style: 'primary' }],
+    [{ text: 'Summary', callback_data: 'sg:field:summary', style: 'primary' }, { text: 'Evidence', callback_data: 'sg:field:proof', style: 'primary' }],
+    [{ text: '‹ Back to preview', callback_data: 'sg:preview', style: 'primary' }],
+    [{ text: 'Cancel', callback_data: 'sg:cancel', style: 'danger' }],
   ] };
 }
 export function reportPostMessage(d, reportId, admin = false) {
@@ -76,8 +80,7 @@ export function reportPostMessage(d, reportId, admin = false) {
     detailList(d),
     { type: 'heading', size: 3, text: '📝 Summary' },
     { type: 'expandable_blockquote', text: clean(d.summary) },
-    { type: 'heading', size: 3, text: '🔗 Evidence source' },
-    proofButton(d),
+    evidenceHeading(d),
     { type: 'divider' },
     { type: 'footer', text: admin ? 'Status: Pending administrator review · Allegation not yet verified' : 'Status: Published after administrator review · Allegation, not a legal finding' },
   ];
