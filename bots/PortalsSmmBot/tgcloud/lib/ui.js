@@ -26,7 +26,7 @@ export function buildHelpMessage() {
   };
 }
 
-export async function sendHome(chatId, firstName = 'there') {
+export async function sendHome(chatId, firstName = 'there', showAdmin = false) {
   return api.sendRichMessage({
     chat_id: chatId,
     rich_message: buildHomeMessage(firstName),
@@ -44,6 +44,7 @@ export async function sendHome(chatId, firstName = 'there') {
         { text: 'Support', callback_data: 'ps:support' },
       ],
       [{ text: 'Help', callback_data: 'ps:help', style: 'link' }],
+      ...(showAdmin ? [[{ text: 'Admin panel', callback_data: 'ps:admin' }]] : []),
     ] },
   });
 }
