@@ -40,8 +40,8 @@ export const SUPPORT = Object.freeze({
 });
 
 export const FEATURES = Object.freeze({
-  depositsEnabled: false,
+  depositsEnabled: true,
   ordersEnabled: false,
   referralsEnabled: false,
-  providerSyncEnabled: false,
+  providerSyncEnabled: true,
 });
