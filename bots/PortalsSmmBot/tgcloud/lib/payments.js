@@ -1,5 +1,5 @@
 import { api, db } from 'sdk';
-import { desc, eq } from 'sdk/db';
+import { desc, eq, sql } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
 import { depositIntents, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction } from './wallet.js';
@@ -282,6 +282,15 @@ export async function refundStarsDeposit(transactionId, adminId) {
   if (refundTransaction.status === 'completed') return { refunded: true, duplicate: true };
   if (refundTransaction.status !== 'pending') {
     throw new Error('A previous refund attempt needs administrator review. Do not retry this payment.');
+  }
+
+  // Acquire a single-writer refund lock before touching the wallet or Telegram.
+  const lock = await db.run(sql`UPDATE wallet_transactions
+    SET status = 'processing', updated_at = unixepoch()
+    WHERE id = ${refundTransaction.id} AND status = 'pending'
+    RETURNING id`);
+  if (Number(lock?.rowsAffected) !== 1) {
+    throw new Error('Another administrator is already processing this refund.');
   }
 
   const debit = await debitWalletPoints({
