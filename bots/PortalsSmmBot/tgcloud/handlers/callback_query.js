@@ -1,6 +1,6 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
-import { OWNER_IDS } from '../lib/config.js';
+import { OWNER_IDS, FEATURES } from '../lib/config.js';
 import { addAdmin, isAdmin, isOwner, listAdmins, removeAdmin } from '../lib/admins.js';
 import {
   adminAddPromptMessage,
@@ -156,6 +156,15 @@ export default async function handleCallbackQuery(query) {
       }
 
       if (data === 'ps:admin:services:sync') {
+        if (!FEATURES.providerSyncEnabled) {
+          return render(chatId, messageId, {
+            blocks: [
+              { type: 'heading', size: 1, text: 'Catalogue setup' },
+              { type: 'paragraph', text: 'Service syncing will be available after the catalogue database setup is complete.' },
+              { type: 'buttons', buttons: [{ text: '‹ Provider', callback_data: 'ps:admin:provider', style: 'link' }] },
+            ],
+          });
+        }
         try {
           const result = await syncTelegramServices();
           const services = await listTelegramServices(false);
