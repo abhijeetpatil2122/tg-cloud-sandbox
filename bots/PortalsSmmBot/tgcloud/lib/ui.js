@@ -92,7 +92,7 @@ export function unavailableMessage() {
   ] };
 }
 
-export function adminPanelMessage(adminIds = [], databaseAvailable = true) {
+export function adminPanelMessage(adminIds = [], databaseAvailable = true, canManage = true) {
   const ids = [...new Set(adminIds)].sort((a, b) => a - b);
   const blocks = [
     { type: 'heading', size: 1, text: 'Administrator panel' },
@@ -103,7 +103,7 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true) {
   if (!databaseAvailable) {
     blocks.push({ type: 'paragraph', text: 'Administrator storage is temporarily unavailable. Owner access remains active.' });
   }
-  blocks.push(row(button('Add administrator', 'ps:admin:add', 'success'), button('Remove administrator', 'ps:admin:remove', 'danger')));
+  if (canManage) blocks.push(row(button('Add administrator', 'ps:admin:add', 'success'), button('Remove administrator', 'ps:admin:remove', 'danger')));
   blocks.push(row(button('‹ Main menu', 'ps:home', 'link')));
   return { blocks };
 }
