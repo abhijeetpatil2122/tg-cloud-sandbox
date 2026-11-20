@@ -5,7 +5,7 @@ import { providerServices } from '../schema.js';
 
 function telegramService(item) {
   const searchable = `${item?.name || ''} ${item?.category || ''}`;
-  return /\\btelegram\\b|\\btg\\b/i.test(searchable);
+  return /\btelegram\b|\btg\b/i.test(searchable);
 }
 
 async function requestProvider(action, extra = {}) {
@@ -51,7 +51,7 @@ export async function syncTelegramServices() {
       !Number.isSafeInteger(serviceId) || serviceId <= 0 ||
       !Number.isSafeInteger(minQty) || minQty < 0 ||
       !Number.isSafeInteger(maxQty) || maxQty < minQty ||
-      !/^\\d+(?:\\.\\d+)?$/.test(rate) ||
+      !/^\d+(?:\.\d+)?$/.test(rate) ||
       !telegramService(item)
     ) continue;
 
