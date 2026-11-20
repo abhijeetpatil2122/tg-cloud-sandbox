@@ -234,28 +234,39 @@ export async function transactionHistoryMessage(userId, page = 0) {
 
 export async function adminTransactionsMessage(page = 0) {
   const safePage = Math.max(0, Math.min(1000, Number(page) || 0));
-  const rows = await db.select().from(walletTransactions)
-    .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id))
-    .limit(10)
-    .offset(safePage * 10)
-    .all();
-  const blocks = [
-    { type: 'heading', size: 1, text: 'Recent transactions' },
-    { type: 'paragraph', text: 'Latest customer wallet activity.' },
-    { type: 'divider' },
-  ];
-  if (!rows.length) {
-    blocks.push({ type: 'paragraph', text: 'No transactions have been recorded.' });
-  } else {
-    for (const item of rows) {
-      blocks.push(transactionBlock(item, true));
-      blocks.push({ type: 'divider' });
+  try {
+    const rows = await db.select().from(walletTransactions)
+      .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id))
+      .limit(10)
+      .offset(safePage * 10)
+      .all();
+    const blocks = [
+      { type: 'heading', size: 1, text: 'Recent transactions' },
+      { type: 'paragraph', text: 'Latest customer wallet activity.' },
+      { type: 'divider' },
+    ];
+    if (!rows.length) {
+      blocks.push({ type: 'paragraph', text: 'No transactions have been recorded.' });
+    } else {
+      for (const item of rows) {
+        blocks.push(transactionBlock(item, true));
+        blocks.push({ type: 'divider' });
+      }
     }
+    const buttons = [];
+    if (safePage > 0) buttons.push({ text: '‹ Newer', callback_data: `ps:admin:transactions:${safePage - 1}` });
+    if (rows.length === 10) buttons.push({ text: 'Older ›', callback_data: `ps:admin:transactions:${safePage + 1}` });
+    if (buttons.length) blocks.push({ type: 'buttons', buttons });
+    blocks.push({ type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] });
+    return { blocks };
+  } catch (error) {
+    console.error('Admin transaction history unavailable:', error?.description || error?.message || 'database not ready');
+    return {
+      blocks: [
+        { type: 'heading', size: 1, text: 'Recent transactions' },
+        { type: 'paragraph', text: 'Transaction records will appear here once the wallet is enabled.' },
+        { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+      ],
+    };
   }
-  const buttons = [];
-  if (safePage > 0) buttons.push({ text: '‹ Newer', callback_data: `ps:admin:transactions:${safePage - 1}` });
-  if (rows.length === 10) buttons.push({ text: 'Older ›', callback_data: `ps:admin:transactions:${safePage + 1}` });
-  if (buttons.length) blocks.push({ type: 'buttons', buttons });
-  blocks.push({ type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] });
-  return { blocks };
 }
