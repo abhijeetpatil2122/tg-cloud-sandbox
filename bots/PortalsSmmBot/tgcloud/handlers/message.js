@@ -1,24 +1,31 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
-import { sendHome, sendHelp } from '../lib/ui.js';
 import { OWNER_IDS } from '../lib/config.js';
-import { adminSessions } from '../schema.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
+import { adminAddPromptMessage, fullName, helpMessage, homeMessage, sendRich } from '../lib/ui.js';
+import { adminSessions } from '../schema.js';
 
-function getCommand(text = '') {
-  const [raw = ''] = text.trim().split(/\\s+/);
-  return raw.split('@', 1)[0].toLowerCase();
+function parseCommand(value = '') {
+  const match = value.trim().match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?(?:\s+([\s\S]*))?$/i);
+  return match ? { command: `/${match[1].toLowerCase()}`, argument: (match[2] || '').trim() } : null;
 }
 
-export default async function handleMessage(payload) {
-  // Serverless passes the Message itself, not the outer Update.
-  const message = payload?.message ?? payload;
-  if (!message?.chat?.id || !message?.from?.id) return;
+async function sendEmergencyReply(chatId) {
+  try {
+    await api.sendMessage({
+      chat_id: chatId,
+      text: 'Portals SMM is temporarily unavailable. Please try /menu again.',
+    });
+  } catch (error) {
+    console.error('PortalsSmmBot emergency reply failed:', error?.description || error);
+  }
+}
 
+export default async function handleMessage(message) {
+  if (!message?.chat?.id || !message?.from?.id) return;
   const chatId = message.chat.id;
   const userId = Number(message.from.id);
   const text = typeof message.text === 'string' ? message.text.trim() : '';
-  const command = getCommand(text);
 
   try {
     if (message.chat.type !== 'private') {
@@ -31,86 +38,90 @@ export default async function handleMessage(payload) {
       return;
     }
 
-    // Admin-session storage is only needed for an owner's pending text input.
-    // Do not make every ordinary command depend on this table being readable.
-    let pending = null;
+    // Only owners' pending admin input touches the admin-session table.
     if (OWNER_IDS.includes(userId) && text && !text.startsWith('/')) {
-      pending = await db.select().from(adminSessions)
+      const pending = await db.select().from(adminSessions)
         .where(eq(adminSessions.userId, userId)).get();
+      if (pending?.action === 'add_admin') {
+        if (!/^\d{5,15}$/.test(text)) {
+          await sendRich(chatId, {
+            blocks: [
+              { type: 'heading', size: 2, text: 'Invalid user ID' },
+              { type: 'paragraph', text: 'Send a numeric Telegram user ID containing 5–15 digits, or cancel the action.' },
+              { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
+            ],
+          });
+          return;
+        }
+        const result = await addAdmin(Number(text), userId);
+        await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
+        await sendRich(chatId, {
+          blocks: [
+            { type: 'heading', size: 2, text: result.added ? 'Administrator added' : 'Already registered' },
+            { type: 'paragraph', text: result.added ? `Telegram user ${text} can now access the administrator panel.` : 'That account is already an owner or administrator.' },
+            { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+          ],
+        });
+        return;
+      }
     }
 
-    if (pending?.action === 'add_admin' && text) {
-      if (!/^\\d{5,15}$/.test(text)) {
-        return api.sendMessage({
-          chat_id: chatId,
-          text: 'Send a numeric Telegram user ID, or /cancel to stop.',
+    const parsed = parseCommand(text);
+    if (!parsed) return;
+
+    if (parsed.command === '/cancel' && OWNER_IDS.includes(userId)) {
+      const pending = await db.select().from(adminSessions)
+        .where(eq(adminSessions.userId, userId)).get();
+      if (pending) {
+        await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
+        await sendRich(chatId, {
+          blocks: [
+            { type: 'paragraph', text: 'Administrator action cancelled.' },
+            { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+          ],
         });
       }
-      const result = await addAdmin(Number(text), userId);
-      await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
-      return api.sendMessage({
-        chat_id: chatId,
-        text: result.added
-          ? `Administrator ${text} added.`
-          : 'That account is already a configured owner or administrator.',
-      });
+      return;
     }
 
-    if (command === '/cancel' && OWNER_IDS.includes(userId)) {
-      const session = await db.select().from(adminSessions)
-        .where(eq(adminSessions.userId, userId)).get();
-      if (session) {
-        await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
-        return api.sendMessage({ chat_id: chatId, text: 'Admin action cancelled.' });
+    if (parsed.command === '/start' || parsed.command === '/menu') {
+      // The storefront entry point deliberately has no database dependency.
+      // Owners are recognized from static configuration; customer menus always load.
+      return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId)));
+    }
+
+    if (parsed.command === '/help') {
+      return await sendRich(chatId, helpMessage());
+    }
+
+    if (parsed.command === '/admin') {
+      if (!await isAdmin(userId)) {
+        await sendRich(chatId, {
+          blocks: [
+            { type: 'heading', size: 2, text: 'Access denied' },
+            { type: 'paragraph', text: 'This account is not registered as a bot administrator.' },
+            { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
+          ],
+        });
+        return;
       }
-    }
-
-    if (command === '/start' || command === '/menu') {
-      // Owners are known admins from static configuration; a database outage
-      // must not prevent them from opening the storefront.
-      let showAdmin = OWNER_IDS.includes(userId);
-      if (!showAdmin) {
-        try {
-          showAdmin = await isAdmin(userId);
-        } catch (error) {
-          console.error('PortalsSmmBot admin lookup failed:', error?.description || error);
-        }
-      }
-      return await sendHome(chatId, message.from.first_name || 'there', showAdmin);
-    }
-
-    if (command === '/help') return await sendHelp(chatId);
-
-    if (command === '/admin') {
-      if (!await isAdmin(userId)) return;
-      return await api.sendMessage({
-        chat_id: chatId,
-        text: 'Open the administrator panel:',
-        reply_markup: {
-          inline_keyboard: [[{ text: 'Open admin panel', callback_data: 'ps:admin' }]],
-        },
+      return await sendRich(chatId, {
+        blocks: [
+          { type: 'heading', size: 2, text: 'Administrator access' },
+          { type: 'paragraph', text: 'Open the control panel to manage bot access.' },
+          { type: 'buttons', buttons: [{ text: 'Open administrator panel', callback_data: 'ps:admin', style: 'primary' }] },
+        ],
       });
     }
 
-    if (text.startsWith('/')) {
-      return await api.sendMessage({
-        chat_id: chatId,
-        text: 'Unknown command. Use /menu to open the storefront or /help for assistance.',
-      });
-    }
+    await sendRich(chatId, {
+      blocks: [
+        { type: 'paragraph', text: 'Unknown command. Use /menu to open the storefront.' },
+        { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
+      ],
+    });
   } catch (error) {
     console.error('PortalsSmmBot message handler failed:', error?.description || error?.stack || error);
-    try {
-      return await api.sendMessage({
-        chat_id: chatId,
-        text: 'The storefront encountered a temporary error. Please try /menu again.',
-      });
-    } catch (replyError) {
-      console.error('PortalsSmmBot error reply failed:', replyError?.description || replyError);
-    }
+    await sendEmergencyReply(chatId);
   }
 }
-
-// Keep this handler under the PortalsSmmBot deployment and webhook diagnostics gate.
-
-// CI deployment also exercises the handler's non-admin authorization path.
