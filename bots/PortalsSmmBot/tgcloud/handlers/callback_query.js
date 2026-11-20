@@ -22,6 +22,7 @@ import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } fr
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit } from '../lib/payments.js';
 import { adminPaymentSupportMessage, resolvePaymentSupportTicket } from '../lib/support.js';
+import { myOrdersMessage, orderDetailsMessage } from '../lib/orders.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -114,6 +115,11 @@ export default async function handleCallbackQuery(query) {
     }
     if (data === 'ps:wallet') return render(chatId, messageId, await walletMessage(userId));
     if (data === 'ps:history') return render(chatId, messageId, await transactionHistoryMessage(userId, 0));
+    if (data === 'ps:orders') return render(chatId, messageId, await myOrdersMessage(userId, 0));
+    const ordersPage = data.match(/^ps:orders:(\d{1,4})$/);
+    if (ordersPage) return render(chatId, messageId, await myOrdersMessage(userId, Number(ordersPage[1])));
+    const orderDetail = data.match(/^ps:order:(\d{1,12})$/);
+    if (orderDetail) return render(chatId, messageId, await orderDetailsMessage(userId, Number(orderDetail[1])));
     const historyPage = data.match(/^ps:history:(\d{1,4})$/);
     if (historyPage) return render(chatId, messageId, await transactionHistoryMessage(userId, Number(historyPage[1])));
 
@@ -148,7 +154,6 @@ export default async function handleCallbackQuery(query) {
 
     const sections = {
       'ps:deposit': 'deposit',
-      'ps:orders': 'orders',
       'ps:referral': 'referral',
       'ps:support': 'support',
     };
