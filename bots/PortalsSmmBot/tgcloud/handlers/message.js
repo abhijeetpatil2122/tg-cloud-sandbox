@@ -66,7 +66,8 @@ export default async function handleMessage(message) {
       }
     }
 
-    // Command parsing is intentionally independent of database-backed features.\n    const parsed = parseCommand(text);
+    // Command parsing is intentionally independent of database-backed features.
+    const parsed = parseCommand(text);
     if (!parsed) return;
 
     if (parsed.command === '/cancel' && OWNER_IDS.includes(userId)) {
