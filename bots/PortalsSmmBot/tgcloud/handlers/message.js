@@ -112,3 +112,5 @@ export default async function handleMessage(payload) {
 }
 
 // Keep this handler under the PortalsSmmBot deployment and webhook diagnostics gate.
+
+// CI deployment also exercises the handler's non-admin authorization path.
