@@ -104,7 +104,7 @@ export default async function handleCallbackQuery(query) {
         });
       }
 
-      const ownerOnlyAction = ['ps:admin:add', 'ps:admin:remove', 'ps:admin:cancel'].includes(data) || data.startsWith('ps:admin:del:');
+      const ownerOnlyAction = ['ps:admin:add', 'ps:admin:remove'].includes(data) || data.startsWith('ps:admin:del:');
       if (ownerOnlyAction && !isOwner(userId)) {
         return render(chatId, messageId, {
           blocks: [
