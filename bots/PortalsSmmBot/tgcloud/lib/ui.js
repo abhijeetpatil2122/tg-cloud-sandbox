@@ -188,7 +188,10 @@ export function adminServicesMessage(services = [], page = 0) {
   return { blocks };
 }
 
-export function customerServicesMessage(services = []) {
+export function customerServicesMessage(services = [], page = 0) {
+  const safePage = Math.max(0, Number(page) || 0);
+  const start = safePage * 10;
+  const visible = services.slice(start, start + 10);
   const blocks = [
     { type: 'heading', size: 1, text: 'Services' },
     { type: 'paragraph', text: 'Choose a Telegram service.' },
@@ -196,9 +199,18 @@ export function customerServicesMessage(services = []) {
   if (!services.length) {
     blocks.push({ type: 'paragraph', text: 'No services are available at the moment.' });
   } else {
-    for (const item of services.slice(0, 20)) {
-      blocks.push(row(button(item.name.slice(0, 60), `ps:service:${item.serviceId}`)));
+    for (let i = 0; i < visible.length; i += 2) {
+      const first = visible[i];
+      const second = visible[i + 1];
+      blocks.push(row(
+        button(first.name.slice(0, 60), `ps:service:${first.serviceId}`),
+        ...(second ? [button(second.name.slice(0, 60), `ps:service:${second.serviceId}`)] : []),
+      ));
     }
+    const navigation = [];
+    if (safePage > 0) navigation.push(button('‹ Previous', `ps:services:${safePage - 1}`));
+    if (start + 10 < services.length) navigation.push(button('Next ›', `ps:services:${safePage + 1}`));
+    if (navigation.length) blocks.push(row(...navigation));
   }
   blocks.push(row(button('‹ Main menu', 'ps:home', 'link')));
   return { blocks };
