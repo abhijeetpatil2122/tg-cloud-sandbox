@@ -348,3 +348,8 @@ This section supersedes conflicting earlier credential and Mini App recommendati
 The repository now contains a starter runtime with package.json, tgcloud.jsonc, .gitignore, a shared lib/config.js, a minimal Rich Message UI module, and message/callback-query handlers for the storefront shell. The service catalogue, database schema, wallet ledger, Stars payment handlers, referrals, admin workflows, and provider integration are not implemented yet. The placeholder menu labels must not be interpreted as enabled commerce features.
 
 Before enabling privileged operations, the owner must provide the admin Telegram ID allowlist. The referral minimum, final accounting FX source, deposit package amounts/limits, support username, and initial curated service list also remain open.
+
+
+## Administrator access update
+
+The two owner accounts are Telegram user IDs 6522801911 and 1314643983. Both are also bootstrap administrators. Owners are defined in OWNER_IDS and ADMIN_IDS in tgcloud/lib/config.js and are protected from removal in the admin panel. Additional administrators are persisted in the bot_admins SQLite table. Only the designated owners may add or remove those additional administrators. The panel's add flow accepts a numeric Telegram user ID; removal lists only database-managed administrators. This schema addition requires a reviewed Serverless migration before the dynamic admin panel can operate. Do not deploy or migrate without owner approval.
