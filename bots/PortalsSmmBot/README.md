@@ -4,33 +4,41 @@ Telegram SMM storefront project built on Telegram Serverless.
 
 ## Current status
 
-**Planning / documentation stage.** The customer wallet rule is planned as 1 paid Star = 1 Portal Point; referral reward is planned at 10% of the first qualifying deposit; target gross margin is 30%, with prices rounded to the nearest 5 points. The final INR accounting source/rate, referral minimum, catalogue, admin allowlist, provider credential, and live order policy remain open. See [AGENTS.md](./AGENTS.md) for the financial assumptions and security gates.
+**Foundation stage — not deployed.** A command-only runtime shell is now present with `/start`, `/menu`, `/help`, a shared configuration module, and basic Rich Message navigation. Commerce features are not enabled. No database migration, Stars payment, provider order, or production deployment has occurred.
 
 ## Intended stack
 
 - Telegram Serverless, CLI `@tgcloud/cli@0.2.0`
 - Bot project path: `bots/PortalsSmmBot`
-- Serverless Actions secret: `TGCLOUD_TOKEN_PORTALSSMMBOT`
+- Serverless CLI credential: `TGCLOUD_TOKEN_PORTALSSMMBOT` (deployment access only)
 - Provider API: smm.plus at `https://smm.plus/api/v2`
+- Provider key: manually configured in the cloud-owned `tgcloud/lib/config.js` using BotFather's Serverless code editor; never committed to GitHub or sent through chat
 - Customer payments: Telegram Stars (`XTR`)
 - Internal wallet: integer Portal Points (1 paid Star = 1 point) recorded in an append-only ledger
-- Planning economics: Telegram's stated US$0.013 reward equivalent per earned Star; provisional ₹1.2119 per point at ₹93.22/USD on 2026-11-20, subject to revalidation
-- Initial UI: native Telegram Rich Messages with editable menu navigation
+- Planning economics: 10% first-qualifying-deposit referral reward; 30% target gross margin; service prices rounded to nearest 5 points
+- Initial UI: native Telegram messages and Rich Message buttons only; no Mini App
 
 ## Setup
 
-The project scaffold is expected to be created with:
+The starter project uses the official Serverless CLI package:
 
 ```bash
-npm create @tgcloud/bot PortalsSmmBot
+npm install
+npm run check
+npx tgcloud status
 ```
 
-Keep the resulting scaffold's `package.json`, lockfile, `tgcloud.jsonc`, `tgcloud/`, and `docs/tgcloud-sdk.md` in this folder. Never commit `.tgcloud/`, `node_modules/`, CLI credentials, or secrets.
+Keep the project isolated in this folder. Never commit `.tgcloud/`, `node_modules/`, CLI credentials, or provider secrets. The cloud-edited provider key is part of server-side source and is visible to people with sufficient Serverless project/CLI access. A deployment must preserve the cloud-owned key configuration; do not blindly push over it.
 
-The manual GitHub Actions workflow maps this project to `TGCLOUD_TOKEN_PORTALSSMMBOT`. Until the numeric app ID is verified from the scoped token, use `FROM_TOKEN` for a status-only workflow run. The project remains manual-only; it is not in the automatic deployment registry.
+The manual GitHub Actions workflow maps this project to `TGCLOUD_TOKEN_PORTALSSMMBOT`. It remains manual-only and is not part of the automatic deployment registry. Status checks are not deployments. No migration or deployment is authorized by the presence of this scaffold.
 
-## Before implementation
+## Next implementation stages
 
-Read [AGENTS.md](./AGENTS.md) and resolve the implementation gates listed there, especially secure runtime storage for the smm.plus API key, the wallet atomicity strategy, and owner-approved pricing/referral rules.
+1. Confirm admin Telegram IDs and finish configuration ownership/deployment preservation.
+2. Review the database schema and safe atomic wallet/ledger strategy before migration.
+3. Implement Stars deposit intents and idempotent payment crediting.
+4. Implement provider read-only connectivity/catalogue sync, then a curated service catalogue.
+5. Implement order confirmation, debit reservation, provider submission, status tracking, and reconciliation.
+6. Add referral qualification/reversal, admin tools, terms, support, and operational reporting.
 
-Database migrations, deployments, paid provider tests, refunds, and production sales each require separate explicit approval.
+See [AGENTS.md](./AGENTS.md) for the full architecture, security, economics, and rollout gates.
