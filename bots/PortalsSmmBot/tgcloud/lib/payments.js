@@ -147,6 +147,7 @@ export async function handleSuccessfulPayment(message) {
     const valid = Boolean(
       intent &&
       Number(intent.userId) === userId &&
+      (intent.status === 'pending' || (intent.status === 'completed' && intent.telegramChargeId === chargeId)) &&
       payment.currency === 'XTR' &&
       Number(payment.total_amount) === Number(intent.stars) &&
       Number(intent.points) === Number(intent.stars) * Number(WALLET.pointsPerPaidStar) &&
@@ -279,6 +280,9 @@ export async function refundStarsDeposit(transactionId, adminId) {
   });
 
   if (refundTransaction.status === 'completed') return { refunded: true, duplicate: true };
+  if (refundTransaction.status !== 'pending') {
+    throw new Error('A previous refund attempt needs administrator review. Do not retry this payment.');
+  }
 
   const debit = await debitWalletPoints({
     userId: original.userId,
