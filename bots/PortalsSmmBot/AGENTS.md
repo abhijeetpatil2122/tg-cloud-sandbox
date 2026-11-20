@@ -262,7 +262,7 @@ Admin tools will eventually include:
 - referral abuse review;
 - operational statistics and support configuration.
 
-Do not hardcode an admin ID until the owner supplies/confirms the intended admin list. Never allow admins to directly set a user's balance; use an audited adjustment ledger entry.
+Bootstrap owners and administrators are explicitly configured in `tgcloud/lib/config.js`: 6522801911 and 1314643983. Both IDs have owner and admin roles. Owners are protected from removal; only owners may add/remove database-managed admins. Never allow admins to directly set a user's balance; use an audited adjustment ledger entry.
 
 ## Pricing and profitability
 
@@ -307,11 +307,11 @@ Keep the bot manual-deploy-only until its first deployment and live tests are ex
 
 ## Current phase and decisions still required
 
-**Current phase: architecture and planning. Business-model planning preferences are approved, but no production catalogue, final INR accounting rate, qualifying deposit minimum, admin allowlist, credential, or live order policy has been approved.**
+**Current phase: command-based runtime foundation.** The owner/admin IDs are confirmed and implemented. No production catalogue, final INR accounting rate, qualifying deposit minimum, provider credential, migration, deployment, or live order policy has been approved.
 
 Resolve with the owner before implementing live commerce:
 1. Choose/configure the SMM API credential path. Preferred: GitHub Actions secret injection into a server-only module; BotFather code editing is available from Android but is not a secret vault.
-2. Confirm admin Telegram ID(s).
+2. Admin and owner IDs are confirmed: 6522801911 and 1314643983 (both roles). Additional admins are owner-managed through the panel after schema migration.
 3. The customer wallet conversion is now fixed at 1 Star = 1 Portal Point; confirm the final INR accounting FX source and withdrawal-cost treatment.
 4. Decide preset deposit packages, custom deposit limits, and any deposit bonus.
 5. Set the configurable minimum qualifying referral deposit, caps, and reversal policy. Referral reward is 10% of the first qualifying deposit in points.
