@@ -11,9 +11,16 @@ import {
   homeMessage,
   sectionMessage,
   unavailableMessage,
+  providerAdminMessage,
+  providerBalanceMessage,
+  adminServicesMessage,
+  customerServicesMessage,
+  customerServiceDetailsMessage,
 } from '../lib/ui.js';
 import { adminSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
+import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
+import { providerServices } from '../schema.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -69,8 +76,17 @@ export default async function handleCallbackQuery(query) {
     const historyPage = data.match(/^ps:history:(\d{1,4})$/);
     if (historyPage) return render(chatId, messageId, await transactionHistoryMessage(userId, Number(historyPage[1])));
 
+    if (data === 'ps:services') {
+      return render(chatId, messageId, customerServicesMessage(await listTelegramServices(true)));
+    }
+    const serviceDetail = data.match(/^ps:service:(\\d{1,12})$/);
+    if (serviceDetail) {
+      const services = await listTelegramServices(true);
+      const item = services.find(service => service.serviceId === Number(serviceDetail[1]));
+      return render(chatId, messageId, item ? customerServiceDetailsMessage(item) : unavailableMessage());
+    }
+
     const sections = {
-      'ps:services': 'services',
       'ps:deposit': 'deposit',
       'ps:orders': 'orders',
       'ps:referral': 'referral',
@@ -102,6 +118,76 @@ export default async function handleCallbackQuery(query) {
 
       if (data === 'ps:admin' || data === 'ps:admin:home') {
         return showAdmin(chatId, messageId, userId);
+      }
+
+      if (data === 'ps:admin:provider') return render(chatId, messageId, providerAdminMessage());
+
+      if (data === 'ps:admin:provider:check') {
+        try {
+          const balance = await checkProviderBalance();
+          return render(chatId, messageId, providerBalanceMessage(balance));
+        } catch (providerError) {
+          return render(chatId, messageId, {
+            blocks: [
+              { type: 'heading', size: 1, text: 'Provider connection' },
+              { type: 'paragraph', text: 'The supplier could not be reached. Check the provider settings and try again.' },
+              { type: 'buttons', buttons: [{ text: '‹ Provider', callback_data: 'ps:admin:provider', style: 'link' }] },
+            ],
+          });
+        }
+      }
+
+      if (data === 'ps:admin:services:sync') {
+        try {
+          const result = await syncTelegramServices();
+          const services = await listTelegramServices(false);
+          const page = adminServicesMessage(services, 0);
+          page.blocks.splice(2, 0, { type: 'paragraph', text: `Synced ${result.telegramImported} Telegram services from ${result.providerTotal} supplier listings.` });
+          return render(chatId, messageId, page);
+        } catch (providerError) {
+          return render(chatId, messageId, {
+            blocks: [
+              { type: 'heading', size: 1, text: 'Service sync failed' },
+              { type: 'paragraph', text: 'The supplier service list could not be loaded. Check the connection and try again.' },
+              { type: 'buttons', buttons: [{ text: '‹ Provider', callback_data: 'ps:admin:provider', style: 'link' }] },
+            ],
+          });
+        }
+      }
+
+      if (data === 'ps:admin:services') {
+        return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), 0));
+      }
+      const servicePage = data.match(/^ps:admin:services:(\\d{1,4})$/);
+      if (servicePage) return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), Number(servicePage[1])));
+
+      const serviceToggle = data.match(/^ps:admin:service:(enable|disable):(\\d{1,12})$/);
+      if (serviceToggle) {
+        try {
+          await setTelegramServiceEnabled(Number(serviceToggle[2]), serviceToggle[1] === 'enable');
+          return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), 0));
+        } catch (serviceError) {
+          return render(chatId, messageId, {
+            blocks: [
+              { type: 'heading', size: 2, text: 'Service not updated' },
+              { type: 'paragraph', text: serviceError?.message === 'Set a customer price before enabling this service.' ? 'Set a customer price before enabling this service.' : 'The service could not be updated.' },
+              { type: 'buttons', buttons: [{ text: '‹ Services', callback_data: 'ps:admin:services', style: 'link' }] },
+            ],
+          });
+        }
+      }
+
+      const servicePrice = data.match(/^ps:admin:service:price:(\\d{1,12})$/);
+      if (servicePrice) {
+        await db.insert(adminSessions).values({ userId, action: `set_service_price:${servicePrice[1]}`, createdAt: new Date() })
+          .onConflictDoUpdate({ target: adminSessions.userId, set: { action: `set_service_price:${servicePrice[1]}`, createdAt: new Date() } }).run();
+        return render(chatId, messageId, {
+          blocks: [
+            { type: 'heading', size: 2, text: 'Set customer price' },
+            { type: 'paragraph', text: 'Send the selling price in whole Portal Points. The service will remain disabled until you enable it.' },
+            { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
+          ],
+        });
       }
 
       if (data === 'ps:admin:transactions') {
