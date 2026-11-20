@@ -66,7 +66,7 @@ export default async function handleCallbackQuery(query) {
     if (data === 'ps:help') return render(chatId, messageId, helpMessage());
     if (data === 'ps:wallet') return render(chatId, messageId, await walletMessage(userId));
     if (data === 'ps:history') return render(chatId, messageId, await transactionHistoryMessage(userId, 0));
-    const historyPage = data.match(/^ps:history:(\\d{1,4})$/);
+    const historyPage = data.match(/^ps:history:(\d{1,4})$/);
     if (historyPage) return render(chatId, messageId, await transactionHistoryMessage(userId, Number(historyPage[1])));
 
     const sections = {
@@ -107,7 +107,7 @@ export default async function handleCallbackQuery(query) {
       if (data === 'ps:admin:transactions') {
         return render(chatId, messageId, await adminTransactionsMessage(0));
       }
-      const adminHistoryPage = data.match(/^ps:admin:transactions:(\\d{1,4})$/);
+      const adminHistoryPage = data.match(/^ps:admin:transactions:(\d{1,4})$/);
       if (adminHistoryPage) {
         return render(chatId, messageId, await adminTransactionsMessage(Number(adminHistoryPage[1])));
       }
