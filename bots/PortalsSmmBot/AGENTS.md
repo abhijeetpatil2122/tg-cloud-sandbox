@@ -292,7 +292,7 @@ Before any live sales:
 - run `node --check` on every runtime module and any project tests;
 - inspect `npx tgcloud status` and `npx tgcloud diff` before deploy.
 
-Keep the bot manual-deploy-only until its first deployment and live tests are explicitly approved. Do not add it to the auto-deploy registry without the owner's later approval.
+Owner approval update (2026-11-20): PortalsSmmBot is included in the repository auto-deploy registry. Deployable code changes pushed to `main` are validated and automatically deployed with `TGCLOUD_TOKEN_PORTALSSMMBOT`. This does not authorize migrations, provider orders, Stars payments, or live commerce actions.
 
 ## Migrations and deployment
 
@@ -301,7 +301,8 @@ Keep the bot manual-deploy-only until its first deployment and live tests are ex
 - First run the manual workflow in `status` mode. A status run does not deploy.
 - Never run `npx tgcloud migrate` without explicit owner approval after reviewing the exact migration plan.
 - Neither manual nor automatic CI deployment may run migrations.
-- Keep this project out of the auto-deploy registry unless explicitly approved after successful live testing.
+- Automatic deployment is approved for deployable code changes on `main`; pull requests only validate and do not deploy.
+- **Critical cloud-config protection:** `tgcloud/lib/config.js` is edited manually in BotFather and may contain the smm.plus API key. Both automatic and manual workflows must exclude it from targeted push module lists. Changes to this file in GitHub must not trigger a deployment. Never use a broad `tgcloud push` for this project.
 - Never deploy, migrate, place a paid provider order, or issue a refund merely because an agent has prepared code.
 - Do not commit `.tgcloud/`, `node_modules/`, local credentials, secrets, or `.env` files.
 
