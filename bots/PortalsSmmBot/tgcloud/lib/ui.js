@@ -1,73 +1,150 @@
 import { api } from 'sdk';
 
-export function buildHomeMessage(firstName = 'there') {
-  return {
-    blocks: [
-      { type: 'heading', size: 1, text: 'Portals SMM' },
-      { type: 'paragraph', text: `Welcome, ${firstName}. Manage your services, Portal Points, and orders from one place.` },
-      { type: 'divider' },
-      { type: 'heading', size: 3, text: 'Your storefront' },
-      { type: 'paragraph', text: 'Choose an option below to continue.' },
-      { type: 'footer', text: 'Secure checkout · Telegram Stars · Order tracking' },
-    ],
-  };
+const button = (text, callback_data, style) => ({
+  text,
+  callback_data,
+  ...(style ? { style } : {}),
+});
+
+const row = (...buttons) => ({ type: 'buttons', buttons });
+
+export function fullName(user = {}) {
+  const name = [user.first_name, user.last_name]
+    .filter(value => typeof value === 'string' && value.trim())
+    .map(value => value.trim())
+    .join(' ');
+  return name || 'there';
 }
 
-export function buildHelpMessage() {
-  return {
-    blocks: [
-      { type: 'heading', size: 1, text: 'Help & commands' },
-      { type: 'paragraph', text: 'Use the buttons to navigate the storefront. All purchases and account actions are available in private chat only.' },
-      { type: 'paragraph', text: '/start — Open the storefront' },
-      { type: 'paragraph', text: '/menu — Return to the main menu' },
-      { type: 'paragraph', text: '/help — View help and available commands' },
-      { type: 'paragraph', text: 'Portal Points are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
-    ],
-  };
+export function homeMessage(name = 'there', showAdmin = false) {
+  const blocks = [
+    { type: 'heading', size: 1, text: 'Portals SMM' },
+    { type: 'paragraph', text: `Welcome, ${name}.` },
+    { type: 'paragraph', text: 'Your place to manage services, Portal Points and orders.' },
+    { type: 'divider' },
+    row(button('Services', 'ps:services', 'primary'), button('Deposit', 'ps:deposit', 'success')),
+    row(button('Wallet', 'ps:wallet'), button('My Orders', 'ps:orders')),
+    row(button('Referral', 'ps:referral'), button('Support', 'ps:support')),
+    row(button('Help', 'ps:help', 'link')),
+  ];
+  if (showAdmin) blocks.push(row(button('Administrator panel', 'ps:admin')));
+  blocks.push({ type: 'footer', text: 'Payments via Telegram Stars · Portal Points are store credit' });
+  return { blocks };
 }
 
-export async function sendHome(chatId, firstName = 'there', showAdmin = false) {
-  const replyMarkup = { inline_keyboard: [
-    [
-      { text: 'Services', callback_data: 'ps:services' },
-      { text: 'Deposit', callback_data: 'ps:deposit' },
-    ],
-    [
-      { text: 'Wallet', callback_data: 'ps:wallet' },
-      { text: 'My Orders', callback_data: 'ps:orders' },
-    ],
-    [
-      { text: 'Referral', callback_data: 'ps:referral' },
-      { text: 'Support', callback_data: 'ps:support' },
-    ],
-    [{ text: 'Help', callback_data: 'ps:help', style: 'link' }],
-    ...(showAdmin ? [[{ text: 'Admin panel', callback_data: 'ps:admin' }]] : []),
+export function helpMessage() {
+  return { blocks: [
+    { type: 'heading', size: 1, text: 'Help' },
+    { type: 'paragraph', text: 'Use the buttons below to navigate the Portals SMM storefront.' },
+    { type: 'list', items: [
+      { blocks: [{ type: 'paragraph', text: '/start — Open the storefront' }] },
+      { blocks: [{ type: 'paragraph', text: '/menu — Return to the storefront' }] },
+      { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
+    ] },
+    { type: 'paragraph', text: 'Portal Points are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
+    row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
+}
 
-  try {
-    return await api.sendRichMessage({
-      chat_id: chatId,
-      rich_message: buildHomeMessage(firstName),
-      reply_markup: replyMarkup,
-    });
-  } catch (error) {
-    // Keep /start and /menu usable if Telegram rejects rich formatting or
-    // the rich-message method has a transient API failure.
-    console.error('PortalsSmmBot home Rich Message failed:', error?.description || error);
-    return api.sendMessage({
-      chat_id: chatId,
-      text: `Portals SMM\\n\\nWelcome, ${firstName}. Manage your services, Portal Points, and orders from one place.\\n\\nChoose an option below to continue.`,
-      reply_markup: replyMarkup,
-    });
+const screens = {
+  services: {
+    title: 'Services',
+    description: 'The service catalogue is being prepared. Available services will appear here once supplier rates and delivery terms have been reviewed.',
+  },
+  deposit: {
+    title: 'Deposit',
+    description: 'Stars deposits are not enabled yet. Your balance will be credited only after Telegram confirms a successful payment.',
+  },
+  wallet: {
+    title: 'Wallet',
+    description: 'Your Portal Points balance and transaction history will appear here.',
+  },
+  orders: {
+    title: 'My Orders',
+    description: 'Your order history and delivery status will appear here after the catalogue is enabled.',
+  },
+  referral: {
+    title: 'Referral programme',
+    description: 'Your personal referral link and reward history will appear here when the programme is enabled.',
+  },
+  support: {
+    title: 'Support',
+    description: 'Support information will be published here. Keep your internal order ID available when requesting help.',
+  },
+};
+
+export function sectionMessage(section) {
+  const page = screens[section];
+  if (!page) return unavailableMessage();
+  return { blocks: [
+    { type: 'heading', size: 1, text: page.title },
+    { type: 'paragraph', text: page.description },
+    { type: 'divider' },
+    row(button('‹ Main menu', 'ps:home', 'link')),
+  ] };
+}
+
+export function unavailableMessage() {
+  return { blocks: [
+    { type: 'heading', size: 2, text: 'Page unavailable' },
+    { type: 'paragraph', text: 'This option is not available yet.' },
+    row(button('‹ Main menu', 'ps:home', 'link')),
+  ] };
+}
+
+export function adminPanelMessage(adminIds = [], databaseAvailable = true) {
+  const ids = [...new Set(adminIds)].sort((a, b) => a - b);
+  const blocks = [
+    { type: 'heading', size: 1, text: 'Administrator panel' },
+    { type: 'paragraph', text: 'Manage bot access and administrator accounts.' },
+    { type: 'paragraph', text: `Designated owners: 6522801911 · 1314643983` },
+    { type: 'paragraph', text: `Registered administrators: ${ids.length}` },
+  ];
+  if (!databaseAvailable) {
+    blocks.push({ type: 'paragraph', text: 'Administrator storage is temporarily unavailable. Owner access remains active.' });
   }
+  blocks.push(row(button('Add administrator', 'ps:admin:add', 'success'), button('Remove administrator', 'ps:admin:remove', 'danger')));
+  blocks.push(row(button('‹ Main menu', 'ps:home', 'link')));
+  return { blocks };
+}
+
+export function adminAddPromptMessage() {
+  return { blocks: [
+    { type: 'heading', size: 2, text: 'Add administrator' },
+    { type: 'paragraph', text: 'Send the numeric Telegram user ID you want to add. The account will receive administrator access.' },
+    row(button('Cancel', 'ps:admin:cancel', 'link')),
+  ] };
+}
+
+export function adminRemovalMessage(ids = []) {
+  const blocks = [
+    { type: 'heading', size: 1, text: 'Remove administrator' },
+    { type: 'paragraph', text: 'Select an account to remove. The designated owners are protected.' },
+  ];
+  for (const id of ids) {
+    blocks.push(row(button(`Remove ${id}`, `ps:admin:del:${id}`, 'danger')));
+  }
+  if (!ids.length) blocks.push({ type: 'paragraph', text: 'There are no removable administrators.' });
+  blocks.push(row(button('‹ Back to admin panel', 'ps:admin', 'link')));
+  return { blocks };
+}
+
+export async function sendRich(chatId, richMessage) {
+  return api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
+}
+
+export async function editRich(chatId, messageId, richMessage) {
+  return api.editMessageText({
+    chat_id: chatId,
+    message_id: messageId,
+    rich_message: richMessage,
+  });
+}
+
+export async function sendHome(chatId, user, showAdmin = false) {
+  return sendRich(chatId, homeMessage(fullName(user), showAdmin));
 }
 
 export async function sendHelp(chatId) {
-  return api.sendRichMessage({
-    chat_id: chatId,
-    rich_message: buildHelpMessage(),
-    reply_markup: { inline_keyboard: [[
-      { text: '‹ Main menu', callback_data: 'ps:home' },
-    ]] },
-  });
+  return sendRich(chatId, helpMessage());
 }
