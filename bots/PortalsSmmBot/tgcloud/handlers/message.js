@@ -6,7 +6,7 @@ import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerS
 import { adminSessions, userSessions, paymentSupportTickets } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
-import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage } from '../lib/payments.js';
+import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage, hasAcceptedTerms, termsAcceptanceMessage } from '../lib/payments.js';
 import { listAdmins } from '../lib/admins.js';
 import { myOrdersMessage } from '../lib/orders.js';
 
@@ -160,8 +160,10 @@ export default async function handleMessage(message) {
 
     if (parsed.command === '/deposit') {
       if (!parsed.argument) {
-        return await sendRich(chatId, FEATURES.depositsEnabled ? depositMessage() : depositUnavailableMessage());
+        if (!FEATURES.depositsEnabled) return await sendRich(chatId, depositUnavailableMessage());
+        return await sendRich(chatId, await hasAcceptedTerms(userId) ? depositMessage() : termsAcceptanceMessage());
       }
+      if (!await hasAcceptedTerms(userId)) return await sendRich(chatId, termsAcceptanceMessage());
       const amount = Number(parsed.argument);
       try {
         await createStarsInvoice(userId, chatId, amount);
@@ -199,6 +201,7 @@ export default async function handleMessage(message) {
           { type: 'paragraph', text: 'Orders: provide a valid public Telegram target and check the service details before confirming. Do not submit private credentials, passwords or login codes.' },
           { type: 'paragraph', text: 'Refunds and payment issues: contact /paysupport with your transaction reference. Refund requests are reviewed against the payment record and wallet activity.' },
           { type: 'paragraph', text: 'Abuse: self-referrals, fake activity, fraudulent payments and attempts to exploit the service may result in suspended access and reversal of promotional rewards.' },
+          { type: 'buttons', buttons: [{ text: '✓ I agree — continue', callback_data: 'ps:deposit:accept', style: 'success' }] },
           { type: 'buttons', buttons: [{ text: '💬 Payment support', callback_data: 'ps:support:payment' }, { text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
         ],
       });
