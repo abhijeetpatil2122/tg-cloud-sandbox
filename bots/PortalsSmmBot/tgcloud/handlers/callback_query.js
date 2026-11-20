@@ -75,7 +75,7 @@ export default async function handleCallbackQuery(query) {
     if (data === 'ps:deposit') {
       return render(chatId, messageId, FEATURES.depositsEnabled ? depositMessage() : depositUnavailableMessage());
     }
-    const depositChoice = data.match(/^ps:deposit:(\\d{1,5})$/);
+    const depositChoice = data.match(/^ps:deposit:(\d{1,5})$/);
     if (depositChoice) {
       try {
         await createStarsInvoice(userId, chatId, Number(depositChoice[1]));
