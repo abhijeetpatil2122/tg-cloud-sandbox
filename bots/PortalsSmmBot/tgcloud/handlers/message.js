@@ -6,7 +6,7 @@ import { adminSessions } from '../schema.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
 
 function getCommand(text = '') {
-  const [raw = ''] = text.trim().split(/\\s+/);
+  const [raw = ''] = text.trim().split(/\s+/);
   return raw.split('@', 1)[0].toLowerCase();
 }
 
@@ -26,7 +26,7 @@ export default async function handleMessage(update) {
       await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
       return api.sendMessage({ chat_id: message.chat.id, text: 'Only a designated owner can add administrators.' });
     }
-    if (!/^\\d{5,15}$/.test(text)) return api.sendMessage({ chat_id: message.chat.id, text: 'Send a numeric Telegram user ID, or /cancel to stop.' });
+    if (!/^\d{5,15}$/.test(text)) return api.sendMessage({ chat_id: message.chat.id, text: 'Send a numeric Telegram user ID, or /cancel to stop.' });
     const result = await addAdmin(Number(text), userId);
     await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
     return api.sendMessage({ chat_id: message.chat.id, text: result.added ? `Administrator ${text} added.` : 'That account is already a configured owner or administrator.' });
