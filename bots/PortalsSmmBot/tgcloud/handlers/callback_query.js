@@ -82,6 +82,17 @@ export default async function handleCallbackQuery(query) {
         return render(chatId, messageId, customerServicesMessage([]));
       }
     }
+    const customerServicePage = data.match(/^ps:services:(\d{1,4})$/);
+    if (customerServicePage) {
+      try {
+        return render(chatId, messageId, customerServicesMessage(
+          await listTelegramServices(true),
+          Number(customerServicePage[1]),
+        ));
+      } catch {
+        return render(chatId, messageId, customerServicesMessage([]));
+      }
+    }
     const serviceDetail = data.match(/^ps:service:(\d{1,12})$/);
     if (serviceDetail) {
       try {
