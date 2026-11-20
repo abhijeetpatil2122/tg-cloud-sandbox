@@ -55,8 +55,8 @@ export default async function handleMessage(message) {
           const admins = await listAdmins();
           await Promise.all(admins.map(id => api.sendMessage({
             chat_id: id,
-            text: '💬 New payment support request\\nTicket: #' + ticketId + '\\nUser: ' + userId + '\\nMessage: ' + text.slice(0, 1800),
-          }).catch(error => console.error('Payment support notification failed:', error?.description || error)));
+            text: '💬 New payment support request\nTicket: #' + ticketId + '\nUser: ' + userId + '\nMessage: ' + text.slice(0, 1800),
+          }).catch(error => console.error('Payment support notification failed:', error?.description || error))));
         } catch (error) {
           console.error('Could not notify payment support admins:', error?.description || error);
         }
