@@ -235,7 +235,10 @@ export default async function handleCallbackQuery(query) {
           const result = await syncTelegramServices();
           const services = await listTelegramServices(false);
           const page = adminServicesMessage(services, 0);
-          page.blocks.splice(2, 0, { type: 'paragraph', text: `Synced ${result.telegramImported} Telegram services from ${result.providerTotal} supplier listings.` });
+          const syncSummary = result.telegramImported
+            ? `Synced ${result.telegramImported} Telegram services from ${result.providerTotal} supplier listings.`
+            : `No Telegram services matched among ${result.providerTotal} supplier listings. Categories seen: ${(result.categoriesSeen || []).join(', ') || 'not supplied'}. Sample service names: ${(result.serviceExamples || []).join(' · ') || 'not supplied'}.`;
+          page.blocks.splice(2, 0, { type: 'paragraph', text: syncSummary });
           return render(chatId, messageId, page);
         } catch (providerError) {
           return render(chatId, messageId, {
