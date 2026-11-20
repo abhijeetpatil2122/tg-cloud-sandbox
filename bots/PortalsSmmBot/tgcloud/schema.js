@@ -7,7 +7,7 @@ export const botAdmins = table('bot_admins', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
 
-// One pending admin-management input per initiating owner/admin.
+// One pending admin-management input per initiating owner.
 export const adminSessions = table('admin_sessions', {
   userId: integer('user_id').primaryKey(),
   action: text('action').notNull(),
