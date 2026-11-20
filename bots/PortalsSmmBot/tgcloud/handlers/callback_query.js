@@ -17,9 +17,10 @@ import {
   customerServicesMessage,
   customerServiceDetailsMessage,
 } from '../lib/ui.js';
-import { adminSessions } from '../schema.js';
+import { adminSessions, userSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
+import { createStarsInvoice, depositMessage, depositUnavailableMessage } from '../lib/payments.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -70,6 +71,46 @@ export default async function handleCallbackQuery(query) {
     }
 
     if (data === 'ps:help') return render(chatId, messageId, helpMessage());
+
+    if (data === 'ps:deposit') {
+      return render(chatId, messageId, FEATURES.depositsEnabled ? depositMessage() : depositUnavailableMessage());
+    }
+    const depositChoice = data.match(/^ps:deposit:(\\d{1,5})$/);
+    if (depositChoice) {
+      try {
+        await createStarsInvoice(userId, chatId, Number(depositChoice[1]));
+        return render(chatId, messageId, {
+          blocks: [
+            { type: 'heading', size: 1, text: '⭐ Invoice created' },
+            { type: 'paragraph', text: 'Complete the Telegram Stars payment in the invoice message. Your Portal Points will be credited after Telegram confirms payment.' },
+            { type: 'buttons', buttons: [{ text: '‹ Deposit options', callback_data: 'ps:deposit', style: 'link' }] },
+          ],
+        });
+      } catch (error) {
+        return render(chatId, messageId, {
+          blocks: [
+            { type: 'heading', size: 1, text: '⭐ Deposit unavailable' },
+            { type: 'paragraph', text: error?.message || 'The invoice could not be created. Please try again later.' },
+            { type: 'buttons', buttons: [{ text: '‹ Deposit options', callback_data: 'ps:deposit', style: 'link' }] },
+          ],
+        });
+      }
+    }
+    if (data === 'ps:support:cancel') {
+      await db.delete(userSessions).where(eq(userSessions.userId, userId)).run();
+      return render(chatId, messageId, sectionMessage('support'));
+    }
+    if (data === 'ps:support:payment') {
+      await db.insert(userSessions).values({ userId, action: 'payment_support', createdAt: new Date() })
+        .onConflictDoUpdate({ target: userSessions.userId, set: { action: 'payment_support', createdAt: new Date() } }).run();
+      return render(chatId, messageId, {
+        blocks: [
+          { type: 'heading', size: 1, text: '💬 Payment support' },
+          { type: 'paragraph', text: 'Describe the payment problem in your next message. Include a transaction reference or approximate payment time if available. Never send passwords or login codes.' },
+          { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:support:cancel', style: 'link' }] },
+        ],
+      });
+    }
     if (data === 'ps:wallet') return render(chatId, messageId, await walletMessage(userId));
     if (data === 'ps:history') return render(chatId, messageId, await transactionHistoryMessage(userId, 0));
     const historyPage = data.match(/^ps:history:(\d{1,4})$/);
