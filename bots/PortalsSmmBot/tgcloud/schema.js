@@ -110,3 +110,8 @@ export const serviceOrders = table('service_orders', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
+export const termsAcceptances = table('terms_acceptances', {
+  userId: integer('user_id').primaryKey(),
+  version: text('version').notNull(),
+  acceptedAt: integer('accepted_at', { mode: 'timestamp' }).notNull(),
+});
