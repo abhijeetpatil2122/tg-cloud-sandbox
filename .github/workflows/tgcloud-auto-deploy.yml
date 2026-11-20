@@ -378,4 +378,8 @@ jobs:
             npx tgcloud run endpoints/uploadMediaChunk "{ upload_id: '${smoke_upload_id}', index: 0, base64: '-__-AAE' }" --ctx "{ initData: { user: { id: ${smoke_user_id} } } }"
             npx tgcloud run endpoints/cancelMediaUpload "{ upload_id: '${smoke_upload_id}' }" --ctx "{ initData: { user: { id: ${smoke_user_id} } } }"
           fi
+          if [[ "$BOT_PATH" == "bots/PortalsSmmBot" ]]; then
+            echo "Inspecting Telegram webhook delivery state..."
+            npx tgcloud webhook
+          fi
           npx tgcloud status
