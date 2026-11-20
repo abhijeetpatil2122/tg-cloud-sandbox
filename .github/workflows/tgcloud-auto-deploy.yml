@@ -106,10 +106,6 @@ jobs:
                   if not path.startswith(f"{bot_root}/"):
                       continue
                   relative = path[len(bot_root) + 1:]
-                  # PortalsSmmBot's config.js is edited directly in BotFather.
-                  # Never trigger or deploy it from the repository.
-                  if bot_name == "PortalsSmmBot" and relative == "tgcloud/lib/config.js":
-                      continue
                   if (
                       relative.startswith("tgcloud/")
                       or relative in deployable_root_files
