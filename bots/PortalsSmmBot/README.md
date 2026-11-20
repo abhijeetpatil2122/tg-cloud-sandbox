@@ -4,7 +4,7 @@ Telegram SMM storefront project built on Telegram Serverless.
 
 ## Current status
 
-**Planning / documentation stage.** The project-specific agent instructions are in [AGENTS.md](./AGENTS.md). No production service catalogue, pricing, Stars conversion, referral reward, admin allowlist, provider credential, or live order policy has been approved.
+**Planning / documentation stage.** The customer wallet rule is planned as 1 paid Star = 1 Portal Point; referral reward is planned at 10% of the first qualifying deposit; target gross margin is 30%, with prices rounded up to the next 5 points. The final INR accounting source/rate, referral minimum, catalogue, admin allowlist, provider credential, and live order policy remain open. See [AGENTS.md](./AGENTS.md) for the financial assumptions and security gates.
 
 ## Intended stack
 
@@ -13,7 +13,8 @@ Telegram SMM storefront project built on Telegram Serverless.
 - Serverless Actions secret: `TGCLOUD_TOKEN_PORTALSSMMBOT`
 - Provider API: smm.plus at `https://smm.plus/api/v2`
 - Customer payments: Telegram Stars (`XTR`)
-- Internal wallet: integer points recorded in an append-only ledger
+- Internal wallet: integer Portal Points (1 paid Star = 1 point) recorded in an append-only ledger
+- Planning economics: Telegram's stated US$0.013 reward equivalent per earned Star; provisional ₹1.2119 per point at ₹93.22/USD on 2026-11-20, subject to revalidation
 - Initial UI: native Telegram Rich Messages with editable menu navigation
 
 ## Setup
