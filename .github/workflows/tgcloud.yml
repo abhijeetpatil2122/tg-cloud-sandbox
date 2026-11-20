@@ -20,6 +20,7 @@ on:
         options:
           - status
           - deploy
+          - migrate-safe
 
 permissions:
   contents: read
@@ -119,6 +120,18 @@ jobs:
           cd "$BOT_PATH"
           npx tgcloud fetch
           npx tgcloud status
+
+      - name: Apply reviewed safe schema additions
+        if: inputs.mode == 'migrate-safe'
+        env:
+          TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || inputs.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || inputs.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || inputs.bot_path == 'bots/ScamGiveawaysBot' && secrets.TGCLOUD_TOKEN_SCAMGIVEAWAYSBOT || inputs.bot_path == 'bots/PortalsSmmBot' && secrets.TGCLOUD_TOKEN_PORTALSSMMBOT || '' }}
+        run: |
+          set -euo pipefail
+          cd "$BOT_PATH"
+          # Publish only the schema module, then apply additive/safe changes.
+          # --safe skips destructive or manually-reviewed operations.
+          npx tgcloud push tgcloud/schema.js
+          npx tgcloud migrate --safe
 
       - name: Deploy selected bot project
         if: inputs.mode == 'deploy'
