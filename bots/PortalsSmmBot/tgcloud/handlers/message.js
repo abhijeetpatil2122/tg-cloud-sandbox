@@ -60,7 +60,7 @@ export default async function handleMessage(message) {
         await sendRich(chatId, {
           blocks: [
             { type: 'heading', size: 2, text: result.added ? 'Administrator added' : 'Already registered' },
-            { type: 'paragraph', text: result.added ? \`Telegram user \${text} can now access the administrator panel.\` : 'That account is already an owner or administrator.' },
+            { type: 'paragraph', text: result.added ? `Telegram user ${text} can now access the administrator panel.` : 'That account is already an owner or administrator.' },
             { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
           ],
         });
@@ -84,7 +84,7 @@ export default async function handleMessage(message) {
         await sendRich(chatId, {
           blocks: [
             { type: 'heading', size: 2, text: 'Price updated' },
-            { type: 'paragraph', text: \`Service #\${priceInput[1]} is now priced at \${Number(text).toLocaleString('en-IN')} Portal Points.\` },
+            { type: 'paragraph', text: `Service #${priceInput[1]} is now priced at ${Number(text).toLocaleString('en-IN')} Portal Points.` },
             { type: 'buttons', buttons: [{ text: '‹ Telegram services', callback_data: 'ps:admin:services', style: 'link' }] },
           ],
         });
