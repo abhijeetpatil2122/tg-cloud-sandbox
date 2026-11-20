@@ -23,9 +23,9 @@ export function homeMessage(name = 'there', showAdmin = false) {
     { type: 'paragraph', text: 'Your place to manage services, Portal Points and orders.' },
     { type: 'divider' },
     row(button('Services', 'ps:services', 'primary'), button('Deposit', 'ps:deposit', 'success')),
-    row(button('Wallet', 'ps:wallet'), button('My Orders', 'ps:orders')),
-    row(button('Referral', 'ps:referral'), button('Support', 'ps:support')),
-    row(button('Help', 'ps:help', 'link')),
+    row(button('Wallet', 'ps:wallet'), button('Transactions', 'ps:history')),
+    row(button('My Orders', 'ps:orders'), button('Referral', 'ps:referral')),
+    row(button('Support', 'ps:support'), button('Help', 'ps:help', 'link')),
   ];
   if (showAdmin) blocks.push(row(button('Administrator panel', 'ps:admin')));
   blocks.push({ type: 'footer', text: 'Payments via Telegram Stars · Portal Points are store credit' });
@@ -39,6 +39,8 @@ export function helpMessage() {
     { type: 'list', items: [
       { blocks: [{ type: 'paragraph', text: '/start — Open the storefront' }] },
       { blocks: [{ type: 'paragraph', text: '/menu — Return to the storefront' }] },
+      { blocks: [{ type: 'paragraph', text: '/wallet — View your balance' }] },
+      { blocks: [{ type: 'paragraph', text: '/history — View your transactions' }] },
       { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
     ] },
     { type: 'paragraph', text: 'Portal Points are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
@@ -99,6 +101,7 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true, canMa
     { type: 'paragraph', text: 'Manage bot access and administrator accounts.' },
     { type: 'paragraph', text: `Designated owners: 6522801911 · 1314643983` },
     { type: 'paragraph', text: `Registered administrators: ${ids.length}` },
+    row(button('Recent transactions', 'ps:admin:transactions', 'primary')),
   ];
   if (!databaseAvailable) {
     blocks.push({ type: 'paragraph', text: 'Administrator storage is temporarily unavailable. Owner access remains active.' });
