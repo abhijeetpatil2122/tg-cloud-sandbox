@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { OWNER_IDS } from '../lib/config.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
-import { adminAddPromptMessage, fullName, helpMessage, homeMessage, sendRich } from '../lib/ui.js';
+import { fullName, helpMessage, homeMessage, sendRich } from '../lib/ui.js';
 import { adminSessions } from '../schema.js';
 
 function parseCommand(value = '') {
@@ -66,7 +66,7 @@ export default async function handleMessage(message) {
       }
     }
 
-    const parsed = parseCommand(text);
+    // Command parsing is intentionally independent of database-backed features.\n    const parsed = parseCommand(text);
     if (!parsed) return;
 
     if (parsed.command === '/cancel' && OWNER_IDS.includes(userId)) {
