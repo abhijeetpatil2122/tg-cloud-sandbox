@@ -8,6 +8,7 @@ import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage } from '../lib/payments.js';
 import { listAdmins } from '../lib/admins.js';
+import { myOrdersMessage } from '../lib/orders.js';
 
 function parseCommand(value = '') {
   const match = value.trim().match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?(?:\s+([\s\S]*))?$/i);
@@ -211,9 +212,17 @@ export default async function handleMessage(message) {
       }
     }
 
+    if (parsed.command === '/orders') {
+      try {
+        return await sendRich(chatId, await myOrdersMessage(userId, 0));
+      } catch (error) {
+        console.error('Order history unavailable:', error?.description || error?.message || error);
+        return await sendRich(chatId, sectionMessage('orders'));
+      }
+    }
+
     const sectionCommands = {
       '/deposit': 'deposit',
-      '/orders': 'orders',
       '/referral': 'referral',
       '/support': 'support',
     };
