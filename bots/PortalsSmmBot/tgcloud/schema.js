@@ -61,3 +61,35 @@ export const providerServices = table('provider_services', {
   lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
+
+// Pending Telegram Stars invoices. A payment is credited only after a
+// matching successful_payment update has been verified.
+export const depositIntents = table('deposit_intents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
+  payload: text('payload').notNull().unique(),
+  stars: integer('stars').notNull(),
+  points: integer('points').notNull(),
+  transactionId: integer('transaction_id').notNull(),
+  status: text('status').notNull().default('pending'),
+  telegramChargeId: text('telegram_charge_id').unique(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// User-side conversation state for payment support intake.
+export const userSessions = table('user_sessions', {
+  userId: integer('user_id').primaryKey(),
+  action: text('action').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+export const paymentSupportTickets = table('payment_support_tickets', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
+  message: text('message').notNull(),
+  status: text('status').notNull().default('open'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
