@@ -1,12 +1,42 @@
 import { api, db } from 'sdk';
 import { desc, eq, sql } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
-import { depositIntents, walletTransactions } from '../schema.js';
+import { depositIntents, walletTransactions, termsAcceptances } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction } from './wallet.js';
 import { sendRich } from './ui.js';
 import { listAdmins } from './admins.js';
 
 export const DEPOSIT_PACKAGES = [50, 100, 250, 500, 1000];
+
+export const TERMS_VERSION = '2026-11-20';
+
+export async function hasAcceptedTerms(userId) {
+  const row = await db.select().from(termsAcceptances)
+    .where(eq(termsAcceptances.userId, Number(userId))).get();
+  return Boolean(row && row.version === TERMS_VERSION);
+}
+
+export async function acceptStoreTerms(userId) {
+  await db.insert(termsAcceptances).values({
+    userId: Number(userId),
+    version: TERMS_VERSION,
+    acceptedAt: new Date(),
+  }).onConflictDoUpdate({
+    target: termsAcceptances.userId,
+    set: { version: TERMS_VERSION, acceptedAt: new Date() },
+  }).run();
+}
+
+export function termsAcceptanceMessage() {
+  return { blocks: [
+    { type: 'heading', size: 1, text: '📜 Before you deposit' },
+    { type: 'paragraph', text: 'Please read /terms before purchasing Portal Points. Deposits are paid in Telegram Stars; Portal Points are non-cash store credit. Service availability, delivery and refill terms vary by service.' },
+    { type: 'paragraph', text: 'By continuing, you confirm that you have read and agree to the Portals SMM store terms.' },
+    { type: 'buttons', buttons: [{ text: '✓ I agree — continue', callback_data: 'ps:deposit:accept', style: 'success' }] },
+    { type: 'buttons', buttons: [{ text: 'Read full terms', callback_data: 'ps:terms' }, { text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
+  ] };
+}
+
 
 function makePayload(userId) {
   // Opaque database reference, not an authorization token.
@@ -56,6 +86,7 @@ export function depositMessage() {
 export async function createStarsInvoice(userId, chatId, stars) {
   const amount = Number(stars);
   if (!FEATURES.depositsEnabled) throw new Error('Stars deposits are not enabled yet.');
+  if (!await hasAcceptedTerms(userId)) throw new Error('Please read and accept the store terms before depositing.');
   if (!Number.isSafeInteger(amount) || amount < 10 || amount > 10000) {
     throw new Error('Choose an amount between 10 and 10,000 Stars.');
   }
