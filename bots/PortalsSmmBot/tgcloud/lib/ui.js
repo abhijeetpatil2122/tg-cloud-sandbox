@@ -6,7 +6,7 @@ export function buildHomeMessage(firstName = 'there') {
       { type: 'heading', size: 1, text: 'Portals SMM' },
       { type: 'paragraph', text: `Welcome, ${firstName}. Manage your services, Portal Points, and orders from one place.` },
       { type: 'divider' },
-      { type: 'section', text: 'Your storefront' },
+      { type: 'heading', size: 3, text: 'Your storefront' },
       { type: 'paragraph', text: 'Choose an option below to continue.' },
       { type: 'footer', text: 'Secure checkout · Telegram Stars · Order tracking' },
     ],
