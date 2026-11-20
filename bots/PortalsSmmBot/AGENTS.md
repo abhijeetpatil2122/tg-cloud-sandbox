@@ -87,21 +87,14 @@ Official API documentation reviewed: https://smm.plus/bp/api (the supplied https
 - Do not assume API access offers a free sandbox. Service-list and balance reads can test connectivity; a paid order consumes provider funds. Obtain owner approval before any paid test order.
 - Do not market services as guaranteed, organic, official, or risk-free unless the exact selected service terms substantiate that claim. Show accurate provider limitations and comply with Telegram rules and applicable law.
 
-### Provider credentials — secure configuration decision
+### Provider credentials
 
-The official Serverless documentation describes the BotFather phone-based editor for handlers, endpoints, library modules, database schema, and Mini App files. It does **not** document a dedicated runtime secret manager, runtime environment-variable injection, or a secret/config vault. The GitHub Actions secret used for CLI login is a deployment credential and is not automatically exposed to runtime modules.
-
-Important distinction:
-- BotFather's Serverless editor is a convenient way to edit cloud code from Android; it is not documented as a secret vault.
-- A `/config` command that accepts the SMM key in chat and stores it in SQLite would place the credential in chat/update history and/or ordinary database storage. Do not implement this as the default.
-- Telegram Mini App `SecureStorage` is encrypted storage on an individual user's device. It is not a server-side shared secret store and must never hold the provider key for backend use.
-- Never commit the provider key to this public repository, put it in frontend code, callback data, logs, workflow output, or a normal public Actions variable.
-
-Preferred implementation path: use a dedicated GitHub Actions repository secret (for example `SMM_PLUS_API_KEY_PORTALSSMMBOT`) and inject it into a server-only provider credential module during the manual deploy workflow, without printing it or committing the generated file. The runtime module must be server-only and never return the key. The workflow must use a targeted module push and must not accidentally delete unrelated cloud modules. This still means the deployed Serverless module contains the credential; access to the BotFather Serverless project and CLI token must therefore remain tightly restricted. Revisit this if Telegram documents a native runtime secret facility.
-
-If the owner specifically chooses manual editing in BotFather instead, use a separate server-only library module and explain that the key becomes part of the cloud source code, can be exposed to anyone with project/CLI access, and may be overwritten or pulled into GitHub during sync. Do not create a chat-based `/setapikey` command unless a proper protected secret-storage design is approved.
-
-Do not implement provider calls that require the key until the owner has chosen and configured the credential path. Never ask the owner to paste the key into ChatGPT.
+- The provider configuration lives in `tgcloud/lib/config.js`.
+- The owner has explicitly chosen to keep the dummy test key in that shared module and to deploy the module normally with the rest of the project.
+- Both manual and automatic workflows must include `tgcloud/lib/config.js`; do not special-case or exclude it.
+- The configured value is a dummy test credential and must not be treated as production access. Never print credentials in logs, messages, callback data, or customer-visible output.
+- Do not add a chat-based command for entering or displaying the provider key.
+- A value stored in this source file is visible to people with repository or Serverless project access. Replace it with a properly protected production credential before any live provider orders.
 
 ## Telegram Stars deposits
 
@@ -296,31 +289,27 @@ Owner approval update (2026-11-20): PortalsSmmBot is included in the repository 
 
 ## Migrations and deployment
 
-- The manual workflow must map `bots/PortalsSmmBot` to `TGCLOUD_TOKEN_PORTALSSMMBOT`.
-- Use `FROM_TOKEN` until the app ID is independently verified from the scoped CLI token.
-- First run the manual workflow in `status` mode. A status run does not deploy.
+- The manual workflow maps `bots/PortalsSmmBot` to `TGCLOUD_TOKEN_PORTALSSMMBOT` and supports status and deploy modes.
+- The automatic workflow deploys approved PortalsSmmBot code changes from `main`.
+- All runtime modules under `tgcloud/schema.js`, `tgcloud/lib/`, `tgcloud/handlers/`, and `tgcloud/endpoints/` are included, including `tgcloud/lib/config.js`.
+- Do not add a special deployment exclusion for the shared config module.
 - Never run `npx tgcloud migrate` without explicit owner approval after reviewing the exact migration plan.
-- Neither manual nor automatic CI deployment may run migrations.
-- Automatic deployment is approved for deployable code changes on `main`; pull requests only validate and do not deploy.
-- **Critical cloud-config protection:** `tgcloud/lib/config.js` is edited manually in BotFather and may contain the smm.plus API key. Both automatic and manual workflows must exclude it from targeted push module lists. Changes to this file in GitHub must not trigger a deployment. Never use a broad `tgcloud push` for this project.
-- Never deploy, migrate, place a paid provider order, or issue a refund merely because an agent has prepared code.
-- Do not commit `.tgcloud/`, `node_modules/`, local credentials, secrets, or `.env` files.
+- Neither manual nor automatic CI deployment may run database migrations.
+- Never place paid provider orders, issue refunds, or process live Stars payments without explicit approval.
+- Do not commit `.tgcloud/`, `node_modules/`, CLI access tokens, or local session files.
 
 ## Current phase and decisions still required
 
-**Current phase: command-based runtime foundation.** The owner/admin IDs are confirmed and implemented. No production catalogue, final INR accounting rate, qualifying deposit minimum, provider credential, migration, deployment, or live order policy has been approved.
+The storefront shell and owner-managed administrator access are in place. The next work is the Telegram-only catalogue, provider connectivity and service review, wallet transaction history, Stars deposits, order flow, and operational controls.
 
-Resolve with the owner before implementing live commerce:
-1. Choose/configure the SMM API credential path. Preferred: GitHub Actions secret injection into a server-only module; BotFather code editing is available from Android but is not a secret vault.
-2. Admin and owner IDs are confirmed: 6522801911 and 1314643983 (both roles). Additional admins are owner-managed through the panel after schema migration.
-3. The customer wallet conversion is now fixed at 1 Star = 1 Portal Point; confirm the final INR accounting FX source and withdrawal-cost treatment.
-4. Decide preset deposit packages, custom deposit limits, and any deposit bonus.
-5. Set the configurable minimum qualifying referral deposit, caps, and reversal policy. Referral reward is 10% of the first qualifying deposit in points.
-6. Confirm which provider services/categories are allowed in the first launch and the intended target types.
-7. The planning target is 30% gross margin and nearest-5-point pricing; approve the production FX source, safety buffer, and contribution-margin treatment.
-8. Confirm support contact and service/refund/terms wording.
-9. Confirm whether users may order only from private chats (recommended: yes).
-10. Confirm the provider's exact order rate unit, refund/partial-completion behavior, and any service-specific restrictions before public listing.
+The following remain launch decisions:
+1. Final INR accounting FX source and withdrawal-cost treatment.
+2. Preset deposit packages, custom deposit limits, and any deposit bonus.
+3. Minimum qualifying referral deposit, caps, and reversal policy.
+4. Initial approved provider services and target types, based on the live service list.
+5. Production credential handling before live provider orders.
+6. Support contact and final service/refund/terms wording.
+7. Final order/refund policy for partial completion and provider failures.
 
 ## Official and provider references
 
