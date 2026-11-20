@@ -105,6 +105,9 @@ export async function listTelegramServices(enabledOnly = false) {
 export async function setTelegramServicePrice(serviceId, points) {
   const amount = Number(points);
   if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Price must be a positive whole number.');
+  const item = await db.select().from(providerServices)
+    .where(eq(providerServices.serviceId, Number(serviceId))).get();
+  if (!item || !item.isTelegram) throw new Error('Telegram service not found.');
   await db.update(providerServices)
     .set({ customerPrice: amount, updatedAt: new Date() })
     .where(eq(providerServices.serviceId, Number(serviceId)))
