@@ -1,5 +1,5 @@
 import { api, db } from 'sdk';
-import { eq } from 'sdk/db';
+import { desc, eq } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
 import { depositIntents, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction } from './wallet.js';
@@ -220,7 +220,7 @@ export async function adminRefundsMessage(page = 0) {
   const safePage = Math.max(0, Math.min(1000, Number(page) || 0));
   const all = await db.select().from(walletTransactions)
     .where(eq(walletTransactions.kind, 'deposit'))
-    .orderBy().all();
+    .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id)).all();
   const eligible = all.filter(item => item.status === 'completed' && item.reference && Number(item.points) > 0);
   const start = safePage * 6;
   const visible = eligible.slice(start, start + 6);
