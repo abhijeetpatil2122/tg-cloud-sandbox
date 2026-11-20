@@ -140,11 +140,20 @@ jobs:
             # It mirrors the local module set to the cloud, including deletions.
             npx tgcloud push
           else
-            mapfile -t modules < <(
-              find tgcloud -type f -name '*.js' \
-                \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
-                -print | sort
-            )
+            if [[ "$BOT_PATH" == "bots/PortalsSmmBot" ]]; then
+              # Never overwrite BotFather's manually edited provider config.
+              mapfile -t modules < <(
+                find tgcloud -type f -name '*.js' \
+                  \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+                  ! -path 'tgcloud/lib/config.js' -print | sort
+              )
+            else
+              mapfile -t modules < <(
+                find tgcloud -type f -name '*.js' \
+                  \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+                  -print | sort
+              )
+            fi
             if (( ${#modules[@]} == 0 )); then
               echo "::error::No deployable JavaScript modules were found."
               exit 1
