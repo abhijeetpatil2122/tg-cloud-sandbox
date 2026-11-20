@@ -6,7 +6,7 @@ Telegram-first SMM storefront built on Telegram Serverless.
 
 The storefront now includes Rich Message navigation, the improved start menu, owner-managed administrator access, paginated wallet/order history, Telegram-only catalogue import, Telegram Stars invoice and receipt handling, payment support intake, terms acceptance, and administrator Stars refund controls.
 
-The schema now also includes deposit intents, terms acceptance, payment support tickets, and order history. **The additive database migration is still pending.** The manual workflow now has a PortalsSmmBot-only `migrate-safe` mode; run that before deploying the updated modules. After migration, run the workflow again in `deploy` mode, then use the admin Provider → Sync services action to import the read-only Telegram catalogue.
+The schema now also includes deposit intents, terms acceptance, payment support tickets, and order history. **The additive database migration completed on 20 November 2026: 5 changes applied, 0 skipped.** The deployed configuration now enables read-only provider catalogue sync and Telegram Stars deposits. Use the admin Provider → Sync services action to import the supplier's Telegram catalogue; the first import has not yet been verified.
 
 Customer order submission remains disabled until the provider service billing units and the approved Portal Points price model are verified. Referral rewards remain disabled until the owner chooses the minimum qualifying Stars deposit threshold. New supplier services remain disabled until an administrator reviews and prices them.
 
@@ -24,9 +24,7 @@ Customer order submission remains disabled until the provider service billing un
 
 ## Configuration and deployment
 
-Provider settings are maintained in `tgcloud/lib/config.js`. The owner has chosen to keep a dummy test credential in this module for development. Both the manual and automatic workflows deploy this file normally with the rest of the runtime modules.
-
-The configured value is for testing only. Do not use it for live orders. Never print provider credentials in logs or messages. Before production, replace the dummy value with a protected production credential and restrict access to the repository and Serverless project.
+Provider settings are maintained in `tgcloud/lib/config.js` and deployed with the runtime modules. The admin balance check has confirmed that the current credential authenticates successfully. Never print provider credentials in logs or messages; restrict access to the repository and Serverless project.
 
 The manual GitHub Actions workflow maps this project to `TGCLOUD_TOKEN_PORTALSSMMBOT`. The project is also included in automatic deployment from `main`. Deploying code does not apply database migrations.
 
@@ -38,11 +36,10 @@ Schema changes require a separate reviewed migration. No migration, paid provide
 
 ## Development order
 
-1. Review and migrate the wallet and provider catalogue tables.
-2. Verify the supplier connection and review the live Telegram service list.
-3. Complete Stars deposits and payment reconciliation.
-4. Complete customer order placement, status tracking, refill and cancellation handling.
-5. Complete referral rewards and remaining administrator controls.
-6. Finalize terms, support, and launch checks.
+1. Import and review the live Telegram service list.
+2. Complete customer order placement, status tracking, refill and cancellation handling after billing units and pricing are verified.
+3. Configure the minimum qualifying Stars deposit for referral rewards.
+4. Run a controlled end-to-end Stars payment test and reconcile the ledger.
+5. Finalize launch checks and administrator support procedures.
 
 See [AGENTS.md](./AGENTS.md) for implementation rules, provider API details, pricing policy, security, and rollout requirements.
