@@ -24,7 +24,7 @@ export async function listAdmins() {
 export async function addAdmin(userId, addedBy) {
   const id = Number(userId);
   if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Enter a valid numeric Telegram user ID.');
-  if (isOwner(id) || ADMIN_IDS.includes(id)) return { added: false, reason: 'already_configured' };
+  if (await isAdmin(id)) return { added: false, reason: 'already_configured' };
   await db.insert(botAdmins).values({ userId: id, addedBy, createdAt: new Date() })
     .onConflictDoNothing().run();
   return { added: true };
