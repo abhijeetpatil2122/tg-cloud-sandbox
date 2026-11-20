@@ -271,15 +271,15 @@ export default async function handleCallbackQuery(query) {
       if (data === 'ps:admin:refunds') {
         return render(chatId, messageId, await adminRefundsMessage(0));
       }
-      const refundPage = data.match(/^ps:admin:refunds:(\\d{1,4})$/);
+      const refundPage = data.match(/^ps:admin:refunds:(\d{1,4})$/);
       if (refundPage) {
         return render(chatId, messageId, await adminRefundsMessage(Number(refundPage[1])));
       }
-      const refundPreview = data.match(/^ps:admin:refund:(\\d{1,12})$/);
+      const refundPreview = data.match(/^ps:admin:refund:(\d{1,12})$/);
       if (refundPreview) {
         return render(chatId, messageId, await refundPreviewMessage(Number(refundPreview[1])));
       }
-      const refundConfirm = data.match(/^ps:admin:refund:confirm:(\\d{1,12})$/);
+      const refundConfirm = data.match(/^ps:admin:refund:confirm:(\d{1,12})$/);
       if (refundConfirm) {
         try {
           const result = await refundStarsDeposit(Number(refundConfirm[1]), userId);
