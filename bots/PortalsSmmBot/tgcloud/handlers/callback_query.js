@@ -21,6 +21,7 @@ import { adminSessions, userSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit } from '../lib/payments.js';
+import { adminPaymentSupportMessage, resolvePaymentSupportTicket } from '../lib/support.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -264,6 +265,25 @@ export default async function handleCallbackQuery(query) {
             { type: 'heading', size: 2, text: 'Set customer price' },
             { type: 'paragraph', text: 'Send the selling price in whole Portal Points. The service will remain disabled until you enable it.' },
             { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
+          ],
+        });
+      }
+
+      if (data === 'ps:admin:paysupport') {
+        return render(chatId, messageId, await adminPaymentSupportMessage(0));
+      }
+      const paymentSupportPage = data.match(/^ps:admin:paysupport:(\d{1,4})$/);
+      if (paymentSupportPage) {
+        return render(chatId, messageId, await adminPaymentSupportMessage(Number(paymentSupportPage[1])));
+      }
+      const resolveSupport = data.match(/^ps:admin:paysupport:resolve:(\d{1,12})$/);
+      if (resolveSupport) {
+        const result = await resolvePaymentSupportTicket(Number(resolveSupport[1]));
+        return render(chatId, messageId, {
+          blocks: [
+            { type: 'heading', size: 1, text: result.resolved ? '✓ Request resolved' : 'Request already closed' },
+            { type: 'paragraph', text: result.resolved ? 'The customer has been notified.' : 'This support request is no longer open.' },
+            { type: 'buttons', buttons: [{ text: '‹ Payment support', callback_data: 'ps:admin:paysupport', style: 'link' }] },
           ],
         });
       }
