@@ -324,16 +324,23 @@ The following remain launch decisions:
 
 ## Current implementation status (2026-11-20)
 
-The project has a working Rich Message storefront shell, private-chat navigation, and owner-managed administrator access. The shared provider configuration is included in normal repository deployments. The current configured provider credential is a dummy test value and must not be used for live orders.
+Implemented and deployed:
+- Rich Message storefront navigation and private-chat commands.
+- Owner-managed administrator access.
+- Customer wallet and paginated transaction-history screens.
+- Append-only points-ledger schema and idempotent credit/debit helpers.
+- Provider connection and supplier-balance check.
+- Telegram-only provider catalogue sync, service review, manual Portal Points pricing, and enable/disable controls.
+- Admin recent-transaction view.
 
-The next implementation stages are:
-1. Telegram-only service discovery, catalogue review, and provider balance/connectivity tools.
-2. Customer wallet balance and transaction history, backed by an append-only points ledger.
-3. Telegram Stars deposit intents, verified payment crediting, and refund records.
-4. Curated service ordering, supplier status tracking, and order reconciliation.
-5. Referral rewards, customer support, terms, and complete administrator controls.
+The wallet and provider catalogue tables are declared and deployed, but their database migration has not been applied. Transaction screens handle the not-yet-migrated state without exposing database errors. No Stars payment, provider order, or customer purchase has been performed.
 
-Schema changes are deployed as code first and migrated separately. Do not run migrations without explicit owner approval after reviewing the migration plan.
+Next stages:
+1. Review the additive wallet/catalogue migration and obtain owner approval before applying it.
+2. Verify the provider connection and review the actual Telegram service list. The current configured key is a dummy test value.
+3. Complete Telegram Stars deposit intents, successful-payment crediting, and refund reconciliation.
+4. Complete customer order input, pricing confirmation, safe debit, provider submission, status tracking, and aftercare.
+5. Complete referrals, user lookup, support, terms, and the remaining administrator tools.
 
 ## Administrator access update
 
