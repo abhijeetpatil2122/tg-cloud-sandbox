@@ -242,7 +242,7 @@ export default async function handleMessage(message) {
           ],
         });
       }
-      if (parsed.argument && /^\\d{1,12}$/.test(parsed.argument)) {
+      if (parsed.argument && /^\d{1,12}$/.test(parsed.argument)) {
         return await sendRich(chatId, await refundPreviewMessage(Number(parsed.argument)));
       }
       return await sendRich(chatId, await adminRefundsMessage(0));
