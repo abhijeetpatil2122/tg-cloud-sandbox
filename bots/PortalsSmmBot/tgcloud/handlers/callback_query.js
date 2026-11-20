@@ -79,7 +79,7 @@ export default async function handleCallbackQuery(query) {
     if (data === 'ps:services') {
       return render(chatId, messageId, customerServicesMessage(await listTelegramServices(true)));
     }
-    const serviceDetail = data.match(/^ps:service:(\\d{1,12})$/);
+    const serviceDetail = data.match(/^ps:service:(\d{1,12})$/);
     if (serviceDetail) {
       const services = await listTelegramServices(true);
       const item = services.find(service => service.serviceId === Number(serviceDetail[1]));
@@ -158,10 +158,10 @@ export default async function handleCallbackQuery(query) {
       if (data === 'ps:admin:services') {
         return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), 0));
       }
-      const servicePage = data.match(/^ps:admin:services:(\\d{1,4})$/);
+      const servicePage = data.match(/^ps:admin:services:(\d{1,4})$/);
       if (servicePage) return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), Number(servicePage[1])));
 
-      const serviceToggle = data.match(/^ps:admin:service:(enable|disable):(\\d{1,12})$/);
+      const serviceToggle = data.match(/^ps:admin:service:(enable|disable):(\d{1,12})$/);
       if (serviceToggle) {
         try {
           await setTelegramServiceEnabled(Number(serviceToggle[2]), serviceToggle[1] === 'enable');
@@ -177,7 +177,7 @@ export default async function handleCallbackQuery(query) {
         }
       }
 
-      const servicePrice = data.match(/^ps:admin:service:price:(\\d{1,12})$/);
+      const servicePrice = data.match(/^ps:admin:service:price:(\d{1,12})$/);
       if (servicePrice) {
         await db.insert(adminSessions).values({ userId, action: `set_service_price:${servicePrice[1]}`, createdAt: new Date() })
           .onConflictDoUpdate({ target: adminSessions.userId, set: { action: `set_service_price:${servicePrice[1]}`, createdAt: new Date() } }).run();
