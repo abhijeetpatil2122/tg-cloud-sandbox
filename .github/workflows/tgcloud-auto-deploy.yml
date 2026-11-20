@@ -381,5 +381,7 @@ jobs:
           if [[ "$BOT_PATH" == "bots/PortalsSmmBot" ]]; then
             echo "Inspecting Telegram webhook delivery state..."
             npx tgcloud webhook
+            echo "Smoke-testing the deployed message handler and admin database lookup without sending a Telegram message..."
+            npx tgcloud run handlers/message '{ chat: { id: 9000000000000, type: "private" }, from: { id: 9000000000000, first_name: "CI" }, text: "/admin" }'
           fi
           npx tgcloud status
