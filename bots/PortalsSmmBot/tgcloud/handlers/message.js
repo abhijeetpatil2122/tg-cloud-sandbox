@@ -6,7 +6,7 @@ import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerS
 import { adminSessions, userSessions, paymentSupportTickets } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
-import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment } from '../lib/payments.js';
+import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage } from '../lib/payments.js';
 import { listAdmins } from '../lib/admins.js';
 
 function parseCommand(value = '') {
@@ -231,6 +231,21 @@ export default async function handleMessage(message) {
 
     if (parsed.command === '/help') {
       return await sendRich(chatId, helpMessage());
+    }
+
+    if (parsed.command === '/refund') {
+      if (!await isAdmin(userId)) {
+        return await sendRich(chatId, {
+          blocks: [
+            { type: 'heading', size: 1, text: 'Access denied' },
+            { type: 'paragraph', text: 'Only administrators can review Stars refunds.' },
+          ],
+        });
+      }
+      if (parsed.argument && /^\\d{1,12}$/.test(parsed.argument)) {
+        return await sendRich(chatId, await refundPreviewMessage(Number(parsed.argument)));
+      }
+      return await sendRich(chatId, await adminRefundsMessage(0));
     }
 
     if (parsed.command === '/admin') {
