@@ -76,13 +76,21 @@ export default async function handleCallbackQuery(query) {
     if (historyPage) return render(chatId, messageId, await transactionHistoryMessage(userId, Number(historyPage[1])));
 
     if (data === 'ps:services') {
-      return render(chatId, messageId, customerServicesMessage(await listTelegramServices(true)));
+      try {
+        return render(chatId, messageId, customerServicesMessage(await listTelegramServices(true)));
+      } catch {
+        return render(chatId, messageId, customerServicesMessage([]));
+      }
     }
     const serviceDetail = data.match(/^ps:service:(\d{1,12})$/);
     if (serviceDetail) {
-      const services = await listTelegramServices(true);
-      const item = services.find(service => service.serviceId === Number(serviceDetail[1]));
-      return render(chatId, messageId, item ? customerServiceDetailsMessage(item) : unavailableMessage());
+      try {
+        const services = await listTelegramServices(true);
+        const item = services.find(service => service.serviceId === Number(serviceDetail[1]));
+        return render(chatId, messageId, item ? customerServiceDetailsMessage(item) : unavailableMessage());
+      } catch {
+        return render(chatId, messageId, customerServicesMessage([]));
+      }
     }
 
     const sections = {
@@ -155,10 +163,20 @@ export default async function handleCallbackQuery(query) {
       }
 
       if (data === 'ps:admin:services') {
-        return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), 0));
+        try {
+          return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), 0));
+        } catch {
+          return render(chatId, messageId, adminServicesMessage([]));
+        }
       }
       const servicePage = data.match(/^ps:admin:services:(\d{1,4})$/);
-      if (servicePage) return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), Number(servicePage[1])));
+      if (servicePage) {
+        try {
+          return render(chatId, messageId, adminServicesMessage(await listTelegramServices(false), Number(servicePage[1])));
+        } catch {
+          return render(chatId, messageId, adminServicesMessage([]));
+        }
+      }
 
       const serviceToggle = data.match(/^ps:admin:service:(enable|disable):(\d{1,12})$/);
       if (serviceToggle) {
