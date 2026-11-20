@@ -118,7 +118,11 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/services') {
-      return await sendRich(chatId, customerServicesMessage(await listTelegramServices(true)));
+      try {
+        return await sendRich(chatId, customerServicesMessage(await listTelegramServices(true)));
+      } catch {
+        return await sendRich(chatId, customerServicesMessage([]));
+      }
     }
 
     const sectionCommands = {
