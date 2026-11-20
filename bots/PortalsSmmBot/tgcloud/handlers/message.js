@@ -2,7 +2,7 @@ import { api } from 'sdk';
 import { sendHome, sendHelp } from '../lib/ui.js';
 
 function getCommand(text = '') {
-  const [raw = ''] = text.trim().split(/\\s+/);
+  const [raw = ''] = text.trim().split(/\s+/);
   return raw.split('@', 1)[0].toLowerCase();
 }
 
