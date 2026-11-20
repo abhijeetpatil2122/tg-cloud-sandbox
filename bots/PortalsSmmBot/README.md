@@ -4,7 +4,7 @@ Telegram SMM storefront project built on Telegram Serverless.
 
 ## Current status
 
-**Planning / documentation stage.** The customer wallet rule is planned as 1 paid Star = 1 Portal Point; referral reward is planned at 10% of the first qualifying deposit; target gross margin is 30%, with prices rounded up to the next 5 points. The final INR accounting source/rate, referral minimum, catalogue, admin allowlist, provider credential, and live order policy remain open. See [AGENTS.md](./AGENTS.md) for the financial assumptions and security gates.
+**Planning / documentation stage.** The customer wallet rule is planned as 1 paid Star = 1 Portal Point; referral reward is planned at 10% of the first qualifying deposit; target gross margin is 30%, with prices rounded to the nearest 5 points. The final INR accounting source/rate, referral minimum, catalogue, admin allowlist, provider credential, and live order policy remain open. See [AGENTS.md](./AGENTS.md) for the financial assumptions and security gates.
 
 ## Intended stack
 
