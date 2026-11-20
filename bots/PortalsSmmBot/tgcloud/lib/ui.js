@@ -79,7 +79,7 @@ const screens = {
   },
   support: {
     title: '💬 Support',
-    description: 'Support information will be published here. Keep your internal order ID available when requesting help.',
+    description: 'For payment failures or Stars deposit questions, use /paysupport. Include your transaction or order reference and never share passwords or login codes.',
   },
 };
 
