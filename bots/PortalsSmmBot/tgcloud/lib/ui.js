@@ -110,7 +110,7 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true, canMa
     { type: 'paragraph', text: `Designated owners: 6522801911 · 1314643983` },
     { type: 'paragraph', text: `Registered administrators: ${ids.length}` },
     row(button('Recent transactions', 'ps:admin:transactions', 'primary')),
-    row(button('↩️ Refunds', 'ps:admin:refunds', 'danger')),
+    row(button('↩️ Refunds', 'ps:admin:refunds', 'danger'), button('💬 Payment support', 'ps:admin:paysupport')),
     row(button('🔌 Provider', 'ps:admin:provider'), button('📈 Services', 'ps:admin:services')),
   ];
   if (!databaseAvailable) {
