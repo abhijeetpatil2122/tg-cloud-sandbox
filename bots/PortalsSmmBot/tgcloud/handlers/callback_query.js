@@ -33,9 +33,9 @@ async function getAdminIds() {
   }
 }
 
-async function showAdmin(chatId, messageId) {
+async function showAdmin(chatId, messageId, userId) {
   const result = await getAdminIds();
-  return render(chatId, messageId, adminPanelMessage(result.ids, result.available, isOwner(Number(chatId))));
+  return render(chatId, messageId, adminPanelMessage(result.ids, result.available, isOwner(userId)));
 }
 
 export default async function handleCallbackQuery(query) {
@@ -96,7 +96,7 @@ export default async function handleCallbackQuery(query) {
       }
 
       if (data === 'ps:admin' || data === 'ps:admin:home') {
-        return showAdmin(chatId, messageId);
+        return showAdmin(chatId, messageId, userId);
       }
 
       if (data === 'ps:admin:add') {
@@ -111,7 +111,7 @@ export default async function handleCallbackQuery(query) {
 
       if (data === 'ps:admin:cancel') {
         await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
-        return showAdmin(chatId, messageId);
+        return showAdmin(chatId, messageId, userId);
       }
 
       if (data === 'ps:admin:remove') {
@@ -132,7 +132,7 @@ export default async function handleCallbackQuery(query) {
             ],
           });
         }
-        return showAdmin(chatId, messageId);
+        return showAdmin(chatId, messageId, userId);
       }
     }
 
