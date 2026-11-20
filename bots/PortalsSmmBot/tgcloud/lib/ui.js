@@ -35,12 +35,17 @@ export function homeMessage(name = 'there', showAdmin = false) {
 export function helpMessage() {
   return { blocks: [
     { type: 'heading', size: 1, text: 'Help' },
-    { type: 'paragraph', text: 'Use the buttons below to navigate the Portals SMM storefront.' },
+    { type: 'paragraph', text: 'Use the buttons below or the commands to navigate the Portals SMM storefront.' },
     { type: 'list', items: [
       { blocks: [{ type: 'paragraph', text: '/start — Open the storefront' }] },
       { blocks: [{ type: 'paragraph', text: '/menu — Return to the storefront' }] },
+      { blocks: [{ type: 'paragraph', text: '/services — Browse Telegram services' }] },
+      { blocks: [{ type: 'paragraph', text: '/deposit — Add Portal Points' }] },
+      { blocks: [{ type: 'paragraph', text: '/orders — View your orders' }] },
       { blocks: [{ type: 'paragraph', text: '/wallet — View your balance' }] },
       { blocks: [{ type: 'paragraph', text: '/history — View your transactions' }] },
+      { blocks: [{ type: 'paragraph', text: '/referral — View your referral details' }] },
+      { blocks: [{ type: 'paragraph', text: '/support — Contact support' }] },
       { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
     ] },
     { type: 'paragraph', text: 'Portal Points are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
@@ -98,7 +103,7 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true, canMa
   const ids = [...new Set(adminIds)].sort((a, b) => a - b);
   const blocks = [
     { type: 'heading', size: 1, text: 'Administrator panel' },
-    { type: 'paragraph', text: 'Manage bot access and administrator accounts.' },
+    { type: 'paragraph', text: 'Manage services, supplier access, wallet activity and administrator accounts.' },
     { type: 'paragraph', text: `Designated owners: 6522801911 · 1314643983` },
     { type: 'paragraph', text: `Registered administrators: ${ids.length}` },
     row(button('Recent transactions', 'ps:admin:transactions', 'primary')),
