@@ -12,7 +12,7 @@ function telegramService(item) {
     item?.name,
     item?.description,
   ].filter(value => typeof value === 'string' && value.trim()).join(' ');
-  return /\\btelegram\\b|\\btg\\b/i.test(searchable);
+  return /\btelegram\b|\btg\b/i.test(searchable);
 }
 
 function providerFlag(value) {
