@@ -88,7 +88,7 @@ jobs:
               for parts in [path.split("/")]
               if len(parts) >= 3 and parts[0] == "bots"
           }
-          deployable_root_files = {"package.json", "package-lock.json", "tgcloud.jsonc"}
+          deployable_root_files = {"package.json", "package-lock.json", "tgcloud.jsonc", ".run-safe-migration-once"}
           documentation_files = {"README.md", "AGENTS.md", ".gitignore"}
 
           for bot_name in bot_names:
@@ -392,6 +392,13 @@ jobs:
             npx tgcloud run endpoints/beginMediaUpload "{ upload_id: '${smoke_upload_id}', kind: 'document', name: 'upload-smoke-test.bin', type: 'application/octet-stream', size: 5, total_chunks: 1 }" --ctx "{ initData: { user: { id: ${smoke_user_id} } } }"
             npx tgcloud run endpoints/uploadMediaChunk "{ upload_id: '${smoke_upload_id}', index: 0, base64: '-__-AAE' }" --ctx "{ initData: { user: { id: ${smoke_user_id} } } }"
             npx tgcloud run endpoints/cancelMediaUpload "{ upload_id: '${smoke_upload_id}' }" --ctx "{ initData: { user: { id: ${smoke_user_id} } } }"
+          fi
+          # A one-time marker is used only when the owner has approved an
+          # additive PortalsSmmBot schema migration. --safe skips destructive
+          # or manually-reviewed changes. The marker is removed after success.
+          if [[ "$BOT_PATH" == "bots/PortalsSmmBot" && -f ".run-safe-migration-once" ]]; then
+            echo "Applying owner-approved additive PortalsSmmBot migrations..."
+            npx tgcloud migrate --safe
           fi
           if [[ "$BOT_PATH" == "bots/PortalsSmmBot" ]]; then
             echo "Inspecting Telegram webhook delivery state..."
