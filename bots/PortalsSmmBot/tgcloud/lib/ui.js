@@ -27,26 +27,39 @@ export function buildHelpMessage() {
 }
 
 export async function sendHome(chatId, firstName = 'there', showAdmin = false) {
-  return api.sendRichMessage({
-    chat_id: chatId,
-    rich_message: buildHomeMessage(firstName),
-    reply_markup: { inline_keyboard: [
-      [
-        { text: 'Services', callback_data: 'ps:services' },
-        { text: 'Deposit', callback_data: 'ps:deposit' },
-      ],
-      [
-        { text: 'Wallet', callback_data: 'ps:wallet' },
-        { text: 'My Orders', callback_data: 'ps:orders' },
-      ],
-      [
-        { text: 'Referral', callback_data: 'ps:referral' },
-        { text: 'Support', callback_data: 'ps:support' },
-      ],
-      [{ text: 'Help', callback_data: 'ps:help', style: 'link' }],
-      ...(showAdmin ? [[{ text: 'Admin panel', callback_data: 'ps:admin' }]] : []),
-    ] },
-  });
+  const replyMarkup = { inline_keyboard: [
+    [
+      { text: 'Services', callback_data: 'ps:services' },
+      { text: 'Deposit', callback_data: 'ps:deposit' },
+    ],
+    [
+      { text: 'Wallet', callback_data: 'ps:wallet' },
+      { text: 'My Orders', callback_data: 'ps:orders' },
+    ],
+    [
+      { text: 'Referral', callback_data: 'ps:referral' },
+      { text: 'Support', callback_data: 'ps:support' },
+    ],
+    [{ text: 'Help', callback_data: 'ps:help', style: 'link' }],
+    ...(showAdmin ? [[{ text: 'Admin panel', callback_data: 'ps:admin' }]] : []),
+  ] };
+
+  try {
+    return await api.sendRichMessage({
+      chat_id: chatId,
+      rich_message: buildHomeMessage(firstName),
+      reply_markup: replyMarkup,
+    });
+  } catch (error) {
+    // Keep /start and /menu usable if Telegram rejects rich formatting or
+    // the rich-message method has a transient API failure.
+    console.error('PortalsSmmBot home Rich Message failed:', error?.description || error);
+    return api.sendMessage({
+      chat_id: chatId,
+      text: `Portals SMM\\n\\nWelcome, ${firstName}. Manage your services, Portal Points, and orders from one place.\\n\\nChoose an option below to continue.`,
+      reply_markup: replyMarkup,
+    });
+  }
 }
 
 export async function sendHelp(chatId) {
