@@ -20,7 +20,6 @@ import {
 import { adminSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
-import { providerServices } from '../schema.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
