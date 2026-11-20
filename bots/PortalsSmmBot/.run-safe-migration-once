@@ -1,0 +1,1 @@
+Owner-approved one-time additive schema migration for PortalsSmmBot. Apply only tgcloud migrate --safe; do not apply destructive or manually-reviewed changes.
