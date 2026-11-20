@@ -34,7 +34,7 @@ The manual GitHub Actions workflow maps this project to `TGCLOUD_TOKEN_PORTALSSM
 
 ## Next implementation stages
 
-1. Confirm admin Telegram IDs and finish configuration ownership/deployment preservation.
+1. Preserve the cloud-owned provider config safely during deployment; admin/owner IDs are now configured.
 2. Review the database schema and safe atomic wallet/ledger strategy before migration.
 3. Implement Stars deposit intents and idempotent payment crediting.
 4. Implement provider read-only connectivity/catalogue sync, then a curated service catalogue.
