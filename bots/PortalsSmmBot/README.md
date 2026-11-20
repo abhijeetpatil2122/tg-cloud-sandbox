@@ -4,7 +4,7 @@ Telegram SMM storefront project built on Telegram Serverless.
 
 ## Current status
 
-**Foundation stage — not deployed.** A command-only runtime shell is now present with `/start`, `/menu`, `/help`, a shared configuration module, and basic Rich Message navigation. Commerce features are not enabled. No database migration, Stars payment, provider order, or production deployment has occurred.
+**Foundation stage — not deployed.** A command-only runtime shell is now present with `/start`, `/menu`, `/help`, an owner-protected administrator panel, a shared configuration module, and basic Rich Message navigation. Dynamic administrator management uses a new SQLite schema and requires migration before use. Commerce features are not enabled. No database migration, Stars payment, provider order, or production deployment has occurred.
 
 ## Intended stack
 
