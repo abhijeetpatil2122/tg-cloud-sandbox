@@ -2,10 +2,10 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { OWNER_IDS } from '../lib/config.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
-import { fullName, helpMessage, homeMessage, sendRich } from '../lib/ui.js';
+import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage } from '../lib/ui.js';
 import { adminSessions } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
-import { setTelegramServicePrice } from '../lib/provider.js';
+import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
 
 function parseCommand(value = '') {
   const match = value.trim().match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?(?:\s+([\s\S]*))?$/i);
@@ -115,6 +115,20 @@ export default async function handleMessage(message) {
       // The storefront entry point deliberately has no database dependency.
       // Owners are recognized from static configuration; customer menus always load.
       return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId)));
+    }
+
+    if (parsed.command === '/services') {
+      return await sendRich(chatId, customerServicesMessage(await listTelegramServices(true)));
+    }
+
+    const sectionCommands = {
+      '/deposit': 'deposit',
+      '/orders': 'orders',
+      '/referral': 'referral',
+      '/support': 'support',
+    };
+    if (sectionCommands[parsed.command]) {
+      return await sendRich(chatId, sectionMessage(sectionCommands[parsed.command]));
     }
 
     if (parsed.command === '/wallet') {
