@@ -121,8 +121,14 @@ jobs:
           npx tgcloud fetch
           npx tgcloud status
 
+      - name: Restrict safe migration mode to PortalsSmmBot
+        if: inputs.mode == 'migrate-safe' && inputs.bot_path != 'bots/PortalsSmmBot'
+        run: |
+          echo "::error::migrate-safe mode is reserved for bots/PortalsSmmBot."
+          exit 1
+
       - name: Apply reviewed safe schema additions
-        if: inputs.mode == 'migrate-safe'
+        if: inputs.mode == 'migrate-safe' && inputs.bot_path == 'bots/PortalsSmmBot'
         env:
           TGCLOUD_TOKEN: ${{ inputs.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || inputs.bot_path == 'bots/TgRichBot' && secrets.TGCLOUD_TOKEN_TGRICHBOT || inputs.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || inputs.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || inputs.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || inputs.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || inputs.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || inputs.bot_path == 'bots/ScamGiveawaysBot' && secrets.TGCLOUD_TOKEN_SCAMGIVEAWAYSBOT || inputs.bot_path == 'bots/PortalsSmmBot' && secrets.TGCLOUD_TOKEN_PORTALSSMMBOT || '' }}
         run: |
