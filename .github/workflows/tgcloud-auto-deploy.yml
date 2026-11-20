@@ -231,8 +231,6 @@ jobs:
             app_id: "9128106800"
             auto_deploy: true
             secret_key: TGCLOUD_TOKEN_PWIDGETBOT
-          # PortalsSmmBot uses BotFather-edited config.js. Its key-bearing
-          # module is deliberately excluded from all repository deployments.
           - bot_path: bots/PortalsSmmBot
             app_id: "FROM_TOKEN"
             auto_deploy: true
@@ -369,20 +367,11 @@ jobs:
             printf 'Auto-deploying Mini App and modules to app ID %s\n' "$EXPECTED_APP_ID"
             push_with_snapshot_workaround
           else
-            if [[ "$BOT_PATH" == "bots/PortalsSmmBot" ]]; then
-              # Preserve the manually edited cloud config.js (provider key).
-              mapfile -t modules < <(
-                find tgcloud -type f -name '*.js' \
-                  \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
-                  ! -path 'tgcloud/lib/config.js' -print | sort
-              )
-            else
-              mapfile -t modules < <(
-                find tgcloud -type f -name '*.js' \
-                  \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
-                  -print | sort
-              )
-            fi
+            mapfile -t modules < <(
+              find tgcloud -type f -name '*.js' \
+                \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+                -print | sort
+            )
             if (( ${#modules[@]} == 0 )); then
               echo "::error::No deployable JavaScript modules were found."
               exit 1
