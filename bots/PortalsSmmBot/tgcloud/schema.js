@@ -1,4 +1,4 @@
-import { table, integer, text, sql } from 'sdk/db';
+import { table, integer, text, boolean, sql } from 'sdk/db';
 
 // Persistent administrator registry. The two bootstrap owners remain in config.js.
 export const botAdmins = table('bot_admins', {
@@ -40,4 +40,24 @@ export const walletLedger = table('wallet_ledger', {
   kind: text('kind').notNull(),
   idempotencyKey: text('idempotency_key').notNull().unique(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+
+// Supplier catalogue snapshot. Imported services remain disabled until an
+// administrator reviews their Telegram scope and sets a customer price.
+export const providerServices = table('provider_services', {
+  serviceId: integer('service_id').primaryKey(),
+  name: text('name').notNull(),
+  type: text('type').notNull(),
+  category: text('category'),
+  rate: text('rate').notNull(),
+  minQty: integer('min_qty').notNull(),
+  maxQty: integer('max_qty').notNull(),
+  refill: boolean('refill').notNull().default(false),
+  cancel: boolean('cancel').notNull().default(false),
+  isTelegram: boolean('is_telegram').notNull().default(false),
+  enabled: boolean('enabled').notNull().default(false),
+  customerPrice: integer('customer_price'),
+  lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
