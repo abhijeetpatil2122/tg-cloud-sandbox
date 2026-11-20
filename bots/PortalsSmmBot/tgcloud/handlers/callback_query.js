@@ -11,7 +11,7 @@ async function answerCallback(id, text = '') {
   await api.answerCallbackQuery(params);
 }
 
-async function showAdminPanel(chatId, messageId = null) {
+async function showAdminPanel(chatId, messageId = null, canManage = true) {
   const admins = await listAdmins();
   const rich = { blocks: [
     { type: 'heading', size: 1, text: 'Administrator panel' },
@@ -19,7 +19,7 @@ async function showAdminPanel(chatId, messageId = null) {
     { type: 'paragraph', text: `Active administrators: ${admins.length}` },
     { type: 'paragraph', text: 'Owners: 6522801911, 1314643983' },
   ] };
-  const rows = [[{ text: 'Add administrator', callback_data: 'ps:admin:add', style: 'success' }], [{ text: 'Remove administrator', callback_data: 'ps:admin:remove' }], [{ text: '‹ Main menu', callback_data: 'ps:home' }]];
+  const rows = canManage ? [[{ text: 'Add administrator', callback_data: 'ps:admin:add', style: 'success' }], [{ text: 'Remove administrator', callback_data: 'ps:admin:remove' }], [{ text: '‹ Main menu', callback_data: 'ps:home' }]] : [[{ text: '‹ Main menu', callback_data: 'ps:home' }]];
   if (messageId) return api.editMessageText({ chat_id: chatId, message_id: messageId, rich_message: rich, reply_markup: { inline_keyboard: rows } });
   return api.sendRichMessage({ chat_id: chatId, rich_message: rich, reply_markup: { inline_keyboard: rows } });
 }
@@ -46,13 +46,13 @@ export default async function handleCallbackQuery(update) {
     if (!await isAdmin(userId)) return answerCallback(query.id, 'Not authorized.');
     if (data !== 'ps:admin' && !isOwner(userId)) return answerCallback(query.id, 'Only designated owners can manage administrators.');
     await answerCallback(query.id);
-    if (data === 'ps:admin' || data === 'ps:admin:home') return showAdminPanel(message.chat.id, message.message_id);
+    if (data === 'ps:admin' || data === 'ps:admin:home') return showAdminPanel(message.chat.id, message.message_id, isOwner(userId));
     if (data === 'ps:admin:add') {
       await db.insert(adminSessions).values({ userId, action: 'add_admin', createdAt: new Date() }).onConflictDoUpdate({ target: adminSessions.userId, set: { action: 'add_admin', createdAt: new Date() } }).run();
       return api.sendMessage({ chat_id: message.chat.id, text: 'Send the numeric Telegram user ID to add. Send /cancel to stop.' });
     }
     if (data === 'ps:admin:remove') return showAdminRemoval(message.chat.id, message.message_id);
-    const match = data.match(/^ps:admin:del:(\\d+)$/);
+    const match = data.match(/^ps:admin:del:(\d+)$/);
     if (match) {
       const result = await removeAdmin(Number(match[1]));
       await api.sendMessage({ chat_id: message.chat.id, text: result.removed ? `Administrator ${match[1]} removed.` : 'That account is protected or is not a removable database administrator.' });
