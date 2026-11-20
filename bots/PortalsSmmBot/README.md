@@ -4,9 +4,9 @@ Telegram-first SMM storefront built on Telegram Serverless.
 
 ## Current status
 
-The storefront shell, Rich Message navigation, and owner-managed administrator access are in place. The next stages are the Telegram-only service catalogue, wallet and transaction history, Stars deposits, customer orders, referrals, and full administrator tools.
+The storefront shell, Rich Message navigation, owner-managed administrator access, wallet history screens, provider connection controls, and Telegram-only catalogue review tools are in place. The next stages are Stars deposits, customer order placement and tracking, referrals, and the remaining administrator tools.
 
-Commerce features remain disabled until their database changes, provider catalogue, pricing, and payment flows have been reviewed and approved.
+Wallet and provider catalogue tables have been added to the schema but still require a reviewed migration. New services remain disabled until an administrator reviews them and sets a customer price. Deposits and order placement remain disabled until their payment and fulfilment flows are complete.
 
 ## Platform and services
 
@@ -36,11 +36,11 @@ Schema changes require a separate reviewed migration. No migration, paid provide
 
 ## Development order
 
-1. Provider connectivity and Telegram-only service catalogue.
-2. Wallet balance and transaction history.
-3. Stars deposits and reconciliation.
-4. Curated service ordering and order tracking.
-5. Referral programme and complete administrator controls.
-6. Terms, support, and launch checks.
+1. Review and migrate the wallet and provider catalogue tables.
+2. Verify the supplier connection and review the live Telegram service list.
+3. Complete Stars deposits and payment reconciliation.
+4. Complete customer order placement, status tracking, refill and cancellation handling.
+5. Complete referral rewards and remaining administrator controls.
+6. Finalize terms, support, and launch checks.
 
 See [AGENTS.md](./AGENTS.md) for implementation rules, provider API details, pricing policy, security, and rollout requirements.
