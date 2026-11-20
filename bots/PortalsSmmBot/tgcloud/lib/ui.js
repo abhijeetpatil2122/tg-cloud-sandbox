@@ -18,11 +18,9 @@ export function buildHelpMessage() {
     blocks: [
       { type: 'heading', size: 1, text: 'Help & commands' },
       { type: 'paragraph', text: 'Use the buttons to navigate the storefront. All purchases and account actions are available in private chat only.' },
-      { type: 'list', items: [
-        ' /start — Open the storefront',
-        ' /menu — Return to the main menu',
-        ' /help — View help and available commands',
-      ] },
+      { type: 'paragraph', text: '/start — Open the storefront' },
+      { type: 'paragraph', text: '/menu — Return to the main menu' },
+      { type: 'paragraph', text: '/help — View help and available commands' },
       { type: 'paragraph', text: 'Portal Points are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
     ],
   };
