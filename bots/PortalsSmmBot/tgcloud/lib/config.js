@@ -12,7 +12,7 @@
 export const BOT_NAME = 'Portals SMM';
 export const BOT_USERNAME = ''; // Set after BotFather username is finalized.
 
-export const ADMIN_IDS = []; // Add approved numeric Telegram user IDs before enabling admin tools.
+// Both designated owners also have full administrator access. Owners are immutable in the panel.\nexport const OWNER_IDS = [6522801911, 1314643983];\nexport const ADMIN_IDS = [6522801911, 1314643983]; // Static bootstrap admins; additional admins are stored in SQLite.
 
 export const PROVIDER = Object.freeze({
   name: 'smm.plus',
