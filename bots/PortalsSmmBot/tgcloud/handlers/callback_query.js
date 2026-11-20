@@ -1,7 +1,6 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { sendHome, sendHelp } from '../lib/ui.js';
-import { OWNER_IDS } from '../lib/config.js';
 import { adminSessions } from '../schema.js';
 import { addAdmin, isAdmin, isOwner, listAdmins, removeAdmin } from '../lib/admins.js';
 
