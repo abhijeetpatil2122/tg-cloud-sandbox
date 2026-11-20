@@ -76,6 +76,10 @@ jobs:
                   if not path.startswith(f"{bot_root}/"):
                       continue
                   relative = path[len(bot_root) + 1:]
+                  # PortalsSmmBot's config.js is edited directly in BotFather.
+                  # Never trigger or deploy it from the repository.
+                  if bot_name == "PortalsSmmBot" and relative == "tgcloud/lib/config.js":
+                      continue
                   if (
                       relative.startswith("tgcloud/")
                       or relative in deployable_root_files
@@ -201,6 +205,12 @@ jobs:
             app_id: "9128106800"
             auto_deploy: true
             secret_key: TGCLOUD_TOKEN_PWIDGETBOT
+          # PortalsSmmBot uses BotFather-edited config.js. Its key-bearing
+          # module is deliberately excluded from all repository deployments.
+          - bot_path: bots/PortalsSmmBot
+            app_id: "FROM_TOKEN"
+            auto_deploy: true
+            secret_key: TGCLOUD_TOKEN_PORTALSSMMBOT
 
     concurrency:
       group: tgcloud-auto-${{ matrix.bot_path }}-${{ github.ref }}
@@ -262,7 +272,7 @@ jobs:
       - name: Validate CLI token matches the configured app
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || matrix.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || matrix.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || matrix.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || matrix.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || matrix.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || matrix.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || matrix.bot_path == 'bots/PortalsSmmBot' && secrets.TGCLOUD_TOKEN_PORTALSSMMBOT || '' }}
         run: |
           set -euo pipefail
           if [[ -z "${TGCLOUD_TOKEN:-}" ]]; then
@@ -285,7 +295,7 @@ jobs:
       - name: Fetch cloud state and show status
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || matrix.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || matrix.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || matrix.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || matrix.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || matrix.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || matrix.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || matrix.bot_path == 'bots/PortalsSmmBot' && secrets.TGCLOUD_TOKEN_PORTALSSMMBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -295,7 +305,7 @@ jobs:
       - name: Deploy selected bot modules
         if: matrix.auto_deploy && contains(fromJSON(needs.detect.outputs.changed_bots), matrix.bot_path)
         env:
-          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || matrix.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || matrix.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || matrix.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || '' }}
+          TGCLOUD_TOKEN: ${{ matrix.bot_path == 'bots/IdPullBot' && secrets.TGCLOUD_TOKEN_IDPULLBOT || matrix.bot_path == 'bots/RichDocsBot' && secrets.TGCLOUD_TOKEN_RICHDOCSBOT || matrix.bot_path == 'bots/BotZoneBot' && secrets.TGCLOUD_TOKEN || matrix.bot_path == 'bots/TgRichBot' && (secrets.TGCLOUD_TOKEN_TGRICHBOT || vars.TGCLOUD_TOKEN_TGRICHBOT) || matrix.bot_path == 'bots/SarvamChatBot' && secrets.TGCLOUD_TOKEN_SARVAMCHATBOT || matrix.bot_path == 'bots/ReviewTVBot' && secrets.TGCLOUD_TOKEN_REVIEWTVBOT || matrix.bot_path == 'bots/PWidgetBot' && secrets.TGCLOUD_TOKEN_PWIDGETBOT || matrix.bot_path == 'bots/PortalsSmmBot' && secrets.TGCLOUD_TOKEN_PORTALSSMMBOT || '' }}
         run: |
           set -euo pipefail
           cd "$BOT_PATH"
@@ -333,11 +343,20 @@ jobs:
             printf 'Auto-deploying Mini App and modules to app ID %s\n' "$EXPECTED_APP_ID"
             push_with_snapshot_workaround
           else
-            mapfile -t modules < <(
-              find tgcloud -type f -name '*.js' \
-                \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
-                -print | sort
-            )
+            if [[ "$BOT_PATH" == "bots/PortalsSmmBot" ]]; then
+              # Preserve the manually edited cloud config.js (provider key).
+              mapfile -t modules < <(
+                find tgcloud -type f -name '*.js' \
+                  \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+                  ! -path 'tgcloud/lib/config.js' -print | sort
+              )
+            else
+              mapfile -t modules < <(
+                find tgcloud -type f -name '*.js' \
+                  \( -path 'tgcloud/schema.js' -o -path 'tgcloud/lib/*' -o -path 'tgcloud/handlers/*' -o -path 'tgcloud/endpoints/*' \) \
+                  -print | sort
+              )
+            fi
             if (( ${#modules[@]} == 0 )); then
               echo "::error::No deployable JavaScript modules were found."
               exit 1
