@@ -4,8 +4,19 @@ import { PROVIDER } from './config.js';
 import { providerServices } from '../schema.js';
 
 function telegramService(item) {
-  const searchable = `${item?.name || ''} ${item?.category || ''}`;
-  return /\btelegram\b|\btg\b/i.test(searchable);
+  // Supplier feeds may expose the platform in different fields.
+  const searchable = [
+    item?.social_network,
+    item?.platform,
+    item?.category,
+    item?.name,
+    item?.description,
+  ].filter(value => typeof value === 'string' && value.trim()).join(' ');
+  return /\\btelegram\\b|\\btg\\b/i.test(searchable);
+}
+
+function providerFlag(value) {
+  return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
 }
 
 async function requestProvider(action, extra = {}) {
@@ -63,8 +74,8 @@ export async function syncTelegramServices() {
       rate,
       minQty,
       maxQty,
-      refill: Boolean(item.refill),
-      cancel: Boolean(item.cancel),
+      refill: providerFlag(item.refill),
+      cancel: providerFlag(item.cancel),
       isTelegram: true,
       lastSyncedAt: new Date(),
       updatedAt: new Date(),
