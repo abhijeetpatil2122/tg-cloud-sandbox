@@ -128,7 +128,7 @@ The owner has approved the following planning preferences (2026-11-20):
 - Referral reward: 10% of that qualifying deposit, credited as points to the referrer.
 - The minimum qualifying referral deposit is configurable and remains to be chosen.
 - Target gross margin: 30%.
-- Customer service prices are rounded **up** to the next 5 points so rounding never undercuts the target margin.
+- Customer service prices use 5-point increments, with the initial selected preference being rounding to the **nearest 5 points**. Revisit upward rounding if strict margin protection is preferred.
 - Portal Points have a separate INR accounting valuation; they are internal store credit, not withdrawable cash or Telegram Stars.
 
 The 1:1 conversion is a wallet-credit rule, not an INR exchange-rate promise. The bot must display points as Portal Points and clearly disclose that they are not cash or redeemable Stars.
@@ -156,7 +156,7 @@ For each service:
 2. Compute supplier cost in its source currency and convert using a timestamped FX snapshot, including any approved spread/fee buffer.
 3. Convert the service cost to Portal Points using the active INR-per-point accounting valuation.
 4. Set raw selling points to `supplier cost INR ÷ (0.70 × INR value per point)`.
-5. Round **up** to the next 5 points.
+5. Round to the **nearest 5 points** (the approved planning preference); note that nearest rounding can place an individual service slightly below or above the exact target margin.
 6. Store the provider rate/unit, currency, FX snapshot, INR cost, point valuation, raw price, final points price, pricing version, and estimated gross margin.
 
 When supplier cost and Telegram reward valuation are both USD-based, the USD/Star reward rate can simplify the calculation, but retain the source currency and FX snapshots for auditability.
@@ -266,14 +266,14 @@ Do not hardcode an admin ID until the owner supplies/confirms the intended admin
 
 ## Pricing and profitability
 
-The approved planning model is 1 paid Telegram Star = 1 Portal Point, 30% target gross margin, 10% referral reward on the referred user's first qualifying successful deposit, configurable qualifying minimum, and price rounding up to the next 5 points. The point's INR accounting valuation is separate from the 1:1 customer wallet-credit rule.
+The approved planning model is 1 paid Telegram Star = 1 Portal Point, 30% target gross margin, 10% referral reward on the referred user's first qualifying successful deposit, configurable qualifying minimum, and price rounding to the nearest 5 points. The point's INR accounting valuation is separate from the 1:1 customer wallet-credit rule.
 
 Use Telegram's currently stated US$0.013 reward equivalent per earned Star as the provisional revenue basis, not the customer's Star acquisition price. On 2026-11-20, using ₹93.22/USD, this is approximately ₹1.2119 per point before withdrawal/market differences and other costs. The owner's quoted Fragment retail purchase example (100 Stars for 1.4764 GRAM) is a customer acquisition comparison, not the bot's payout. The owner's ₹199 per 100 Stars example is also a retail purchase price, not developer proceeds. Re-check the reward terms, actual withdrawal availability, GRAM conversion, and FX rate before launch.
 
 For each provider service:
 - Verify the provider's actual rate unit, minimum/maximum, currency, type, refill/cancel capability, and service-specific input fields.
 - Convert supplier cost into INR using a timestamped, owner-approved FX source and any approved safety buffer.
-- Calculate raw points as `supplier cost INR ÷ (0.70 × INR value per point)`, then round **up** to the next 5 points.
+- Calculate raw points as `supplier cost INR ÷ (0.70 × INR value per point)`, then round to the nearest 5 points.
 - Preserve supplier cost, billing unit, currency, FX source/rate/time, point valuation, computed price, pricing version, and gross margin snapshots on each order.
 - Never assume all smm.plus rates are per 1,000; verify the account's service catalogue and examples.
 - Report gross margin separately from contribution margin. Include the 10% referral points expense, promotional credits, Stars payout/withdrawal costs, refunds, and other variable costs in contribution-margin analysis.
@@ -316,7 +316,7 @@ Resolve with the owner before implementing live commerce:
 4. Decide preset deposit packages, custom deposit limits, and any deposit bonus.
 5. Set the configurable minimum qualifying referral deposit, caps, and reversal policy. Referral reward is 10% of the first qualifying deposit in points.
 6. Confirm which provider services/categories are allowed in the first launch and the intended target types.
-7. The planning target is 30% gross margin and round-up-to-5-point pricing; approve the production FX source, safety buffer, and contribution-margin treatment.
+7. The planning target is 30% gross margin and nearest-5-point pricing; approve the production FX source, safety buffer, and contribution-margin treatment.
 8. Confirm support contact and service/refund/terms wording.
 9. Confirm whether users may order only from private chats (recommended: yes).
 10. Confirm the provider's exact order rate unit, refund/partial-completion behavior, and any service-specific restrictions before public listing.
