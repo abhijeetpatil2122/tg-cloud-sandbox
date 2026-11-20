@@ -5,6 +5,7 @@ import { addAdmin, isAdmin } from '../lib/admins.js';
 import { fullName, helpMessage, homeMessage, sendRich } from '../lib/ui.js';
 import { adminSessions } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
+import { setTelegramServicePrice } from '../lib/provider.js';
 
 function parseCommand(value = '') {
   const match = value.trim().match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?(?:\s+([\s\S]*))?$/i);
@@ -39,11 +40,11 @@ export default async function handleMessage(message) {
       return;
     }
 
-    // Only owners' pending admin input touches the admin-session table.
-    if (OWNER_IDS.includes(userId) && text && !text.startsWith('/')) {
+    if (text && !text.startsWith('/') && (OWNER_IDS.includes(userId) || await isAdmin(userId))) {
       const pending = await db.select().from(adminSessions)
         .where(eq(adminSessions.userId, userId)).get();
-      if (pending?.action === 'add_admin') {
+
+      if (pending?.action === 'add_admin' && OWNER_IDS.includes(userId)) {
         if (!/^\d{5,15}$/.test(text)) {
           await sendRich(chatId, {
             blocks: [
@@ -59,8 +60,32 @@ export default async function handleMessage(message) {
         await sendRich(chatId, {
           blocks: [
             { type: 'heading', size: 2, text: result.added ? 'Administrator added' : 'Already registered' },
-            { type: 'paragraph', text: result.added ? `Telegram user ${text} can now access the administrator panel.` : 'That account is already an owner or administrator.' },
+            { type: 'paragraph', text: result.added ? \`Telegram user \${text} can now access the administrator panel.\` : 'That account is already an owner or administrator.' },
             { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+          ],
+        });
+        return;
+      }
+
+      const priceInput = pending?.action?.match(/^set_service_price:(\d{1,12})$/);
+      if (priceInput) {
+        if (!/^\d{1,9}$/.test(text) || Number(text) <= 0) {
+          await sendRich(chatId, {
+            blocks: [
+              { type: 'heading', size: 2, text: 'Invalid price' },
+              { type: 'paragraph', text: 'Send a positive whole number of Portal Points, or cancel.' },
+              { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
+            ],
+          });
+          return;
+        }
+        await setTelegramServicePrice(Number(priceInput[1]), Number(text));
+        await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
+        await sendRich(chatId, {
+          blocks: [
+            { type: 'heading', size: 2, text: 'Price updated' },
+            { type: 'paragraph', text: \`Service #\${priceInput[1]} is now priced at \${Number(text).toLocaleString('en-IN')} Portal Points.\` },
+            { type: 'buttons', buttons: [{ text: '‹ Telegram services', callback_data: 'ps:admin:services', style: 'link' }] },
           ],
         });
         return;
@@ -71,7 +96,7 @@ export default async function handleMessage(message) {
     const parsed = parseCommand(text);
     if (!parsed) return;
 
-    if (parsed.command === '/cancel' && OWNER_IDS.includes(userId)) {
+    if (parsed.command === '/cancel' && (OWNER_IDS.includes(userId) || await isAdmin(userId))) {
       const pending = await db.select().from(adminSessions)
         .where(eq(adminSessions.userId, userId)).get();
       if (pending) {
