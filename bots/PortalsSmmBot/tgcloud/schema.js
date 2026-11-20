@@ -93,3 +93,20 @@ export const paymentSupportTickets = table('payment_support_tickets', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
+
+// Internal order history. Supplier IDs and status snapshots are kept separate
+// from the customer's transaction ledger.
+export const serviceOrders = table('service_orders', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
+  serviceId: integer('service_id').notNull(),
+  serviceName: text('service_name').notNull(),
+  target: text('target').notNull(),
+  quantity: integer('quantity').notNull(),
+  points: integer('points').notNull(),
+  status: text('status').notNull().default('pending'),
+  providerOrderId: text('provider_order_id'),
+  providerStatus: text('provider_status'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql\`(unixepoch())\`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql\`(unixepoch())\`),
+});
