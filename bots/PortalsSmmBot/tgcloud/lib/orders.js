@@ -72,7 +72,7 @@ export async function orderDetailsMessage(userId, orderId) {
     { type: 'paragraph', text: 'Target: ' + String(item.target).slice(0, 180) },
     { type: 'paragraph', text: 'Keep this order ID when contacting support.' },
     { type: 'buttons', buttons: [
-      { text: '💬 Order support', callback_data: 'ps:support:payment' },
+      { text: '💬 Support', callback_data: 'ps:support' },
       { text: '‹ My orders', callback_data: 'ps:orders', style: 'link' },
     ] },
   ] };
