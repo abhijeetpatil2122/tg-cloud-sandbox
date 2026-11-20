@@ -330,3 +330,21 @@ Resolve with the owner before implementing live commerce:
 - Telegram Bot API changelog: https://core.telegram.org/bots/api-changelog.md
 - smm.plus API: https://smm.plus/bp/api
 - smm.plus reseller/API overview: https://smm.plus/telegram-reseller-api
+
+
+## Owner decision update — command-only foundation and manual cloud config
+
+This section supersedes conflicting earlier credential and Mini App recommendations in this document.
+
+- The owner has chosen **manual configuration in BotFather's Serverless code editor**. Do not add a GitHub Actions secret for the smm.plus API key, and do not implement a chat-based credential command.
+- The intended shared module is `tgcloud/lib/config.js`. The provider key is blank in the GitHub repository and must be entered manually in the cloud Serverless editor. Never request the key in ChatGPT, Telegram chat, an issue, or a pull request.
+- This is source-code configuration, not a secret vault. Anyone with sufficient access to the Serverless project or CLI can read the key. Restrict project and CLI access accordingly.
+- **Deployment caveat:** a normal module push can overwrite the cloud-edited config file with the blank repository version. Before any deployment after the key is entered, preserve the cloud config deliberately; do not run a broad/full push that overwrites it. Add a safe targeted-deployment exclusion/preservation mechanism and verify it before the first deployment containing provider integration. Never solve this by copying the key into GitHub.
+- The product is **command-based only for the initial release**. Do not build a Mini App, widget, web frontend, or endpoint unless separately approved. Use Telegram messages, inline/Rich Message buttons, and private-chat command flows.
+- The initial source foundation is being created in GitHub. It is not deployed, and no database schema migration or paid provider operation is authorized.
+
+## Current implementation status (2026-11-20)
+
+The repository now contains a starter runtime with package.json, tgcloud.jsonc, .gitignore, a shared lib/config.js, a minimal Rich Message UI module, and message/callback-query handlers for the storefront shell. The service catalogue, database schema, wallet ledger, Stars payment handlers, referrals, admin workflows, and provider integration are not implemented yet. The placeholder menu labels must not be interpreted as enabled commerce features.
+
+Before enabling privileged operations, the owner must provide the admin Telegram ID allowlist. The referral minimum, final accounting FX source, deposit package amounts/limits, support username, and initial curated service list also remain open.
