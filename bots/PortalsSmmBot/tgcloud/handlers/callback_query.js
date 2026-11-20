@@ -35,7 +35,7 @@ async function getAdminIds() {
 
 async function showAdmin(chatId, messageId) {
   const result = await getAdminIds();
-  return render(chatId, messageId, adminPanelMessage(result.ids, result.available));
+  return render(chatId, messageId, adminPanelMessage(result.ids, result.available, isOwner(Number(chatId))));
 }
 
 export default async function handleCallbackQuery(query) {
@@ -86,7 +86,13 @@ export default async function handleCallbackQuery(query) {
       }
 
       if (data !== 'ps:admin' && !isOwner(userId)) {
-        return answer(query.id, 'Only designated owners can manage administrators.');
+        return render(chatId, messageId, {
+          blocks: [
+            { type: 'heading', size: 2, text: 'Owner permission required' },
+            { type: 'paragraph', text: 'Only the designated owners can add or remove administrators.' },
+            { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+          ],
+        });
       }
 
       if (data === 'ps:admin' || data === 'ps:admin:home') {
@@ -118,7 +124,13 @@ export default async function handleCallbackQuery(query) {
       if (match) {
         const result = await removeAdmin(Number(match[1]));
         if (!result.removed) {
-          await answer(query.id, 'That account cannot be removed.');
+          return render(chatId, messageId, {
+            blocks: [
+              { type: 'heading', size: 2, text: 'Administrator not removed' },
+              { type: 'paragraph', text: 'That account is protected or is not a removable administrator.' },
+              { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+            ],
+          });
         }
         return showAdmin(chatId, messageId);
       }
