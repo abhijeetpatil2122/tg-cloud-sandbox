@@ -107,6 +107,6 @@ export const serviceOrders = table('service_orders', {
   status: text('status').notNull().default('pending'),
   providerOrderId: text('provider_order_id'),
   providerStatus: text('provider_status'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql\`(unixepoch())\`),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql\`(unixepoch())\`),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
