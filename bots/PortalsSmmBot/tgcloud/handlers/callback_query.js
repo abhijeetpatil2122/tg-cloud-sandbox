@@ -20,7 +20,7 @@ import {
 import { adminSessions, userSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
-import { createStarsInvoice, depositMessage, depositUnavailableMessage } from '../lib/payments.js';
+import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit } from '../lib/payments.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -266,6 +266,39 @@ export default async function handleCallbackQuery(query) {
             { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
           ],
         });
+      }
+
+      if (data === 'ps:admin:refunds') {
+        return render(chatId, messageId, await adminRefundsMessage(0));
+      }
+      const refundPage = data.match(/^ps:admin:refunds:(\\d{1,4})$/);
+      if (refundPage) {
+        return render(chatId, messageId, await adminRefundsMessage(Number(refundPage[1])));
+      }
+      const refundPreview = data.match(/^ps:admin:refund:(\\d{1,12})$/);
+      if (refundPreview) {
+        return render(chatId, messageId, await refundPreviewMessage(Number(refundPreview[1])));
+      }
+      const refundConfirm = data.match(/^ps:admin:refund:confirm:(\\d{1,12})$/);
+      if (refundConfirm) {
+        try {
+          const result = await refundStarsDeposit(Number(refundConfirm[1]), userId);
+          return render(chatId, messageId, {
+            blocks: [
+              { type: 'heading', size: 1, text: result.duplicate ? '↩️ Refund already completed' : '↩️ Refund completed' },
+              { type: 'paragraph', text: result.duplicate ? 'This deposit has already been refunded.' : 'Telegram confirmed the Stars refund and the Portal Points reversal was recorded.' },
+              { type: 'buttons', buttons: [{ text: '‹ Refunds', callback_data: 'ps:admin:refunds', style: 'link' }] },
+            ],
+          });
+        } catch (error) {
+          return render(chatId, messageId, {
+            blocks: [
+              { type: 'heading', size: 1, text: '⚠️ Refund not completed' },
+              { type: 'paragraph', text: error?.message || 'The refund could not be completed.' },
+              { type: 'buttons', buttons: [{ text: '‹ Refunds', callback_data: 'ps:admin:refunds', style: 'link' }] },
+            ],
+          });
+        }
       }
 
       if (data === 'ps:admin:transactions') {
