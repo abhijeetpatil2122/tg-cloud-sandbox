@@ -4,9 +4,11 @@ Telegram-first SMM storefront built on Telegram Serverless.
 
 ## Current status
 
-The storefront shell, Rich Message navigation, owner-managed administrator access, wallet history screens, provider connection controls, and Telegram-only catalogue review tools are in place. The next stages are Stars deposits, customer order placement and tracking, referrals, and the remaining administrator tools.
+The storefront now includes Rich Message navigation, the improved start menu, owner-managed administrator access, paginated wallet/order history, Telegram-only catalogue import, Telegram Stars invoice and receipt handling, payment support intake, terms acceptance, and administrator Stars refund controls.
 
-Wallet and provider catalogue tables have been added to the schema but still require a reviewed migration. New services remain disabled until an administrator reviews them and sets a customer price. Deposits and order placement remain disabled until their payment and fulfilment flows are complete.
+The schema now also includes deposit intents, terms acceptance, payment support tickets, and order history. **The additive database migration is still pending.** The manual workflow now has a PortalsSmmBot-only `migrate-safe` mode; run that before deploying the updated modules. After migration, run the workflow again in `deploy` mode, then use the admin Provider → Sync services action to import the read-only Telegram catalogue.
+
+Customer order submission remains disabled until the provider service billing units and the approved Portal Points price model are verified. Referral rewards remain disabled until the owner chooses the minimum qualifying Stars deposit threshold. New supplier services remain disabled until an administrator reviews and prices them.
 
 ## Platform and services
 
