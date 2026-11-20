@@ -100,7 +100,18 @@ export async function syncTelegramServices() {
       }).run();
     imported.push(serviceId);
   }
-  return { providerTotal: result.length, telegramImported: imported.length };
+  const categoriesSeen = [...new Set(result
+    .map(item => String(item?.category || item?.social_network || item?.platform || '').trim())
+    .filter(Boolean))].slice(0, 8);
+  const serviceExamples = result.slice(0, 6)
+    .map(item => String(item?.name || '').trim())
+    .filter(Boolean);
+  return {
+    providerTotal: result.length,
+    telegramImported: imported.length,
+    categoriesSeen,
+    serviceExamples,
+  };
 }
 
 export async function listTelegramServices(enabledOnly = false) {
