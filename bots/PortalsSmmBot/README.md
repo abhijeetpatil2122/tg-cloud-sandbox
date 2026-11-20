@@ -1,44 +1,46 @@
 # PortalsSmmBot
 
-Telegram SMM storefront project built on Telegram Serverless.
+Telegram-first SMM storefront built on Telegram Serverless.
 
 ## Current status
 
-**Foundation stage — not deployed.** A command-only runtime shell is now present with `/start`, `/menu`, `/help`, an owner-protected administrator panel, a shared configuration module, and basic Rich Message navigation. Dynamic administrator management uses a new SQLite schema and requires migration before use. Commerce features are not enabled. No database migration, Stars payment, provider order, or production deployment has occurred.
+The storefront shell, Rich Message navigation, and owner-managed administrator access are in place. The next stages are the Telegram-only service catalogue, wallet and transaction history, Stars deposits, customer orders, referrals, and full administrator tools.
 
-## Intended stack
+Commerce features remain disabled until their database changes, provider catalogue, pricing, and payment flows have been reviewed and approved.
+
+## Platform and services
 
 - Telegram Serverless, CLI `@tgcloud/cli@0.2.0`
-- Bot project path: `bots/PortalsSmmBot`
+- Project path: `bots/PortalsSmmBot`
 - Serverless CLI credential: `TGCLOUD_TOKEN_PORTALSSMMBOT` (deployment access only)
-- Provider API: smm.plus at `https://smm.plus/api/v2`
-- Provider key: manually configured in the cloud-owned `tgcloud/lib/config.js` using BotFather's Serverless code editor; never committed to GitHub or sent through chat
+- Provider: smm.plus API v2 at `https://smm.plus/api/v2`
+- Catalogue scope: Telegram services only — boosts, views, reactions, members, shares, and other verified Telegram service variants.
 - Customer payments: Telegram Stars (`XTR`)
-- Internal wallet: integer Portal Points (1 paid Star = 1 point) recorded in an append-only ledger
-- Planning economics: 10% first-qualifying-deposit referral reward; 30% target gross margin; service prices rounded to nearest 5 points
-- Initial UI: native Telegram messages and Rich Message buttons only; no Mini App
+- Internal wallet: integer Portal Points; 1 paid Star = 1 Portal Point.
+- Referral planning: 10% of the first qualifying successful deposit, subject to the configured minimum and abuse controls.
+- Pricing planning: 30% target gross margin and nearest-5-point rounding.
 
-## Setup
+## Configuration and deployment
 
-The starter project uses the official Serverless CLI package:
+Provider settings are maintained in `tgcloud/lib/config.js`. The owner has chosen to keep a dummy test credential in this module for development. Both the manual and automatic workflows deploy this file normally with the rest of the runtime modules.
 
-```bash
-npm install
-npm run check
-npx tgcloud status
-```
+The configured value is for testing only. Do not use it for live orders. Never print provider credentials in logs or messages. Before production, replace the dummy value with a protected production credential and restrict access to the repository and Serverless project.
 
-Keep the project isolated in this folder. Never commit `.tgcloud/`, `node_modules/`, CLI credentials, or provider secrets. The cloud-edited provider key is part of server-side source and is visible to people with sufficient Serverless project/CLI access. A deployment must preserve the cloud-owned key configuration; do not blindly push over it.
+The manual GitHub Actions workflow maps this project to `TGCLOUD_TOKEN_PORTALSSMMBOT`. The project is also included in automatic deployment from `main`. Deploying code does not apply database migrations.
 
-The manual GitHub Actions workflow maps this project to `TGCLOUD_TOKEN_PORTALSSMMBOT`. It remains manual-only and is not part of the automatic deployment registry. Status checks are not deployments. No migration or deployment is authorized by the presence of this scaffold.
+## Database and safety
 
-## Next implementation stages
+Wallet history will use transaction records plus an append-only integer-points ledger. Deposits are credited only after Telegram sends a verified `successful_payment` update. Order debits, refunds, referral rewards, and administrator adjustments must have traceable records and idempotency protection.
 
-1. Preserve the cloud-owned provider config safely during deployment; admin/owner IDs are now configured.
-2. Review the database schema and safe atomic wallet/ledger strategy before migration.
-3. Implement Stars deposit intents and idempotent payment crediting.
-4. Implement provider read-only connectivity/catalogue sync, then a curated service catalogue.
-5. Implement order confirmation, debit reservation, provider submission, status tracking, and reconciliation.
-6. Add referral qualification/reversal, admin tools, terms, support, and operational reporting.
+Schema changes require a separate reviewed migration. No migration, paid provider order, live Stars payment, or refund is run automatically by deployment.
 
-See [AGENTS.md](./AGENTS.md) for the full architecture, security, economics, and rollout gates.
+## Development order
+
+1. Provider connectivity and Telegram-only service catalogue.
+2. Wallet balance and transaction history.
+3. Stars deposits and reconciliation.
+4. Curated service ordering and order tracking.
+5. Referral programme and complete administrator controls.
+6. Terms, support, and launch checks.
+
+See [AGENTS.md](./AGENTS.md) for implementation rules, provider API details, pricing policy, security, and rollout requirements.
