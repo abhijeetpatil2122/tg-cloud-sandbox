@@ -18,23 +18,24 @@ export function fullName(user = {}) {
 
 export function homeMessage(name = 'there', showAdmin = false) {
   const blocks = [
-    { type: 'heading', size: 1, text: 'Portals SMM' },
-    { type: 'paragraph', text: `Welcome, ${name}.` },
-    { type: 'paragraph', text: 'Your place to manage services, Portal Points and orders.' },
+    { type: 'heading', size: 1, text: '🚀 Portals SMM' },
+    { type: 'paragraph', text: `Welcome, ${name}!` },
+    { type: 'paragraph', text: 'Your Telegram growth workspace — manage services, Portal Points and orders in one place.' },
+    { type: 'heading', size: 2, text: '✨ Quick access' }, 
     { type: 'divider' },
-    row(button('Services', 'ps:services', 'primary'), button('Deposit', 'ps:deposit', 'success')),
-    row(button('Wallet', 'ps:wallet'), button('Transactions', 'ps:history')),
-    row(button('My Orders', 'ps:orders'), button('Referral', 'ps:referral')),
-    row(button('Support', 'ps:support'), button('Help', 'ps:help', 'link')),
+    row(button('📈 Services', 'ps:services', 'primary'), button('⭐ Deposit', 'ps:deposit', 'success')),
+    row(button('💼 Wallet', 'ps:wallet'), button('🧾 History', 'ps:history')),
+    row(button('📦 My Orders', 'ps:orders'), button('🎁 Referral', 'ps:referral')),
+    row(button('💬 Support', 'ps:support'), button('❔ Help', 'ps:help', 'link')),
   ];
-  if (showAdmin) blocks.push(row(button('Administrator panel', 'ps:admin')));
-  blocks.push({ type: 'footer', text: 'Payments via Telegram Stars · Portal Points are store credit' });
+  if (showAdmin) blocks.push(row(button('⚙️ Administrator panel', 'ps:admin')));
+  blocks.push({ type: 'footer', text: '⭐ Payments via Telegram Stars · Portal Points are store credit' });
   return { blocks };
 }
 
 export function helpMessage() {
   return { blocks: [
-    { type: 'heading', size: 1, text: 'Help' },
+    { type: 'heading', size: 1, text: '❔ Help' },
     { type: 'paragraph', text: 'Use the buttons below or the commands to navigate the Portals SMM storefront.' },
     { type: 'list', items: [
       { blocks: [{ type: 'paragraph', text: '/start — Open the storefront' }] },
@@ -46,6 +47,8 @@ export function helpMessage() {
       { blocks: [{ type: 'paragraph', text: '/history — View your transactions' }] },
       { blocks: [{ type: 'paragraph', text: '/referral — View your referral details' }] },
       { blocks: [{ type: 'paragraph', text: '/support — Contact support' }] },
+      { blocks: [{ type: 'paragraph', text: '/paysupport — Report a payment issue' }] },
+      { blocks: [{ type: 'paragraph', text: '/terms — Read store terms' }] }, 
       { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
     ] },
     { type: 'paragraph', text: 'Portal Points are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
@@ -55,27 +58,27 @@ export function helpMessage() {
 
 const screens = {
   services: {
-    title: 'Services',
+    title: '📈 Services',
     description: 'The service catalogue is being prepared. Available services will appear here once supplier rates and delivery terms have been reviewed.',
   },
   deposit: {
-    title: 'Deposit',
+    title: '⭐ Deposit',
     description: 'Stars deposits are not enabled yet. Your balance will be credited only after Telegram confirms a successful payment.',
   },
   wallet: {
-    title: 'Wallet',
+    title: '💼 Wallet',
     description: 'Your Portal Points balance and transaction history will appear here.',
   },
   orders: {
-    title: 'My Orders',
+    title: '📦 My Orders',
     description: 'Your order history and delivery status will appear here after the catalogue is enabled.',
   },
   referral: {
-    title: 'Referral programme',
+    title: '🎁 Referral programme',
     description: 'Your personal referral link and reward history will appear here when the programme is enabled.',
   },
   support: {
-    title: 'Support',
+    title: '💬 Support',
     description: 'Support information will be published here. Keep your internal order ID available when requesting help.',
   },
 };
@@ -102,7 +105,7 @@ export function unavailableMessage() {
 export function adminPanelMessage(adminIds = [], databaseAvailable = true, canManage = true) {
   const ids = [...new Set(adminIds)].sort((a, b) => a - b);
   const blocks = [
-    { type: 'heading', size: 1, text: 'Administrator panel' },
+    { type: 'heading', size: 1, text: '⚙️ Administrator panel' },
     { type: 'paragraph', text: 'Manage services, supplier access, wallet activity and administrator accounts.' },
     { type: 'paragraph', text: `Designated owners: 6522801911 · 1314643983` },
     { type: 'paragraph', text: `Registered administrators: ${ids.length}` },
@@ -141,7 +144,7 @@ export function adminRemovalMessage(ids = []) {
 
 export function providerAdminMessage() {
   return { blocks: [
-    { type: 'heading', size: 1, text: 'Provider' },
+    { type: 'heading', size: 1, text: '🔌 Provider' },
     { type: 'paragraph', text: 'Check the supplier connection and refresh the Telegram service list.' },
     row(button('Check connection', 'ps:admin:provider:check', 'primary'), button('Sync services', 'ps:admin:services:sync', 'success')),
     row(button('Telegram catalogue', 'ps:admin:services')),
@@ -151,7 +154,7 @@ export function providerAdminMessage() {
 
 export function providerBalanceMessage(result) {
   return { blocks: [
-    { type: 'heading', size: 1, text: 'Provider connection' },
+    { type: 'heading', size: 1, text: '🔌 Provider connection' },
     { type: 'paragraph', text: `Connection successful\nSupplier balance: ${result.balance} ${result.currency}` },
     row(button('‹ Provider', 'ps:admin:provider', 'link')),
   ] };
@@ -161,7 +164,7 @@ export function adminServicesMessage(services = [], page = 0) {
   const start = Math.max(0, Number(page) || 0) * 6;
   const rows = services.slice(start, start + 6);
   const blocks = [
-    { type: 'heading', size: 1, text: 'Telegram services' },
+    { type: 'heading', size: 1, text: '📈 Telegram services' },
     { type: 'paragraph', text: `${services.length} Telegram services found. New services are disabled until reviewed and priced.` },
     { type: 'divider' },
   ];
@@ -193,7 +196,7 @@ export function customerServicesMessage(services = [], page = 0) {
   const start = safePage * 10;
   const visible = services.slice(start, start + 10);
   const blocks = [
-    { type: 'heading', size: 1, text: 'Services' },
+    { type: 'heading', size: 1, text: '📈 Services' },
     { type: 'paragraph', text: 'Choose a Telegram service.' },
   ];
   if (!services.length) {
