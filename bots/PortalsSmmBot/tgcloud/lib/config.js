@@ -1,25 +1,20 @@
 /**
  * PortalsSmmBot shared runtime configuration.
  *
- * The provider key is intentionally blank in the repository.
- * Add it only in the bot's Serverless library editor after the first
- * reviewed deployment. Never paste it into Telegram chat or commit it.
- *
- * NOTE: a key entered here in the cloud is part of deployed source and is
- * readable by people with sufficient Serverless project/CLI access.
+ * Keep provider credentials server-side. Never include them in messages,
+ * callback data, frontend code, or logs.
  */
 
 export const BOT_NAME = 'Portals SMM';
-export const BOT_USERNAME = ''; // Set after BotFather username is finalized.
+export const BOT_USERNAME = '';
 
-// Both designated owners also have full administrator access. Owners are immutable in the panel.
 export const OWNER_IDS = [6522801911, 1314643983];
-export const ADMIN_IDS = [6522801911, 1314643983]; // Static bootstrap admins; additional admins are stored in SQLite.
+export const ADMIN_IDS = [6522801911, 1314643983];
 
 export const PROVIDER = Object.freeze({
   name: 'smm.plus',
   endpoint: 'https://smm.plus/api/v2',
-  apiKey: '', // Set manually in BotFather > Serverless > Library > config.js.
+  apiKey: '69d8cb1d4bd4cce2ffc99cf7b8a47fdb',
   timeoutMs: 15000,
 });
 
@@ -30,18 +25,18 @@ export const WALLET = Object.freeze({
 
 export const REFERRALS = Object.freeze({
   rewardPercent: 10,
-  minimumQualifyingStars: 0, // Owner must set a non-zero threshold before launch.
+  minimumQualifyingStars: 0,
 });
 
 export const PRICING = Object.freeze({
   targetGrossMarginPercent: 30,
   roundingStep: 5,
   roundingMode: 'nearest',
-  accountingInrPerPoint: null, // Set only after approving the live accounting FX source.
+  accountingInrPerPoint: null,
 });
 
 export const SUPPORT = Object.freeze({
-  username: '', // Public support username, without @.
+  username: '',
 });
 
 export const FEATURES = Object.freeze({
