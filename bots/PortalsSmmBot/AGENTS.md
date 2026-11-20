@@ -345,3 +345,19 @@ Next stages:
 ## Administrator access update
 
 The two owner accounts are Telegram user IDs 6522801911 and 1314643983. Both are also bootstrap administrators. Owners are defined in OWNER_IDS and ADMIN_IDS in tgcloud/lib/config.js and are protected from removal in the admin panel. Additional administrators are persisted in the bot_admins SQLite table. Only the designated owners may add or remove those additional administrators. The panel's add flow accepts a numeric Telegram user ID; removal lists only database-managed administrators. This schema addition requires a reviewed Serverless migration before the dynamic admin panel can operate. Do not deploy or migrate without owner approval.
+
+## Production rollout snapshot — 20 November 2026
+
+This snapshot records the explicitly approved work completed on this date; it does not authorize future destructive changes or live commerce actions.
+
+- The additive Serverless database migration completed successfully: **5 changes applied, 0 skipped**. The schema includes Stars deposit intents, explicit terms acceptance, payment support tickets, and order history tables alongside the existing wallet/provider tables.
+- The updated runtime modules are deployed. The webhook is in sync and allows message, callback_query, and pre_checkout_query; pending updates were zero at verification.
+- FEATURES.providerSyncEnabled and FEATURES.depositsEnabled are enabled in the deployed configuration.
+- Provider balance authentication was confirmed by the owner. The first post-migration services catalogue sync has **not** yet been run/verified. Use the admin Provider → Sync services action; it is read-only with respect to supplier funds. If it imports zero entries, use the returned category/name diagnostics to refine the Telegram filter.
+- Telegram Stars invoice creation, pre-checkout validation, verified successful_payment crediting, idempotency, user/admin payment notifications, and terms acceptance are implemented. No real Stars payment has been made as part of development verification.
+- /paysupport creates a support ticket and notifies administrators; the admin panel includes a paginated support inbox.
+- Admin /refund lists completed Stars deposits and requires confirmation. Only full refunds are supported, and only when the customer still has enough Portal Points for the reversal. Ambiguous refund API failures are held for administrator reconciliation. No live refund was executed during development.
+- /orders and transaction history are paginated. Order placement/fulfilment remains disabled until supplier billing units and the approved Portal Points price model are verified. Do not enable it by guessing that every supplier rate is per 1,000.
+- Referral rewards remain disabled until the owner chooses the minimum qualifying Stars deposit threshold. Do not assume a default threshold.
+- The one-time migration marker was removed after the successful run. Future schema changes require separate review and explicit approval; ordinary deployments must not run migrations automatically.
+
