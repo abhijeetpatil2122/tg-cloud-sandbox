@@ -132,6 +132,81 @@ export function adminRemovalMessage(ids = []) {
   return { blocks };
 }
 
+
+export function providerAdminMessage() {
+  return { blocks: [
+    { type: 'heading', size: 1, text: 'Provider' },
+    { type: 'paragraph', text: 'Check the supplier connection and refresh the Telegram service list.' },
+    row(button('Check connection', 'ps:admin:provider:check', 'primary'), button('Sync services', 'ps:admin:services:sync', 'success')),
+    row(button('Telegram catalogue', 'ps:admin:services')),
+    row(button('‹ Administrator panel', 'ps:admin', 'link')),
+  ] };
+}
+
+export function providerBalanceMessage(result) {
+  return { blocks: [
+    { type: 'heading', size: 1, text: 'Provider connection' },
+    { type: 'paragraph', text: `Connection successful\nSupplier balance: ${result.balance} ${result.currency}` },
+    row(button('‹ Provider', 'ps:admin:provider', 'link')),
+  ] };
+}
+
+export function adminServicesMessage(services = [], page = 0) {
+  const start = Math.max(0, Number(page) || 0) * 6;
+  const rows = services.slice(start, start + 6);
+  const blocks = [
+    { type: 'heading', size: 1, text: 'Telegram services' },
+    { type: 'paragraph', text: `${services.length} Telegram services found. New services are disabled until reviewed and priced.` },
+    { type: 'divider' },
+  ];
+  if (!rows.length) {
+    blocks.push({ type: 'paragraph', text: 'No Telegram services have been synced yet.' });
+  }
+  for (const item of rows) {
+    blocks.push({
+      type: 'paragraph',
+      text: `#${item.serviceId} · ${item.name}\n${item.category || 'Telegram'} · ${item.type}\nSupplier rate: ${item.rate}\nQuantity: ${item.minQty}–${item.maxQty}\nCustomer price: ${Number(item.customerPrice) > 0 ? `${item.customerPrice} points` : 'Not set'}\nRefill: ${item.refill ? 'Available' : 'Not available'} · Cancel: ${item.cancel ? 'Available' : 'Not available'}\nStatus: ${item.enabled ? 'Enabled' : 'Disabled'}`,
+    });
+    blocks.push(row(
+      button('Set price', `ps:admin:service:price:${item.serviceId}`),
+      button(item.enabled ? 'Disable' : 'Enable', `ps:admin:service:${item.enabled ? 'disable' : 'enable'}:${item.serviceId}`, item.enabled ? 'danger' : 'success'),
+    ));
+    blocks.push({ type: 'divider' });
+  }
+  const buttons = [];
+  if (page > 0) buttons.push(button('‹ Previous', `ps:admin:services:${page - 1}`));
+  if (start + 6 < services.length) buttons.push(button('Next ›', `ps:admin:services:${page + 1}`));
+  if (buttons.length) blocks.push(row(...buttons));
+  blocks.push(row(button('Sync services', 'ps:admin:services:sync', 'success')));
+  blocks.push(row(button('‹ Provider', 'ps:admin:provider', 'link')));
+  return { blocks };
+}
+
+export function customerServicesMessage(services = []) {
+  const blocks = [
+    { type: 'heading', size: 1, text: 'Services' },
+    { type: 'paragraph', text: 'Choose a Telegram service.' },
+  ];
+  if (!services.length) {
+    blocks.push({ type: 'paragraph', text: 'No services are available at the moment.' });
+  } else {
+    for (const item of services.slice(0, 20)) {
+      blocks.push(row(button(item.name.slice(0, 60), `ps:service:${item.serviceId}`)));
+    }
+  }
+  blocks.push(row(button('‹ Main menu', 'ps:home', 'link')));
+  return { blocks };
+}
+
+export function customerServiceDetailsMessage(item) {
+  return { blocks: [
+    { type: 'heading', size: 1, text: item.name },
+    { type: 'paragraph', text: `Price: ${item.customerPrice} Portal Points\nQuantity: ${item.minQty}–${item.maxQty}\nRefill: ${item.refill ? 'Available' : 'Not available'}\nCancellation: ${item.cancel ? 'Available on request' : 'Not available'}` },
+    { type: 'paragraph', text: 'Review the service requirements before placing an order.' },
+    row(button('‹ Services', 'ps:services', 'link')),
+  ] };
+}
+
 export async function sendRich(chatId, richMessage) {
   return api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
 }
