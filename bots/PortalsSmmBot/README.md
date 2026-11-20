@@ -30,9 +30,9 @@ The manual GitHub Actions workflow maps this project to `TGCLOUD_TOKEN_PORTALSSM
 
 ## Database and safety
 
-Wallet history will use transaction records plus an append-only integer-points ledger. Deposits are credited only after Telegram sends a verified `successful_payment` update. Order debits, refunds, referral rewards, and administrator adjustments must have traceable records and idempotency protection.
+Wallet history uses transaction records plus an append-only integer-points ledger. Deposits are credited only after Telegram sends a verified `successful_payment` update. Order debits, refunds, referral rewards, and administrator adjustments must have traceable records and idempotency protection.
 
-Schema changes require a separate reviewed migration. No migration, paid provider order, live Stars payment, or refund is run automatically by deployment.
+The one-time additive migration was explicitly owner-approved and applied with `tgcloud migrate --safe`. Future schema changes still require separate review. Ordinary deployments do not run migrations, provider purchases, live Stars transactions, or refunds.
 
 ## Development order
 
