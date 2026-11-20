@@ -87,17 +87,21 @@ Official API documentation reviewed: https://smm.plus/bp/api (the supplied https
 - Do not assume API access offers a free sandbox. Service-list and balance reads can test connectivity; a paid order consumes provider funds. Obtain owner approval before any paid test order.
 - Do not market services as guaranteed, organic, official, or risk-free unless the exact selected service terms substantiate that claim. Show accurate provider limitations and comply with Telegram rules and applicable law.
 
-### Provider credentials — unresolved implementation gate
+### Provider credentials — secure configuration decision
 
-The Serverless CLI Actions secret is only for deploying the project. It does not automatically become a runtime secret. The official Serverless documentation reviewed describes the SDK and outbound HTTP but does not establish a general runtime environment-variable/secret-injection facility.
+The official Serverless documentation describes the BotFather phone-based editor for handlers, endpoints, library modules, database schema, and Mini App files. It does **not** document a dedicated runtime secret manager, runtime environment-variable injection, or a secret/config vault. The GitHub Actions secret used for CLI login is a deployment credential and is not automatically exposed to runtime modules.
 
-Before implementing live provider calls, verify the supported secure way to store and retrieve an external API key for this Serverless app (for example, a documented BotFather-managed secret/config facility if available). Do not:
-- assume `process.env` exists;
-- put the SMM API key in committed source, `tgcloud.jsonc`, a public GitHub Actions variable, or frontend code;
-- embed the key in a test fixture or log;
-- ask the owner to paste it into chat.
+Important distinction:
+- BotFather's Serverless editor is a convenient way to edit cloud code from Android; it is not documented as a secret vault.
+- A `/config` command that accepts the SMM key in chat and stores it in SQLite would place the credential in chat/update history and/or ordinary database storage. Do not implement this as the default.
+- Telegram Mini App `SecureStorage` is encrypted storage on an individual user's device. It is not a server-side shared secret store and must never hold the provider key for backend use.
+- Never commit the provider key to this public repository, put it in frontend code, callback data, logs, workflow output, or a normal public Actions variable.
 
-If the platform has no suitable runtime secret store, stop and present secure supported alternatives before proceeding.
+Preferred implementation path: use a dedicated GitHub Actions repository secret (for example `SMM_PLUS_API_KEY_PORTALSSMMBOT`) and inject it into a server-only provider credential module during the manual deploy workflow, without printing it or committing the generated file. The runtime module must be server-only and never return the key. The workflow must use a targeted module push and must not accidentally delete unrelated cloud modules. This still means the deployed Serverless module contains the credential; access to the BotFather Serverless project and CLI token must therefore remain tightly restricted. Revisit this if Telegram documents a native runtime secret facility.
+
+If the owner specifically chooses manual editing in BotFather instead, use a separate server-only library module and explain that the key becomes part of the cloud source code, can be exposed to anyone with project/CLI access, and may be overwritten or pulled into GitHub during sync. Do not create a chat-based `/setapikey` command unless a proper protected secret-storage design is approved.
+
+Do not implement provider calls that require the key until the owner has chosen and configured the credential path. Never ask the owner to paste the key into ChatGPT.
 
 ## Telegram Stars deposits
 
@@ -115,14 +119,51 @@ Required payment flow:
 
 A successful `pre_checkout_query` is not proof of payment. Only a verified `successful_payment` may create a deposit credit. Store charge IDs for possible refunds. Do not use screenshots, user messages, forwarded receipts, or client-side state as proof of payment.
 
-### Points and Stars pricing
+### Approved planning model: Stars and Portal Points
 
-- Wallet points are internal integer units, not Stars and not provider USD.
-- Do not choose a conversion rate, minimum deposit, bonus schedule, or customer-facing price without owner approval.
-- Store all rates as integer/rational values or fixed-point integers; do not use binary floating-point for money calculations.
-- Every deposit records the Stars paid, points credited, and immutable conversion/config version used.
-- Clearly disclose any conversion, bonus, expiry, or refund policy before payment.
-- Do not call wallet points cash, withdrawable funds, or Telegram Stars.
+The owner has approved the following planning preferences (2026-11-20):
+- **1 Telegram Star paid = 1 Portal Point credited** (fixed 1:1 customer-facing conversion).
+- Deposit options: preset packages and custom amount.
+- Referral qualification: the referred user's first qualifying successful Stars deposit.
+- Referral reward: 10% of that qualifying deposit, credited as points to the referrer.
+- The minimum qualifying referral deposit is configurable and remains to be chosen.
+- Target gross margin: 30%.
+- Customer service prices are rounded **up** to the next 5 points so rounding never undercuts the target margin.
+- Portal Points have a separate INR accounting valuation; they are internal store credit, not withdrawable cash or Telegram Stars.
+
+The 1:1 conversion is a wallet-credit rule, not an INR exchange-rate promise. The bot must display points as Portal Points and clearly disclose that they are not cash or redeemable Stars.
+
+### Telegram Stars economics and provisional INR valuation
+
+Telegram's current Bot Developer Terms state that earned Stars may generate rewards equivalent to **US$0.013 per Star**, subject to Telegram's rules and eligibility. Rewards may be unavailable for up to 21 days after receipt. The value is not the user's purchase price and is not guaranteed to equal Fragment's retail Stars purchase price.
+
+For planning only, on 2026-11-20:
+- At an indicative USD/INR rate of ₹93.22, US$0.013 is approximately **₹1.2119 per earned Star**.
+- Thus 100 Stars have an indicative gross reward value of about **₹121.19**, before withdrawal/market conversion differences, network/platform fees, taxes, or other costs.
+- The owner's example of 100 Stars for 1.4764 GRAM, using an indicative GRAM value near ₹94.8, implies a retail acquisition cost around **₹140**.
+- The owner's ₹199 per 100 Stars example implies ₹1.99 per Star paid by that customer. Current app-store pricing varies by storefront and platform; one India App Store listing observed ₹205 for 100 Stars.
+
+These figures are time-stamped market/accounting estimates, not hardcoded constants or promises. Fragment's Stars retail price is not the bot owner's Stars reward rate. Telegram may change the assigned reward value, and GRAM/USD/INR prices move.
+
+For accounting, use a configurable, timestamped INR-per-point valuation based on:
+`Telegram reward USD per Star × approved USD/INR accounting rate`.
+Start with the provisional reference ₹1.2119/point on 2026-11-20 only for simulations. Before production pricing, confirm the actual available reward/withdrawal path, current Telegram balance eligibility, Fragment quote at the time, and the FX source/rate the owner wants to use. Store the FX rate, source, timestamp, reward-rate version, and computed INR value with each financial snapshot.
+
+### Pricing formula
+
+For each service:
+1. Parse the provider's actual rate and billing unit; never assume all rates are per 1,000.
+2. Compute supplier cost in its source currency and convert using a timestamped FX snapshot, including any approved spread/fee buffer.
+3. Convert the service cost to Portal Points using the active INR-per-point accounting valuation.
+4. Set raw selling points to `supplier cost INR ÷ (0.70 × INR value per point)`.
+5. Round **up** to the next 5 points.
+6. Store the provider rate/unit, currency, FX snapshot, INR cost, point valuation, raw price, final points price, pricing version, and estimated gross margin.
+
+When supplier cost and Telegram reward valuation are both USD-based, the USD/Star reward rate can simplify the calculation, but retain the source currency and FX snapshots for auditability.
+
+Report **gross margin** (revenue equivalent less direct supplier fulfilment cost) separately from **contribution margin**, which should additionally account for referral points, deposit promotions, payment/withdrawal fees, refunds, and other variable costs. The 10% referral reward is a promotional acquisition expense and must be included in contribution-margin reporting. Do not silently describe a 30% gross margin as a 30% net profit.
+
+All rates and money arithmetic must use integer/fixed-point or rational arithmetic. Avoid binary floating-point for financial calculations. Customer point amounts are integers.
 
 ## Wallet, ledger, and balance integrity
 
@@ -225,17 +266,19 @@ Do not hardcode an admin ID until the owner supplies/confirms the intended admin
 
 ## Pricing and profitability
 
-No customer prices, points conversion, margin, Stars deposit tiers, referral reward amounts, or discounts are approved yet.
+The approved planning model is 1 paid Telegram Star = 1 Portal Point, 30% target gross margin, 10% referral reward on the referred user's first qualifying successful deposit, configurable qualifying minimum, and price rounding up to the next 5 points. The point's INR accounting valuation is separate from the 1:1 customer wallet-credit rule.
 
-For each service, calculate supplier cost from the API's rate and documented billing unit. The public API examples show rates but the exact unit/interpretation must be verified for each service type/account. Convert USD supplier costs into an internal cost basis using an owner-approved exchange-rate source/snapshot. Then calculate customer points/Stars pricing using an explicit margin/fee policy, rounding upward to avoid undercharging.
+Use Telegram's currently stated US$0.013 reward equivalent per earned Star as the provisional revenue basis, not the customer's Star acquisition price. On 2026-11-20, using ₹93.22/USD, this is approximately ₹1.2119 per point before withdrawal/market differences and other costs. The owner's quoted Fragment retail purchase example (100 Stars for 1.4764 GRAM) is a customer acquisition comparison, not the bot's payout. The owner's ₹199 per 100 Stars example is also a retail purchase price, not developer proceeds. Re-check the reward terms, actual withdrawal availability, GRAM conversion, and FX rate before launch.
 
-Store:
-- supplier rate, unit basis, currency, quantity, computed supplier cost;
-- exchange rate and source/version;
-- customer price and pricing version;
-- gross margin estimate and timestamp.
-
-Never assume all provider rates are per 1,000 without confirming the service's actual unit. Revalidate supplier cost and availability before enabling a service. Keep a safety margin for exchange-rate changes, Stars economics, refunds, and support.
+For each provider service:
+- Verify the provider's actual rate unit, minimum/maximum, currency, type, refill/cancel capability, and service-specific input fields.
+- Convert supplier cost into INR using a timestamped, owner-approved FX source and any approved safety buffer.
+- Calculate raw points as `supplier cost INR ÷ (0.70 × INR value per point)`, then round **up** to the next 5 points.
+- Preserve supplier cost, billing unit, currency, FX source/rate/time, point valuation, computed price, pricing version, and gross margin snapshots on each order.
+- Never assume all smm.plus rates are per 1,000; verify the account's service catalogue and examples.
+- Report gross margin separately from contribution margin. Include the 10% referral points expense, promotional credits, Stars payout/withdrawal costs, refunds, and other variable costs in contribution-margin analysis.
+- Do not expose every provider service automatically. Only curated, owner-approved services that pass quality and policy checks may be listed.
+- Recalculate prices when supplier rates, reward value, FX rates, or fees change; do not silently rewrite historical order snapshots.
 
 ## Testing and rollout gates
 
@@ -264,16 +307,16 @@ Keep the bot manual-deploy-only until its first deployment and live tests are ex
 
 ## Current phase and decisions still required
 
-**Current phase: architecture and planning. No production catalogue, pricing, rewards, or live order policy has been approved.**
+**Current phase: architecture and planning. Business-model planning preferences are approved, but no production catalogue, final INR accounting rate, qualifying deposit minimum, admin allowlist, credential, or live order policy has been approved.**
 
 Resolve with the owner before implementing live commerce:
-1. Verify how the smm.plus API key can be securely made available to Serverless runtime modules.
+1. Choose/configure the SMM API credential path. Preferred: GitHub Actions secret injection into a server-only module; BotFather code editing is available from Android but is not a secret vault.
 2. Confirm admin Telegram ID(s).
-3. Decide whether wallet points are pegged to Stars (and the exact conversion) or use a separate points rate.
-4. Decide deposit tiers/minimum and any deposit bonus.
-5. Decide referral qualification threshold, reward amount, caps, and reversal policy. Recommended default is reward only after a referred user's first qualifying paid Stars deposit.
+3. The customer wallet conversion is now fixed at 1 Star = 1 Portal Point; confirm the final INR accounting FX source and withdrawal-cost treatment.
+4. Decide preset deposit packages, custom deposit limits, and any deposit bonus.
+5. Set the configurable minimum qualifying referral deposit, caps, and reversal policy. Referral reward is 10% of the first qualifying deposit in points.
 6. Confirm which provider services/categories are allowed in the first launch and the intended target types.
-7. Approve pricing source, FX handling, margin, and rounding policy.
+7. The planning target is 30% gross margin and round-up-to-5-point pricing; approve the production FX source, safety buffer, and contribution-margin treatment.
 8. Confirm support contact and service/refund/terms wording.
 9. Confirm whether users may order only from private chats (recommended: yes).
 10. Confirm the provider's exact order rate unit, refund/partial-completion behavior, and any service-specific restrictions before public listing.
