@@ -13,6 +13,7 @@ import {
   unavailableMessage,
 } from '../lib/ui.js';
 import { adminSessions } from '../schema.js';
+import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -63,11 +64,14 @@ export default async function handleCallbackQuery(query) {
     }
 
     if (data === 'ps:help') return render(chatId, messageId, helpMessage());
+    if (data === 'ps:wallet') return render(chatId, messageId, await walletMessage(userId));
+    if (data === 'ps:history') return render(chatId, messageId, await transactionHistoryMessage(userId, 0));
+    const historyPage = data.match(/^ps:history:(\\d{1,4})$/);
+    if (historyPage) return render(chatId, messageId, await transactionHistoryMessage(userId, Number(historyPage[1])));
 
     const sections = {
       'ps:services': 'services',
       'ps:deposit': 'deposit',
-      'ps:wallet': 'wallet',
       'ps:orders': 'orders',
       'ps:referral': 'referral',
       'ps:support': 'support',
@@ -85,7 +89,8 @@ export default async function handleCallbackQuery(query) {
         });
       }
 
-      if (data !== 'ps:admin' && !isOwner(userId)) {
+      const ownerOnlyAction = ['ps:admin:add', 'ps:admin:remove', 'ps:admin:cancel'].includes(data) || data.startsWith('ps:admin:del:');
+      if (ownerOnlyAction && !isOwner(userId)) {
         return render(chatId, messageId, {
           blocks: [
             { type: 'heading', size: 2, text: 'Owner permission required' },
@@ -97,6 +102,14 @@ export default async function handleCallbackQuery(query) {
 
       if (data === 'ps:admin' || data === 'ps:admin:home') {
         return showAdmin(chatId, messageId, userId);
+      }
+
+      if (data === 'ps:admin:transactions') {
+        return render(chatId, messageId, await adminTransactionsMessage(0));
+      }
+      const adminHistoryPage = data.match(/^ps:admin:transactions:(\\d{1,4})$/);
+      if (adminHistoryPage) {
+        return render(chatId, messageId, await adminTransactionsMessage(Number(adminHistoryPage[1])));
       }
 
       if (data === 'ps:admin:add') {
