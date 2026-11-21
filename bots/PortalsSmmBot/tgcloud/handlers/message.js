@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { OWNER_IDS, FEATURES } from '../lib/config.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
-import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage } from '../lib/ui.js';
+import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage } from '../lib/ui.js';
 import { adminSessions, userSessions, paymentSupportTickets } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
@@ -283,6 +283,17 @@ export default async function handleMessage(message) {
         ],
       });
       return await sendRich(chatId, await resetPreviewMessage());
+    }
+
+    if (parsed.command === '/servicesetup') {
+      if (!await isAdmin(userId)) return await sendRich(chatId, {
+        blocks: [
+          { type: 'heading', size: 2, text: 'Access denied' },
+          { type: 'paragraph', text: 'This setup guide is available to administrators only.' },
+          { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
+        ],
+      });
+      return await sendRich(chatId, serviceSetupGuideMessage());
     }
 
     if (parsed.command === '/admin') {
