@@ -10,6 +10,7 @@ import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSu
 import { listAdmins } from '../lib/admins.js';
 import { myOrdersMessage } from '../lib/orders.js';
 import { resetPreviewMessage } from '../lib/reset.js';
+import { trackUser, attributeReferral, isUserBanned, referralMessage, adminStatsMessage, adjustUserBalance, setUserBanned } from '../lib/users.js';
 
 function parseCommand(value = '') {
   const match = value.trim().match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?(?:\s+([\s\S]*))?$/i);
@@ -34,8 +35,17 @@ export default async function handleMessage(message) {
   const text = typeof message.text === 'string' ? message.text.trim() : '';
 
   try {
+    await trackUser(message.from, message.chat.type);
     if (message.successful_payment) {
       await handleSuccessfulPayment(message);
+      return;
+    }
+
+    if (await isUserBanned(userId) && !await isAdmin(userId)) {
+      await sendRich(chatId, { blocks: [
+        { type: 'heading', size: 1, text: 'Access restricted' },
+        { type: 'paragraph', text: 'This account is currently restricted from using the storefront. Contact support if you believe this is a mistake.' },
+      ] });
       return;
     }
 
@@ -109,6 +119,57 @@ export default async function handleMessage(message) {
         return;
       }
 
+      const balanceInput = pending?.action?.match(/^balance_(add|remove)$/);
+      if (balanceInput) {
+        const match = text.match(/^(\d{5,15})\s+(\d{1,9})(?:\s+([\s\S]{1,120}))?$/);
+        if (!match) {
+          await sendRich(chatId, { blocks: [
+            { type: 'heading', size: 2, text: 'Invalid balance adjustment' },
+            { type: 'paragraph', text: 'Send: USER_ID AMOUNT followed by an optional short reason. Example: 123456789 50 correction' },
+            { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
+          ] });
+          return;
+        }
+        const result = await adjustUserBalance({
+          userId: Number(match[1]), amount: Number(match[2]), direction: balanceInput[1],
+          adminId: userId, reason: match[3] || '',
+        });
+        await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
+        await sendRich(chatId, { blocks: [
+          { type: 'heading', size: 2, text: 'Balance updated' },
+          { type: 'table', is_bordered: true, is_compact: true, cells: [
+            [{ text: 'Field', is_header: true }, { text: 'Value', is_header: true }],
+            [{ text: 'Customer ID' }, { text: String(result.userId), align: 'right' }],
+            [{ text: 'Adjustment' }, { text: result.points + ' Portal Points ' + result.direction, align: 'right' }],
+            [{ text: 'Ledger transaction' }, { text: '#' + result.transactionId, align: 'right' }],
+          ] },
+          { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+        ] });
+        try { await api.sendMessage({ chat_id: result.userId, text: 'An administrator ' + result.direction + ' ' + result.points + ' Portal Points to your wallet.' }); } catch {}
+        return;
+      }
+
+      const banInput = pending?.action?.match(/^user_(ban|unban)$/);
+      if (banInput) {
+        if (!/^\d{5,15}$/.test(text)) {
+          await sendRich(chatId, { blocks: [
+            { type: 'heading', size: 2, text: 'Invalid Telegram user ID' },
+            { type: 'paragraph', text: 'Send a numeric Telegram user ID containing 5–15 digits, or cancel.' },
+            { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
+          ] });
+          return;
+        }
+        const result = await setUserBanned(Number(text), banInput[1] === 'ban', userId);
+        await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
+        await sendRich(chatId, { blocks: [
+          { type: 'heading', size: 2, text: result.banned ? 'User banned' : 'User unbanned' },
+          { type: 'paragraph', text: 'Telegram user ' + result.userId + (result.banned ? ' can no longer use the storefront.' : ' may use the storefront again.') },
+          { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+        ] });
+        try { await api.sendMessage({ chat_id: result.userId, text: result.banned ? 'Your access to Portals SMM has been restricted by an administrator.' : 'Your access to Portals SMM has been restored.' }); } catch {}
+        return;
+      }
+
       const priceInput = pending?.action?.match(/^set_service_price:(\d{1,12})$/);
       if (priceInput) {
         if (!/^\d{1,9}$/.test(text) || Number(text) <= 0) {
@@ -154,9 +215,8 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/start' || parsed.command === '/menu') {
-      // The storefront entry point deliberately has no database dependency.
-      // Owners are recognized from static configuration; customer menus always load.
-      return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId)));
+      if (parsed.command === '/start' && parsed.argument) await attributeReferral(userId, parsed.argument);
+      return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
     }
 
     if (parsed.command === '/deposit') {
@@ -211,9 +271,16 @@ export default async function handleMessage(message) {
       }
     }
 
+    if (parsed.command === '/referral') {
+      try { return await sendRich(chatId, await referralMessage(userId)); }
+      catch (error) {
+        console.error('Referral page unavailable:', error?.message || error);
+        return await sendRich(chatId, sectionMessage('referral'));
+      }
+    }
+
     const sectionCommands = {
       '/deposit': 'deposit',
-      '/referral': 'referral',
       '/support': 'support',
     };
     if (sectionCommands[parsed.command]) {
@@ -294,6 +361,13 @@ export default async function handleMessage(message) {
         ],
       });
       return await sendRich(chatId, serviceSetupGuideMessage());
+    }
+
+    if (parsed.command === '/stats') {
+      if (!await isAdmin(userId)) return await sendRich(chatId, {
+        blocks: [{ type: 'heading', size: 2, text: 'Access denied' }, { type: 'paragraph', text: 'Administrator access is required.' }],
+      });
+      return await sendRich(chatId, await adminStatsMessage());
     }
 
     if (parsed.command === '/admin') {
