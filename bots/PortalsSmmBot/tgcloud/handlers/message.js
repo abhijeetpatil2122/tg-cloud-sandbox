@@ -233,6 +233,12 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/refund') {
+      if (message.chat.type !== 'private') return await sendRich(chatId, {
+        blocks: [
+          { type: 'heading', size: 1, text: '🔒 Private chat required' },
+          { type: 'paragraph', text: 'Please open Portals SMM in a private chat to use administrator payment tools.' },
+        ],
+      });
       if (!await isAdmin(userId)) {
         return await sendRich(chatId, {
           blocks: [
@@ -248,6 +254,12 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/payments') {
+      if (message.chat.type !== 'private') return await sendRich(chatId, {
+        blocks: [
+          { type: 'heading', size: 1, text: '🔒 Private chat required' },
+          { type: 'paragraph', text: 'Please open Portals SMM in a private chat to use administrator payment tools.' },
+        ],
+      });
       if (!await isAdmin(userId)) return await sendRich(chatId, {
         blocks: [
           { type: 'heading', size: 1, text: 'Access denied' },
@@ -258,6 +270,12 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/resetdb') {
+      if (message.chat.type !== 'private') return await sendRich(chatId, {
+        blocks: [
+          { type: 'heading', size: 1, text: '🔒 Private chat required' },
+          { type: 'paragraph', text: 'Please open Portals SMM in a private chat to use administrator payment tools.' },
+        ],
+      });
       if (!await isAdmin(userId)) return await sendRich(chatId, {
         blocks: [
           { type: 'heading', size: 1, text: 'Access denied' },
