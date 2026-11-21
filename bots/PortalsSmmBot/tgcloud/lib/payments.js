@@ -5,7 +5,7 @@ import { depositIntents, walletLedger, walletTransactions, termsAcceptances } fr
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction } from './wallet.js';
 import { sendRich } from './ui.js';
 import { listAdmins } from './admins.js';
-import { creditReferralReward } from './users.js';
+import { creditReferralReward, isUserBanned } from './users.js';
 
 export const DEPOSIT_PACKAGES = [50, 100, 250, 500, 1000];
 
@@ -183,7 +183,9 @@ export async function validatePreCheckout(query) {
     const expiry = intent?.expiresAt instanceof Date
       ? intent.expiresAt.getTime()
       : Number(intent?.expiresAt || 0) * 1000;
+    const banned = await isUserBanned(query.from?.id);
     ok = Boolean(
+      !banned &&
       intent &&
       intent.status === 'pending' &&
       Number(intent.userId) === Number(query.from?.id) &&
