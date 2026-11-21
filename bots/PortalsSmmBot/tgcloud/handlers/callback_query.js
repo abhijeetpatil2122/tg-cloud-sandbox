@@ -25,7 +25,7 @@ import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRef
 import { adminPaymentSupportMessage, resolvePaymentSupportTicket } from '../lib/support.js';
 import { myOrdersMessage, orderDetailsMessage } from '../lib/orders.js';
 import { resetPreviewMessage, resetTestData, resetCompleteMessage } from '../lib/reset.js';
-import { trackUser, isUserBanned, adminStatsMessage } from '../lib/users.js';
+import { trackUser, isUserBanned, referralMessage, adminStatsMessage } from '../lib/users.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -167,9 +167,13 @@ export default async function handleCallbackQuery(query) {
       }
     }
 
+    if (data === 'ps:referral') {
+      try { return render(chatId, messageId, await referralMessage(userId)); }
+      catch { return render(chatId, messageId, sectionMessage('referral')); }
+    }
+
     const sections = {
       'ps:deposit': 'deposit',
-      'ps:referral': 'referral',
       'ps:support': 'support',
     };
     if (sections[data]) return render(chatId, messageId, sectionMessage(sections[data]));
