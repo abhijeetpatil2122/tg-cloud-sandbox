@@ -225,15 +225,15 @@ export function adminServicesMessage(services = [], page = 0) {
   ];
   if (!rows.length) blocks.push({ type: 'paragraph', text: 'No Telegram services have been synced yet.' });
   for (const item of rows) {
-    blocks.push({ type: 'table', caption: 'Service #' + item.serviceId + ' · ' + item.name, is_bordered: true, is_compact: true, cells: [
-      [{ text: 'Field', is_header: true }, { text: 'Value', is_header: true }],
-      [{ text: 'Category' }, { text: item.category || 'Telegram' }],
-      [{ text: 'Type' }, { text: item.type }],
-      [{ text: 'Supplier rate' }, { text: String(item.rate) }],
-      [{ text: 'Quantity' }, { text: item.minQty + '–' + item.maxQty }],
-      [{ text: 'Customer price' }, { text: Number(item.customerPrice) > 0 ? item.customerPrice + ' Portal Points' : 'Not set' }],
-      [{ text: 'Refill / cancel' }, { text: (item.refill ? 'Refill' : 'No refill') + ' · ' + (item.cancel ? 'Cancel' : 'No cancel') }],
-      [{ text: 'Status' }, { text: item.enabled ? 'Enabled' : 'Disabled' }],
+    blocks.push({ type: 'table', caption: 'Service #' + item.serviceId + ' · ' + item.name, is_bordered: true, is_striped: true, is_compact: false, cells: [
+      [{ text: 'Field', is_header: true, align: 'left' }, { text: 'Value', is_header: true, align: 'right' }],
+      [{ text: 'Category', align: 'left' }, { text: item.category || 'Telegram', align: 'right' }],
+      [{ text: 'Type', align: 'left' }, { text: item.type, align: 'right' }],
+      [{ text: 'Supplier rate', align: 'left' }, { text: String(item.rate), align: 'right' }],
+      [{ text: 'Quantity', align: 'left' }, { text: item.minQty + '–' + item.maxQty, align: 'right' }],
+      [{ text: 'Customer price', align: 'left' }, { text: Number(item.customerPrice) > 0 ? item.customerPrice + ' Portal Points' : 'Not set', align: 'right' }],
+      [{ text: 'Refill / cancel', align: 'left' }, { text: (item.refill ? 'Refill' : 'No refill') + ' · ' + (item.cancel ? 'Cancel' : 'No cancel'), align: 'right' }],
+      [{ text: 'Status', align: 'left' }, { text: item.enabled ? 'Enabled' : 'Disabled', align: 'right' }],
     ] });
     blocks.push(row(
       button('Set price', 'ps:admin:service:price:' + item.serviceId),
@@ -280,14 +280,14 @@ export function customerServicesMessage(services = [], page = 0) {
 export function customerServiceDetailsMessage(item) {
   return { blocks: [
     { type: 'heading', size: 1, text: '📈 ' + item.name },
-    { type: 'table', caption: 'Service details · ID ' + item.serviceId, is_bordered: true, is_striped: true, cells: [
-      [{ text: 'Details', is_header: true }, { text: 'Information', is_header: true }],
-      [{ text: 'Price' }, { text: [{ type: 'bold', text: Number(item.customerPrice).toLocaleString('en-IN') + ' Portal Points' }] }],
-      [{ text: 'Quantity range' }, { text: Number(item.minQty).toLocaleString('en-IN') + ' – ' + Number(item.maxQty).toLocaleString('en-IN') }],
-      [{ text: 'Category' }, { text: item.category || 'Telegram' }],
-      [{ text: 'Service type' }, { text: item.type }],
-      [{ text: 'Refill' }, { text: item.refill ? 'Available' : 'Not available' }],
-      [{ text: 'Cancellation' }, { text: item.cancel ? 'Available on request' : 'Not available' }],
+    { type: 'table', caption: 'Service details · ID ' + item.serviceId, is_bordered: false, is_striped: true, is_compact: true, cells: [
+      [{ text: 'Details', is_header: true, align: 'left' }, { text: 'Information', is_header: true, align: 'right' }],
+      [{ text: 'Price', align: 'left' }, { text: [{ type: 'bold', text: Number(item.customerPrice).toLocaleString('en-IN') + ' Portal Points' }],
+      [{ text: 'Quantity range', align: 'left' }, { text: Number(item.minQty).toLocaleString('en-IN') + ' – ' + Number(item.maxQty).toLocaleString('en-IN') }],
+      [{ text: 'Category', align: 'left' }, { text: item.category || 'Telegram' }],
+      [{ text: 'Service type', align: 'left' }, { text: item.type }],
+      [{ text: 'Refill', align: 'left' }, { text: item.refill ? 'Available' : 'Not available' }],
+      [{ text: 'Cancellation', align: 'left' }, { text: item.cancel ? 'Available on request' : 'Not available' }],
     ] },
     { type: 'details', summary: 'Before placing an order', blocks: [
       { type: 'list', items: [
