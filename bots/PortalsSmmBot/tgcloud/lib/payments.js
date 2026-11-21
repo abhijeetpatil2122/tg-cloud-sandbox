@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
-import { desc, eq, sql } from 'sdk/db';
+import { desc, eq, sql, sum } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
-import { depositIntents, walletTransactions, termsAcceptances } from '../schema.js';
+import { depositIntents, walletLedger, walletTransactions, termsAcceptances } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction } from './wallet.js';
 import { sendRich } from './ui.js';
 import { listAdmins } from './admins.js';
@@ -321,19 +321,40 @@ export async function refundPreviewMessage(transactionId) {
   if (!item || item.kind !== 'deposit' || item.status !== 'completed' || !item.reference) {
     return { blocks: [
       { type: 'heading', size: 1, text: '↩️ Refund unavailable' },
-      { type: 'paragraph', text: 'This transaction is not an eligible completed Stars deposit.' },
+      { type: 'paragraph', text: 'This transaction is not an eligible confirmed Stars deposit.' },
       { type: 'buttons', buttons: [{ text: '‹ Refunds', callback_data: 'ps:admin:refunds', style: 'link' }] },
     ] };
   }
-  return { blocks: [
-    { type: 'heading', size: 1, text: '⚠️ Confirm Stars refund' },
-    { type: 'paragraph', text: 'Transaction: #' + item.id + '\nCustomer: ' + item.userId + '\nRefund: ' + item.stars + ' Stars\nWallet reversal: ' + item.points + ' Portal Points\nCharge: ' + String(item.reference).slice(0, 36) },
-    { type: 'paragraph', text: 'This action refunds the full Telegram payment and removes the credited points. It cannot proceed if the customer has already spent those points.' },
-    { type: 'buttons', buttons: [{ text: 'Confirm full refund', callback_data: 'ps:admin:refund:confirm:' + item.id, style: 'danger' }] },
-    { type: 'buttons', buttons: [{ text: '‹ Back to refunds', callback_data: 'ps:admin:refunds', style: 'link' }] },
-  ] };
+  const balanceRow = await db.select({ total: sum(walletLedger.amount) })
+    .from(walletLedger)
+    .where(eq(walletLedger.userId, Number(item.userId))).get();
+  const balance = Number(balanceRow?.total || 0);
+  const enoughPoints = balance >= Number(item.points);
+  const blocks = [
+    { type: 'heading', size: 1, text: '⚠️ Review Stars refund' },
+    { type: 'table', caption: 'Deposit #' + item.id, is_bordered: true, is_compact: true, cells: [
+      [{ text: 'Field', is_header: true }, { text: 'Value', is_header: true }],
+      [{ text: 'Customer' }, { text: String(item.userId) }],
+      [{ text: 'Original payment' }, { text: Number(item.stars) + ' Stars' }],
+      [{ text: 'Points to reverse' }, { text: Number(item.points) + ' Portal Points' }],
+      [{ text: 'Current wallet balance' }, { text: balance + ' Portal Points' }],
+      [{ text: 'Telegram charge ID' }, { text: String(item.reference).slice(0, 40) }],
+    ] },
+    { type: 'paragraph', text: enoughPoints
+      ? 'The customer currently has enough points for the full wallet reversal.'
+      : 'Refund is blocked because the customer has spent some of the credited points. Available balance: ' + balance + '. Required: ' + item.points + ' Portal Points.' },
+    { type: 'details', summary: 'What happens when you confirm?', blocks: [
+      { type: 'list', items: [
+        { blocks: [{ type: 'paragraph', text: 'Telegram is asked to refund the original Stars charge.' }] },
+        { blocks: [{ type: 'paragraph', text: 'The credited Portal Points are reversed in the wallet ledger.' }] },
+        { blocks: [{ type: 'paragraph', text: 'The original deposit and refund are retained in transaction history.' }] },
+      ] },
+    ] },
+  ];
+  if (enoughPoints) blocks.push({ type: 'buttons', buttons: [{ text: 'Confirm full refund', callback_data: 'ps:admin:refund:confirm:' + item.id, style: 'danger' }] });
+  blocks.push({ type: 'buttons', buttons: [{ text: '‹ Back to refunds', callback_data: 'ps:admin:refunds', style: 'link' }] });
+  return { blocks };
 }
-
 export async function refundStarsDeposit(transactionId, adminId) {
   const original = await db.select().from(walletTransactions)
     .where(eq(walletTransactions.id, Number(transactionId))).get();
