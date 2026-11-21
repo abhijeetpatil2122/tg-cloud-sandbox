@@ -115,3 +115,20 @@ export const termsAcceptances = table('terms_acceptances', {
   version: text('version').notNull(),
   acceptedAt: integer('accepted_at', { mode: 'timestamp' }).notNull(),
 });
+ 
+// Telegram user registry for audience statistics, referrals and moderation.
+// User IDs are retained for bot operations; never store message contents here.
+export const botUsers = table('bot_users', {
+  userId: integer('user_id').primaryKey(),
+  username: text('username'),
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  languageCode: text('language_code'),
+  isBot: boolean('is_bot').notNull().default(false),
+  isBanned: boolean('is_banned').notNull().default(false),
+  referredBy: integer('referred_by'),
+  referralRewardedAt: integer('referral_rewarded_at', { mode: 'timestamp' }),
+  firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  lastChatType: text('last_chat_type'),
+});
