@@ -5,6 +5,7 @@ import { depositIntents, walletLedger, walletTransactions, termsAcceptances } fr
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction } from './wallet.js';
 import { sendRich } from './ui.js';
 import { listAdmins } from './admins.js';
+import { creditReferralReward } from './users.js';
 
 export const DEPOSIT_PACKAGES = [50, 100, 250, 500, 1000];
 
@@ -254,6 +255,12 @@ export async function handleSuccessfulPayment(message) {
       updatedAt: new Date(),
     }).where(eq(depositIntents.id, intent.id)).run();
     await updateWalletTransaction(intent.transactionId, 'completed', chargeId);
+    try {
+      await creditReferralReward(userId, Number(intent.stars), Number(intent.points));
+    } catch (referralError) {
+      console.error('Referral reward processing failed:', referralError?.description || referralError?.message || referralError);
+      await notifyAdmins('Referral reward processing needs review for referred user ' + userId + '. Check the referral ledger before making any manual adjustment.');
+    }
 
     await sendRich(message.chat.id, { blocks: [
       { type: 'heading', size: 1, text: '⭐ Payment received' },
