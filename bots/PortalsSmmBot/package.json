@@ -8,7 +8,7 @@
     "status": "tgcloud status",
     "migrate": "tgcloud migrate",
     "run": "tgcloud run",
-    "check": "node --check tgcloud/handlers/message.js && node --check tgcloud/handlers/callback_query.js && node --check tgcloud/handlers/pre_checkout_query.js && node --check tgcloud/lib/admins.js && node --check tgcloud/lib/config.js && node --check tgcloud/lib/orders.js && node --check tgcloud/lib/payments.js && node --check tgcloud/lib/provider.js && node --check tgcloud/lib/reset.js && node --check tgcloud/lib/support.js && node --check tgcloud/lib/ui.js && node --check tgcloud/lib/wallet.js && node --check tgcloud/schema.js"
+    "check": "node --check tgcloud/handlers/message.js && node --check tgcloud/handlers/callback_query.js && node --check tgcloud/handlers/pre_checkout_query.js && node --check tgcloud/lib/admins.js && node --check tgcloud/lib/config.js && node --check tgcloud/lib/orders.js && node --check tgcloud/lib/payments.js && node --check tgcloud/lib/provider.js && node --check tgcloud/lib/reset.js && node --check tgcloud/lib/support.js && node --check tgcloud/lib/ui.js && node --check tgcloud/lib/users.js && node --check tgcloud/lib/wallet.js && node --check tgcloud/schema.js"
   },
   "devDependencies": {
     "@tgcloud/cli": "^0.2.0"
