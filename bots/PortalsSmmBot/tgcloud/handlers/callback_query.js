@@ -5,6 +5,7 @@ import { addAdmin, isAdmin, isOwner, listAdmins, removeAdmin } from '../lib/admi
 import {
   adminAddPromptMessage,
   adminPanelMessage,
+  serviceSetupGuideMessage,
   adminRemovalMessage,
   editRich,
   helpMessage,
@@ -194,11 +195,13 @@ export default async function handleCallbackQuery(query) {
       }
 
       if (data === 'ps:admin:provider') return render(chatId, messageId, providerAdminMessage());
+      if (data === 'ps:admin:service-guide') return render(chatId, messageId, serviceSetupGuideMessage());
 
       if (data === 'ps:admin:provider:check') {
         try {
           const balance = await checkProviderBalance();
-          return render(chatId, messageId, providerBalanceMessage(balance));
+          const services = await listTelegramServices(false);
+          return render(chatId, messageId, providerBalanceMessage({ ...balance, services }));
         } catch (providerError) {
           return render(chatId, messageId, {
             blocks: [
