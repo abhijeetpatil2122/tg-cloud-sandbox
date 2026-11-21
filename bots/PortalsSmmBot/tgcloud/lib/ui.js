@@ -113,6 +113,9 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true, canMa
     row(button('↩️ Refunds', 'ps:admin:refunds', 'danger'), button('💬 Payment support', 'ps:admin:paysupport')),
     row(button('🔌 Provider', 'ps:admin:provider'), button('📈 Services', 'ps:admin:services')),
     row(button('Service setup guide', 'ps:admin:service-guide', 'primary')),
+    row(button('Global statistics', 'ps:admin:stats', 'primary')),
+    row(button('Add balance', 'ps:admin:balance:add', 'success'), button('Remove balance', 'ps:admin:balance:remove', 'danger')),
+    row(button('Ban user', 'ps:admin:user:ban', 'danger'), button('Unban user', 'ps:admin:user:unban', 'success')),
     row(button('🧹 Reset test data', 'ps:admin:resetdb', 'danger')),
   ];
   if (!databaseAvailable) {
