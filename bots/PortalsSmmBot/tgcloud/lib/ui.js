@@ -203,11 +203,12 @@ export function serviceSetupGuideMessage() {
     { type: 'heading', size: 2, text: 'Pricing calculation' },
     { type: 'paragraph', text: 'The planning target is a 30% gross margin. First convert the supplier cost into INR using a verified FX rate. Then calculate the customer price:' },
     { type: 'mathematical_expression', expression: String.raw`P=\operatorname{round}_{5}\left(\frac{C_{INR}}{(1-0.30)\times V_{INR/point}}\right)` },
-    { type: 'paragraph', text: 'P = selling Portal Points; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one Portal Point. Round to the nearest 5 points, not always upward.' },
+    { type: 'paragraph', text: [{ type: 'italic', text: 'P = selling Portal Points; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one Portal Point.' }, ' Round to the nearest 5 points, not always upward.'] },
     { type: 'details', summary: 'Important supplier-rate warning', blocks: [
       { type: 'paragraph', text: 'Do not assume every supplier rate is per 1,000 units. Read the service rate unit and calculate the cost for the actual order quantity. Confirm the provider currency, min/max quantity and any refill/cancel conditions before enabling.' },
     ] },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Current safeguard: ' }, 'newly synced services stay disabled until a customer price is set and an administrator explicitly enables them.'] },
+    { type: 'paragraph', text: ['Ready to review the available entries? ', { type: 'button', button: { text: 'Open catalogue', callback_data: 'ps:admin:services', style: 'primary' } }] },
     { type: 'paragraph', text: [{ type: 'anchor_link', text: 'Back to setup steps ↑', anchor_name: 'steps' }, '  ·  ', { type: 'anchor_link', text: 'Pricing ↑', anchor_name: 'pricing' }, '  ·  ', { type: 'anchor_link', text: 'Top ↑', anchor_name: '' }] },
     row(button('Open Telegram catalogue', 'ps:admin:services', 'primary')),
     row(button('‹ Administrator panel', 'ps:admin', 'link')),
