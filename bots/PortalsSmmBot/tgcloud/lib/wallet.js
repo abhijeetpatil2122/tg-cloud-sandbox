@@ -138,7 +138,9 @@ function transactionBlock(item, includeUser = false) {
   return { type: 'paragraph', text: parts.join('\n') };
 }
 
-const customerHistoryFilter = or(ne(walletTransactions.kind, 'deposit'), ne(walletTransactions.status, 'pending'));\n\nexport async function walletMessage(userId) {
+const customerHistoryFilter = or(ne(walletTransactions.kind, 'deposit'), ne(walletTransactions.status, 'pending'));
+
+export async function walletMessage(userId) {
   try {
     const balanceRow = await db.select({ total: sum(walletLedger.amount) })
       .from(walletLedger)
