@@ -6,9 +6,10 @@ import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerS
 import { adminSessions, userSessions, paymentSupportTickets } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
-import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage, hasAcceptedTerms, termsAcceptanceMessage } from '../lib/payments.js';
+import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage, hasAcceptedTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
 import { listAdmins } from '../lib/admins.js';
 import { myOrdersMessage } from '../lib/orders.js';
+import { resetPreviewMessage } from '../lib/reset.js';
 
 function parseCommand(value = '') {
   const match = value.trim().match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?(?:\s+([\s\S]*))?$/i);
@@ -191,21 +192,7 @@ export default async function handleMessage(message) {
       });
     }
 
-    if (parsed.command === '/terms') {
-      return await sendRich(chatId, {
-        blocks: [
-          { type: 'heading', size: 1, text: '📜 Store terms' },
-          { type: 'paragraph', text: 'Payments: deposits are accepted only in Telegram Stars (XTR). Portal Points are credited only after Telegram confirms a successful payment. A payment attempt, screenshot or pre-checkout approval is not proof of payment.' },
-          { type: 'paragraph', text: 'Store credit: 1 paid Star adds 1 Portal Point. Portal Points are internal, non-cash store credit. They cannot be withdrawn, transferred for cash or redeemed as Stars.' },
-          { type: 'paragraph', text: 'Services: each service has its own requirements, quantity limits, delivery estimates and refill/cancellation conditions. Results and delivery times are not guaranteed beyond the selected service description.' },
-          { type: 'paragraph', text: 'Orders: provide a valid public Telegram target and check the service details before confirming. Do not submit private credentials, passwords or login codes.' },
-          { type: 'paragraph', text: 'Refunds and payment issues: contact /paysupport with your transaction reference. Refund requests are reviewed against the payment record and wallet activity.' },
-          { type: 'paragraph', text: 'Abuse: self-referrals, fake activity, fraudulent payments and attempts to exploit the service may result in suspended access and reversal of promotional rewards.' },
-          { type: 'buttons', buttons: [{ text: '✓ I agree — continue', callback_data: 'ps:deposit:accept', style: 'success' }] },
-          { type: 'buttons', buttons: [{ text: '💬 Payment support', callback_data: 'ps:support:payment' }, { text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
-        ],
-      });
-    }
+    if (parsed.command === '/terms') return await sendRich(chatId, termsMessage());
 
     if (parsed.command === '/services') {
       try {
@@ -258,6 +245,26 @@ export default async function handleMessage(message) {
         return await sendRich(chatId, await refundPreviewMessage(Number(parsed.argument)));
       }
       return await sendRich(chatId, await adminRefundsMessage(0));
+    }
+
+    if (parsed.command === '/payments') {
+      if (!await isAdmin(userId)) return await sendRich(chatId, {
+        blocks: [
+          { type: 'heading', size: 1, text: 'Access denied' },
+          { type: 'paragraph', text: 'Only administrators can view payment records.' },
+        ],
+      });
+      return await sendRich(chatId, await adminPaymentsMessage('confirmed', 0));
+    }
+
+    if (parsed.command === '/resetdb') {
+      if (!await isAdmin(userId)) return await sendRich(chatId, {
+        blocks: [
+          { type: 'heading', size: 1, text: 'Access denied' },
+          { type: 'paragraph', text: 'Only administrators can reset test data.' },
+        ],
+      });
+      return await sendRich(chatId, await resetPreviewMessage());
     }
 
     if (parsed.command === '/admin') {
