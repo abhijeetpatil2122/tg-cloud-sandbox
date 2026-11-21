@@ -23,11 +23,11 @@ Do not copy a project's `.tgcloud/` local state, CLI credentials, `node_modules/
 | `bots/ReviewTVBot` | Movie, TV show, and anime review submissions with category-topic forum publishing | `8789022672` | `TGCLOUD_TOKEN_REVIEWTVBOT` | Enabled on `main` |
 | `bots/PWidgetBot` | Universal Telegram HTML Widget playground with interactive demos, games, TON wallet references, utilities, and developer documentation | `9128106800` | `TGCLOUD_TOKEN_PWIDGETBOT` | Enabled on `main` |
 | `bots/ScamGiveawaysBot` | Private scam-report intake wizard; channel publishing and moderation pending | Pending (from token) | `TGCLOUD_TOKEN_SCAMGIVEAWAYSBOT` | Manual only |
-| `bots/PortalsSmmBot` | Telegram SMM storefront with Stars wallet, referrals, and provider order automation (planning) | Pending (from token) | `TGCLOUD_TOKEN_PORTALSSMMBOT` | Manual only |
+| `bots/PortalsSmmBot` | Telegram SMM storefront with Stars wallet, referrals, Telegram service catalogue and admin operations | From scoped token | `TGCLOUD_TOKEN_PORTALSSMMBOT` | Enabled on `main` |
 
-IdPullBot, SarvamChatBot, ReviewTVBot, and PWidgetBot are registered for automatic deployment on `main` when their respective deployable project files change. ReviewTVBot uses app `8789022672`; its wizard and forum setup code are separate from the other bots. The automatic workflow does not run database migrations.
+IdPullBot, SarvamChatBot, ReviewTVBot, PWidgetBot, and PortalsSmmBot are registered for automatic deployment on `main` when their respective deployable project files change. ReviewTVBot uses app `8789022672`; its wizard and forum setup code are separate from the other bots. The automatic workflow does not run database migrations.
 
-PortalsSmmBot is a planning-stage project and remains manual-only; its app ID is derived from its scoped token until verified. These entries describe the current workflow configuration, not defaults for future projects. A newly added project must remain manual-only until its token/app ID, project validation, and first intentional deployment have been checked and its auto-deploy registry entry is deliberately enabled.
+PortalsSmmBot's app ID is derived from its scoped token and checked by the workflow before deployment. Its auto-deploy registry entry is enabled. These entries describe the current workflow configuration, not defaults for future projects. A newly added project must remain manual-only until its token/app ID, project validation, and first intentional deployment have been checked and its auto-deploy registry entry is deliberately enabled.
 
 ## One-time setup and secrets
 
