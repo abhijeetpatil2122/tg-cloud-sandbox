@@ -386,13 +386,20 @@ export async function refundStarsDeposit(transactionId, adminId) {
     throw new Error('Another administrator is already processing this refund.');
   }
 
-  const debit = await debitWalletPoints({
-    userId: original.userId,
-    transactionId: refundTransaction.id,
-    amount: Number(original.points),
-    kind: 'stars_refund_hold',
-    idempotencyKey: 'refund-hold:' + original.id,
-  });
+  let debit;
+  try {
+    debit = await debitWalletPoints({
+      userId: original.userId,
+      transactionId: refundTransaction.id,
+      amount: Number(original.points),
+      kind: 'stars_refund_hold',
+      idempotencyKey: 'refund-hold:' + original.id,
+    });
+  } catch (error) {
+    await updateWalletTransaction(refundTransaction.id, 'needs_review');
+    await notifyAdmins('🚨 Refund wallet hold failed\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nError: ' + String(error?.description || error?.message || error).slice(0, 220));
+    throw new Error('The wallet could not safely reserve the points for this refund. Administrator review is required.');
+  }
   if (!debit.debited) {
     await updateWalletTransaction(refundTransaction.id, 'pending');
     throw new Error('Refund blocked: the customer has spent some of the credited Portal Points. Restore the required balance before retrying.');
