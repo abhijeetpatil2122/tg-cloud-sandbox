@@ -554,9 +554,26 @@ export async function adminPaymentsMessage(filter = 'confirmed', page = 0) {
     { type: 'divider' },
   ];
   if (!visible.length) blocks.push({ type: 'paragraph', text: 'No payment records in this section.' });
-  for (const item of visible) {
-    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + item.points + ' Portal Points\nStatus: ' + item.status + '\nCharge: ' + String(item.reference).slice(0, 32) });
-    if (filter === 'confirmed') blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
+  else {
+    blocks.push({ type: 'table', caption: 'Payment ledger · newest first', is_bordered: false, is_striped: true, is_compact: true, cells: [
+      [
+        { text: 'ID', is_header: true, align: 'left' },
+        { text: 'Customer', is_header: true, align: 'right' },
+        { text: 'Stars', is_header: true, align: 'right' },
+        { text: 'Points', is_header: true, align: 'right' },
+        { text: 'Status', is_header: true, align: 'right' },
+      ],
+      ...visible.map(item => [
+        { text: '#' + item.id, align: 'left' },
+        { text: String(item.userId), align: 'right' },
+        { text: Number(item.stars).toLocaleString('en-IN'), align: 'right' },
+        { text: Number(item.points).toLocaleString('en-IN'), align: 'right' },
+        { text: item.status.replace('_', ' '), align: 'right' },
+      ]),
+    ] });
+    if (filter === 'confirmed') {
+      for (const item of visible) blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
+    }
   }
   const nav = [];
   if (safePage > 0) nav.push({ text: '‹ Newer', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage - 1) });
