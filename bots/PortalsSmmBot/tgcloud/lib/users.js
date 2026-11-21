@@ -45,8 +45,11 @@ export async function attributeReferral(userId, startArgument = '') {
   const id = Number(userId);
   if (!Number.isSafeInteger(id) || !Number.isSafeInteger(referredBy) || id <= 0 || referredBy <= 0 || id === referredBy) return false;
   try {
-    const existing = await db.select().from(botUsers).where(eq(botUsers.userId, id)).get();
-    if (!existing || existing.referredBy) return false;
+    const [existing, referrer] = await Promise.all([
+      db.select().from(botUsers).where(eq(botUsers.userId, id)).get(),
+      db.select().from(botUsers).where(eq(botUsers.userId, referredBy)).get(),
+    ]);
+    if (!existing || existing.referredBy || !referrer || referrer.isBanned) return false;
     await db.update(botUsers).set({ referredBy })
       .where(eq(botUsers.userId, id)).run();
     return true;
@@ -127,7 +130,7 @@ export async function adjustUserBalance({ userId, amount, direction, adminId, re
 
 export async function referralMessage(userId) {
   const id = Number(userId);
-  const [me, row, invited, rewards] = await Promise.all([
+  const [me, _row, invited, rewards] = await Promise.all([
     api.getMe(),
     db.select().from(botUsers).where(eq(botUsers.userId, id)).get(),
     db.select().from(botUsers).where(eq(botUsers.referredBy, id)).all(),
@@ -198,12 +201,13 @@ export async function creditReferralReward(referredUserId, stars, depositedPoint
 }
 
 export async function adminStatsMessage() {
-  const [users, payments, orders, services, points] = await Promise.all([
+  const [users, payments, orders, services, points, referralStats] = await Promise.all([
     db.get(sql`SELECT COUNT(*) AS total, SUM(CASE WHEN is_banned = 1 THEN 1 ELSE 0 END) AS banned FROM bot_users`),
     db.get(sql`SELECT COUNT(*) AS total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed, SUM(CASE WHEN status = 'refunded' THEN 1 ELSE 0 END) AS refunded, SUM(CASE WHEN status IN ('needs_review','processing') THEN 1 ELSE 0 END) AS review, SUM(CASE WHEN status = 'completed' THEN stars ELSE 0 END) AS stars FROM wallet_transactions WHERE kind = 'deposit'`),
     db.get(sql`SELECT COUNT(*) AS total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed FROM service_orders`),
     db.get(sql`SELECT COUNT(*) AS total, SUM(CASE WHEN enabled = 1 THEN 1 ELSE 0 END) AS enabled, SUM(CASE WHEN customer_price IS NOT NULL AND customer_price > 0 THEN 1 ELSE 0 END) AS priced FROM provider_services WHERE is_telegram = 1`),
     db.get(sql`SELECT COALESCE(SUM(amount),0) AS outstanding FROM wallet_ledger`),
+    db.get(sql`SELECT COUNT(*) AS referred, (SELECT COALESCE(SUM(points),0) FROM wallet_transactions WHERE kind = 'referral_reward' AND status = 'completed') AS points FROM bot_users WHERE referred_by IS NOT NULL`),
   ]);
   const table = (caption, rows) => ({ type: 'table', caption, is_bordered: true, is_compact: true, cells: [
     [{ text: 'Metric', is_header: true }, { text: 'Value', is_header: true }],
@@ -215,6 +219,7 @@ export async function adminStatsMessage() {
     table('Audience', [['Registered users', users?.total], ['Banned users', users?.banned]]),
     table('Telegram Stars payments', [['Deposit records', payments?.total], ['Confirmed deposits', payments?.completed], ['Refunded deposits', payments?.refunded], ['Needs review', payments?.review], ['Confirmed Stars volume', payments?.stars]]),
     table('Service operations', [['Orders recorded', orders?.total], ['Completed orders', orders?.completed], ['Telegram services', services?.total], ['Priced services', services?.priced], ['Enabled services', services?.enabled]]),
+    table('Referral activity', [['Attributed users', referralStats?.referred], ['Referral rewards issued (points)', referralStats?.points]]),
     { type: 'paragraph', text: 'Net Portal Points ledger balance across all customers: ' + Number(points?.outstanding || 0).toLocaleString('en-IN') },
     { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
   ] };
