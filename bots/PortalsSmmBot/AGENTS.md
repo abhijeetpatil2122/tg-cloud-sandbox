@@ -361,3 +361,13 @@ This snapshot records the explicitly approved work completed on this date; it do
 - Referral rewards remain disabled until the owner chooses the minimum qualifying Stars deposit threshold. Do not assume a default threshold.
 - The one-time migration marker was removed after the successful run. Future schema changes require separate review and explicit approval; ordinary deployments must not run migrations automatically.
 
+## Current maintenance update — 21 November 2026
+
+- Stars refund flow now separates Telegram API errors from local database reconciliation. It handles Telegram's CHARGE_ALREADY_REFUNDED response as an already-completed refund, preserves the points hold for ambiguous outcomes, and releases it only for definitive Bot API rejections. The admin confirmation screen shows the customer's current Portal Points balance and blocks confirmation if the full reversal cannot be funded.
+- Telegram's actual refundStarPayment Bot API method and parameter names are used. Admin-visible failures now include the Telegram rejection description instead of masking it with a generic error. No live refund was issued during this code update.
+- Unpaid invoice attempts remain internal in deposit_intents for pre-checkout verification, but pending deposit rows are excluded from customer wallet/history and admin recent transaction views. The dedicated admin payments screen separates confirmed, needs-review, refunded and failed records, each newest first with pagination.
+- Customer and administrator service details now use captioned Rich Message tables. Store terms use section headings, lists, a conversion table, inline bold, and expandable details. The /terms command and deposit acceptance screen share one versioned terms source; current version is 2026-11-21.
+- /payments is an administrator-only command and panel view. /resetdb is an administrator-only, private-chat-only, two-step temporary reset command.
+- /resetdb clears terms acceptances, unfinished/failed deposit intents and matching pending/failed deposit transaction rows, payment-support tickets, temporary user/admin sessions, and service order test records. It preserves confirmed/refunded Stars transaction records, the append-only wallet ledger and customer balances, provider catalogue/pricing, and administrator accounts. Never broaden this reset without owner review.
+- Financial/admin commands are restricted to private chats. The regular transaction and order history remains newest-first with stable ID tie-breaks; provider services are sorted by enabled status, category and service ID; support tickets are newest-first.
+- No schema changes were introduced in this update; no database migration is required. Do not run a migration for these code-only changes.
