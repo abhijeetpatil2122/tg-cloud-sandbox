@@ -1,5 +1,5 @@
 import { db } from 'sdk';
-import { desc, eq, sql, sum } from 'sdk/db';
+import { desc, eq, ne, or, sql, sum } from 'sdk/db';
 import { walletLedger, walletTransactions } from '../schema.js';
 
 
@@ -138,14 +138,14 @@ function transactionBlock(item, includeUser = false) {
   return { type: 'paragraph', text: parts.join('\n') };
 }
 
-export async function walletMessage(userId) {
+const customerHistoryFilter = or(ne(walletTransactions.kind, 'deposit'), ne(walletTransactions.status, 'pending'));\n\nexport async function walletMessage(userId) {
   try {
     const balanceRow = await db.select({ total: sum(walletLedger.amount) })
       .from(walletLedger)
       .where(eq(walletLedger.userId, Number(userId)))
       .get();
     const history = await db.select().from(walletTransactions)
-      .where(eq(walletTransactions.userId, Number(userId)))
+      .where(eq(walletTransactions.userId, Number(userId)), customerHistoryFilter)
       .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id))
       .limit(8)
       .all();
@@ -192,7 +192,7 @@ export async function transactionHistoryMessage(userId, page = 0) {
   const safePage = Math.max(0, Math.min(1000, Number(page) || 0));
   try {
     const rows = await db.select().from(walletTransactions)
-      .where(eq(walletTransactions.userId, Number(userId)))
+      .where(eq(walletTransactions.userId, Number(userId)), customerHistoryFilter)
       .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id))
       .limit(8)
       .offset(safePage * 8)
@@ -236,6 +236,7 @@ export async function adminTransactionsMessage(page = 0) {
   const safePage = Math.max(0, Math.min(1000, Number(page) || 0));
   try {
     const rows = await db.select().from(walletTransactions)
+      .where(customerHistoryFilter)
       .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id))
       .limit(10)
       .offset(safePage * 10)
