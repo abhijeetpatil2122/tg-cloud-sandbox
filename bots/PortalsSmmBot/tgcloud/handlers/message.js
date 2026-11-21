@@ -159,7 +159,17 @@ export default async function handleMessage(message) {
           ] });
           return;
         }
-        const result = await setUserBanned(Number(text), banInput[1] === 'ban', userId);
+        let result;
+        try {
+          result = await setUserBanned(Number(text), banInput[1] === 'ban', userId);
+        } catch (banError) {
+          await sendRich(chatId, { blocks: [
+            { type: 'heading', size: 2, text: 'User moderation unavailable' },
+            { type: 'paragraph', text: banError?.message || 'The user registry is not ready. Apply the reviewed database migration first.' },
+            { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
+          ] });
+          return;
+        }
         await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
         await sendRich(chatId, { blocks: [
           { type: 'heading', size: 2, text: result.banned ? 'User banned' : 'User unbanned' },
@@ -367,7 +377,14 @@ export default async function handleMessage(message) {
       if (!await isAdmin(userId)) return await sendRich(chatId, {
         blocks: [{ type: 'heading', size: 2, text: 'Access denied' }, { type: 'paragraph', text: 'Administrator access is required.' }],
       });
-      return await sendRich(chatId, await adminStatsMessage());
+      try {
+        return await sendRich(chatId, await adminStatsMessage());
+      } catch (statsError) {
+        return await sendRich(chatId, { blocks: [
+          { type: 'heading', size: 2, text: 'Statistics database setup required' },
+          { type: 'paragraph', text: 'The user registry migration has not been applied yet. Review and apply the additive bot_users table migration before using global statistics.' },
+        ] });
+      }
     }
 
     if (parsed.command === '/admin') {
