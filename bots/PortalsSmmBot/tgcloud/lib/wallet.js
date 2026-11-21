@@ -36,7 +36,7 @@ export async function createWalletTransaction({
 
 export async function updateWalletTransaction(transactionId, status, reference = null) {
   const values = { status: String(status), updatedAt: new Date() };
-  if (reference !== null) values.reference = String(reference).slice(0, 100);
+  if (reference !== null) values.reference = String(reference);
   await db.update(walletTransactions).set(values)
     .where(eq(walletTransactions.id, Number(transactionId))).run();
 }
