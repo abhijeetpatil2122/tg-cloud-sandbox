@@ -109,9 +109,10 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true, canMa
     { type: 'paragraph', text: 'Manage services, supplier access, wallet activity and administrator accounts.' },
     { type: 'paragraph', text: `Designated owners: 6522801911 · 1314643983` },
     { type: 'paragraph', text: `Registered administrators: ${ids.length}` },
-    row(button('Recent transactions', 'ps:admin:transactions', 'primary')),
+    row(button('⭐ Payments', 'ps:admin:payments', 'primary'), button('Recent activity', 'ps:admin:transactions')),
     row(button('↩️ Refunds', 'ps:admin:refunds', 'danger'), button('💬 Payment support', 'ps:admin:paysupport')),
     row(button('🔌 Provider', 'ps:admin:provider'), button('📈 Services', 'ps:admin:services')),
+    row(button('🧹 Reset test data', 'ps:admin:resetdb', 'danger')),
   ];
   if (!databaseAvailable) {
     blocks.push({ type: 'paragraph', text: 'Administrator storage is temporarily unavailable. Owner access remains active.' });
@@ -162,36 +163,40 @@ export function providerBalanceMessage(result) {
 }
 
 export function adminServicesMessage(services = [], page = 0) {
-  const start = Math.max(0, Number(page) || 0) * 6;
+  const safePage = Math.max(0, Number(page) || 0);
+  const start = safePage * 6;
   const rows = services.slice(start, start + 6);
   const blocks = [
     { type: 'heading', size: 1, text: '📈 Telegram services' },
-    { type: 'paragraph', text: `${services.length} Telegram services found. New services are disabled until reviewed and priced.` },
+    { type: 'paragraph', text: services.length + ' Telegram services found. New services remain disabled until reviewed and priced.' },
     { type: 'divider' },
   ];
-  if (!rows.length) {
-    blocks.push({ type: 'paragraph', text: 'No Telegram services have been synced yet.' });
-  }
+  if (!rows.length) blocks.push({ type: 'paragraph', text: 'No Telegram services have been synced yet.' });
   for (const item of rows) {
-    blocks.push({
-      type: 'paragraph',
-      text: `#${item.serviceId} · ${item.name}\n${item.category || 'Telegram'} · ${item.type}\nSupplier rate: ${item.rate}\nQuantity: ${item.minQty}–${item.maxQty}\nCustomer price: ${Number(item.customerPrice) > 0 ? `${item.customerPrice} points` : 'Not set'}\nRefill: ${item.refill ? 'Available' : 'Not available'} · Cancel: ${item.cancel ? 'Available' : 'Not available'}\nStatus: ${item.enabled ? 'Enabled' : 'Disabled'}`,
-    });
+    blocks.push({ type: 'table', caption: 'Service #' + item.serviceId + ' · ' + item.name, is_bordered: true, is_compact: true, cells: [
+      [{ text: 'Field', is_header: true }, { text: 'Value', is_header: true }],
+      [{ text: 'Category' }, { text: item.category || 'Telegram' }],
+      [{ text: 'Type' }, { text: item.type }],
+      [{ text: 'Supplier rate' }, { text: String(item.rate) }],
+      [{ text: 'Quantity' }, { text: item.minQty + '–' + item.maxQty }],
+      [{ text: 'Customer price' }, { text: Number(item.customerPrice) > 0 ? item.customerPrice + ' Portal Points' : 'Not set' }],
+      [{ text: 'Refill / cancel' }, { text: (item.refill ? 'Refill' : 'No refill') + ' · ' + (item.cancel ? 'Cancel' : 'No cancel') }],
+      [{ text: 'Status' }, { text: item.enabled ? 'Enabled' : 'Disabled' }],
+    ] });
     blocks.push(row(
-      button('Set price', `ps:admin:service:price:${item.serviceId}`),
-      button(item.enabled ? 'Disable' : 'Enable', `ps:admin:service:${item.enabled ? 'disable' : 'enable'}:${item.serviceId}`, item.enabled ? 'danger' : 'success'),
+      button('Set price', 'ps:admin:service:price:' + item.serviceId),
+      button(item.enabled ? 'Disable' : 'Enable', 'ps:admin:service:' + (item.enabled ? 'disable' : 'enable') + ':' + item.serviceId, item.enabled ? 'danger' : 'success'),
     ));
     blocks.push({ type: 'divider' });
   }
   const buttons = [];
-  if (page > 0) buttons.push(button('‹ Previous', `ps:admin:services:${page - 1}`));
-  if (start + 6 < services.length) buttons.push(button('Next ›', `ps:admin:services:${page + 1}`));
+  if (safePage > 0) buttons.push(button('‹ Previous', 'ps:admin:services:' + (safePage - 1)));
+  if (start + 6 < services.length) buttons.push(button('Next ›', 'ps:admin:services:' + (safePage + 1)));
   if (buttons.length) blocks.push(row(...buttons));
   blocks.push(row(button('Sync services', 'ps:admin:services:sync', 'success')));
   blocks.push(row(button('‹ Provider', 'ps:admin:provider', 'link')));
   return { blocks };
 }
-
 export function customerServicesMessage(services = [], page = 0) {
   const safePage = Math.max(0, Number(page) || 0);
   const start = safePage * 10;
@@ -222,13 +227,26 @@ export function customerServicesMessage(services = [], page = 0) {
 
 export function customerServiceDetailsMessage(item) {
   return { blocks: [
-    { type: 'heading', size: 1, text: item.name },
-    { type: 'paragraph', text: `Price: ${item.customerPrice} Portal Points\nQuantity: ${item.minQty}–${item.maxQty}\nRefill: ${item.refill ? 'Available' : 'Not available'}\nCancellation: ${item.cancel ? 'Available on request' : 'Not available'}` },
-    { type: 'paragraph', text: 'Review the service requirements before placing an order.' },
+    { type: 'heading', size: 1, text: '📈 ' + item.name },
+    { type: 'table', caption: 'Service details · ID ' + item.serviceId, is_bordered: true, is_striped: true, cells: [
+      [{ text: 'Details', is_header: true }, { text: 'Information', is_header: true }],
+      [{ text: 'Price' }, { text: [{ type: 'bold', text: Number(item.customerPrice).toLocaleString('en-IN') + ' Portal Points' }] }],
+      [{ text: 'Quantity range' }, { text: Number(item.minQty).toLocaleString('en-IN') + ' – ' + Number(item.maxQty).toLocaleString('en-IN') }],
+      [{ text: 'Category' }, { text: item.category || 'Telegram' }],
+      [{ text: 'Service type' }, { text: item.type }],
+      [{ text: 'Refill' }, { text: item.refill ? 'Available' : 'Not available' }],
+      [{ text: 'Cancellation' }, { text: item.cancel ? 'Available on request' : 'Not available' }],
+    ] },
+    { type: 'details', summary: 'Before placing an order', blocks: [
+      { type: 'list', items: [
+        { blocks: [{ type: 'paragraph', text: 'Check the target format and quantity limits.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Use a public Telegram target where required.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Never share passwords, login codes or account credentials.' }] },
+      ] },
+    ] },
     row(button('‹ Services', 'ps:services', 'link')),
   ] };
 }
-
 export async function sendRich(chatId, richMessage) {
   return api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
 }
