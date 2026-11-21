@@ -35,7 +35,7 @@ export default async function handleMessage(message) {
   const text = typeof message.text === 'string' ? message.text.trim() : '';
 
   try {
-    await trackUser(message.from, message.chat.type);
+    if (message.chat.type === 'private') await trackUser(message.from, message.chat.type);
     if (message.successful_payment) {
       await handleSuccessfulPayment(message);
       return;
