@@ -25,6 +25,7 @@ import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRef
 import { adminPaymentSupportMessage, resolvePaymentSupportTicket } from '../lib/support.js';
 import { myOrdersMessage, orderDetailsMessage } from '../lib/orders.js';
 import { resetPreviewMessage, resetTestData, resetCompleteMessage } from '../lib/reset.js';
+import { trackUser, isUserBanned, adminStatsMessage } from '../lib/users.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -59,6 +60,11 @@ export default async function handleCallbackQuery(query) {
   }
 
   const userId = Number(query.from.id);
+  await trackUser(query.from, message.chat.type);
+  if (await isUserBanned(userId) && !await isAdmin(userId)) {
+    await answer(query.id, 'This account is restricted.');
+    return;
+  }
   const data = String(query.data || '');
   const chatId = message.chat.id;
   const messageId = message.message_id;
@@ -195,6 +201,32 @@ export default async function handleCallbackQuery(query) {
       }
 
       if (data === 'ps:admin:provider') return render(chatId, messageId, providerAdminMessage());
+      if (data === 'ps:admin:stats') return render(chatId, messageId, await adminStatsMessage());
+
+      const adminInputActions = {
+        'ps:admin:balance:add': 'balance_add',
+        'ps:admin:balance:remove': 'balance_remove',
+        'ps:admin:user:ban': 'user_ban',
+        'ps:admin:user:unban': 'user_unban',
+      };
+      if (adminInputActions[data]) {
+        const action = adminInputActions[data];
+        await db.insert(adminSessions).values({ userId, action, createdAt: new Date() })
+          .onConflictDoUpdate({ target: adminSessions.userId, set: { action, createdAt: new Date() } }).run();
+        const prompts = {
+          balance_add: ['Add Portal Points', 'Send: USER_ID AMOUNT followed by an optional reason. Example: 123456789 50 goodwill'],
+          balance_remove: ['Remove Portal Points', 'Send: USER_ID AMOUNT followed by an optional reason. The debit is blocked if the wallet balance is insufficient.'],
+          user_ban: ['Ban customer', 'Send the numeric Telegram user ID to restrict. Administrator accounts are protected.'],
+          user_unban: ['Unban customer', 'Send the numeric Telegram user ID to restore access.'],
+        };
+        return render(chatId, messageId, {
+          blocks: [
+            { type: 'heading', size: 2, text: prompts[action][0] },
+            { type: 'paragraph', text: prompts[action][1] },
+            { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
+          ],
+        });
+      }
       if (data === 'ps:admin:service-guide') return render(chatId, messageId, serviceSetupGuideMessage());
 
       if (data === 'ps:admin:provider:check') {
