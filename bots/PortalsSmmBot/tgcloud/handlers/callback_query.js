@@ -76,7 +76,7 @@ export default async function handleCallbackQuery(query) {
     if (data === 'ps:home') {
       return render(chatId, messageId, homeMessage(
         [query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there',
-        OWNER_IDS.includes(userId),
+        await isAdmin(userId),
       ));
     }
 
