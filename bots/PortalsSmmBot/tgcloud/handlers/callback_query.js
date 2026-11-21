@@ -205,7 +205,18 @@ export default async function handleCallbackQuery(query) {
       }
 
       if (data === 'ps:admin:provider') return render(chatId, messageId, providerAdminMessage());
-      if (data === 'ps:admin:stats') return render(chatId, messageId, await adminStatsMessage());
+      if (data === 'ps:admin:stats') {
+        try { return render(chatId, messageId, await adminStatsMessage()); }
+        catch {
+          return render(chatId, messageId, {
+            blocks: [
+              { type: 'heading', size: 2, text: 'Statistics database setup required' },
+              { type: 'paragraph', text: 'Apply the reviewed additive bot_users migration to activate user tracking and global statistics.' },
+              { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
+            ],
+          });
+        }
+      }
 
       const adminInputActions = {
         'ps:admin:balance:add': 'balance_add',
