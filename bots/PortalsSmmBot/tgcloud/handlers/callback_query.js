@@ -20,9 +20,10 @@ import {
 import { adminSessions, userSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
-import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit, hasAcceptedTerms, acceptStoreTerms, termsAcceptanceMessage } from '../lib/payments.js';
+import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit, hasAcceptedTerms, acceptStoreTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
 import { adminPaymentSupportMessage, resolvePaymentSupportTicket } from '../lib/support.js';
 import { myOrdersMessage, orderDetailsMessage } from '../lib/orders.js';
+import { resetPreviewMessage, resetTestData, resetCompleteMessage } from '../lib/reset.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -82,19 +83,7 @@ export default async function handleCallbackQuery(query) {
       await acceptStoreTerms(userId);
       return render(chatId, messageId, depositMessage());
     }
-    if (data === 'ps:terms') {
-      return render(chatId, messageId, {
-        blocks: [
-          { type: 'heading', size: 1, text: '📜 Store terms' },
-          { type: 'paragraph', text: 'Deposits are accepted only in Telegram Stars (XTR). Portal Points are credited only after Telegram confirms successful payment. Portal Points are internal, non-cash store credit and cannot be withdrawn or redeemed as Stars.' },
-          { type: 'paragraph', text: 'Service requirements, limits, delivery estimates, refill and cancellation rules vary by service. Check the selected service before ordering. Never provide passwords, login codes or account credentials.' },
-          { type: 'paragraph', text: 'Payment issues and refund requests: use /paysupport and include your transaction reference. Refunds are reviewed against payment and wallet records.' },
-          { type: 'paragraph', text: 'Self-referrals, fraudulent payments, fake activity and abuse of the service are prohibited.' },
-          { type: 'buttons', buttons: [{ text: '✓ I agree — continue', callback_data: 'ps:deposit:accept', style: 'success' }] },
-          { type: 'buttons', buttons: [{ text: '‹ Deposit options', callback_data: 'ps:deposit', style: 'link' }] },
-        ],
-      });
-    }
+    if (data === 'ps:terms') return render(chatId, messageId, termsMessage());
     const depositChoice = data.match(/^ps:deposit:(\d{1,5})$/);
     if (depositChoice) {
       if (!await hasAcceptedTerms(userId)) return render(chatId, messageId, termsAcceptanceMessage());
@@ -346,6 +335,22 @@ export default async function handleCallbackQuery(query) {
             ],
           });
         }
+      }
+
+      if (data === 'ps:admin:payments') {
+        return render(chatId, messageId, await adminPaymentsMessage('confirmed', 0));
+      }
+      const paymentsPage = data.match(/^ps:admin:payments:(confirmed|review|refunded|failed):(\\d{1,4})$/);
+      if (paymentsPage) {
+        return render(chatId, messageId, await adminPaymentsMessage(paymentsPage[1], Number(paymentsPage[2])));
+      }
+
+      if (data === 'ps:admin:resetdb') {
+        return render(chatId, messageId, await resetPreviewMessage());
+      }
+      if (data === 'ps:admin:resetdb:confirm') {
+        const result = await resetTestData();
+        return render(chatId, messageId, resetCompleteMessage(result));
       }
 
       if (data === 'ps:admin:transactions') {
