@@ -289,12 +289,26 @@ export async function handleSuccessfulPayment(message) {
   }
 }
 
+async function depositChargeRecord(transaction) {
+  const intent = await db.select().from(depositIntents)
+    .where(eq(depositIntents.transactionId, Number(transaction.id))).get();
+  const intentCharge = String(intent?.telegramChargeId || '').trim();
+  const transactionCharge = String(transaction.reference || '').trim();
+  const chargeId = intentCharge || (transactionCharge && !/^Deposit #/i.test(transactionCharge) ? transactionCharge : '');
+  return { intent, chargeId };
+}
+
 export async function adminRefundsMessage(page = 0) {
   const safePage = Math.max(0, Math.min(1000, Number(page) || 0));
   const all = await db.select().from(walletTransactions)
     .where(eq(walletTransactions.kind, 'deposit'))
     .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id)).all();
-  const eligible = all.filter(item => item.status === 'completed' && item.reference && Number(item.points) > 0);
+  const eligible = [];
+  for (const item of all) {
+    if (item.status !== 'completed' || Number(item.points) <= 0) continue;
+    const charge = await depositChargeRecord(item);
+    if (charge.chargeId) eligible.push(item);
+  }
   const start = safePage * 6;
   const visible = eligible.slice(start, start + 6);
   const blocks = [
@@ -318,13 +332,19 @@ export async function adminRefundsMessage(page = 0) {
 export async function refundPreviewMessage(transactionId) {
   const item = await db.select().from(walletTransactions)
     .where(eq(walletTransactions.id, Number(transactionId))).get();
-  if (!item || item.kind !== 'deposit' || item.status !== 'completed' || !item.reference) {
+  if (!item || item.kind !== 'deposit' || item.status !== 'completed') {
     return { blocks: [
       { type: 'heading', size: 1, text: '↩️ Refund unavailable' },
       { type: 'paragraph', text: 'This transaction is not an eligible confirmed Stars deposit.' },
       { type: 'buttons', buttons: [{ text: '‹ Refunds', callback_data: 'ps:admin:refunds', style: 'link' }] },
     ] };
   }
+  const { chargeId } = await depositChargeRecord(item);
+  if (!chargeId) return { blocks: [
+    { type: 'heading', size: 1, text: '↩️ Refund unavailable' },
+    { type: 'paragraph', text: 'The original Telegram charge ID is missing from this deposit record. No wallet points were reserved and no refund request was sent. Reconcile the original successful_payment receipt first.' },
+    { type: 'buttons', buttons: [{ text: '‹ Refunds', callback_data: 'ps:admin:refunds', style: 'link' }] },
+  ] };
   const balanceRow = await db.select({ total: sum(walletLedger.amount) })
     .from(walletLedger)
     .where(eq(walletLedger.userId, Number(item.userId))).get();
@@ -338,7 +358,7 @@ export async function refundPreviewMessage(transactionId) {
       [{ text: 'Original payment' }, { text: Number(item.stars) + ' Stars' }],
       [{ text: 'Points to reverse' }, { text: Number(item.points) + ' Portal Points' }],
       [{ text: 'Current wallet balance' }, { text: balance + ' Portal Points' }],
-      [{ text: 'Telegram charge ID' }, { text: String(item.reference).slice(0, 40) }],
+      [{ text: 'Telegram charge ID' }, { text: chargeId.slice(0, 40) }],
     ] },
     { type: 'paragraph', text: enoughPoints
       ? 'The customer currently has enough points for the full wallet reversal.'
@@ -358,11 +378,15 @@ export async function refundPreviewMessage(transactionId) {
 export async function refundStarsDeposit(transactionId, adminId) {
   const original = await db.select().from(walletTransactions)
     .where(eq(walletTransactions.id, Number(transactionId))).get();
-  if (!original || original.kind !== 'deposit' || !original.reference || Number(original.stars) <= 0) {
+  if (!original || original.kind !== 'deposit' || Number(original.stars) <= 0) {
     throw new Error('This is not a valid Telegram Stars deposit.');
   }
   if (original.status === 'refunded') return { refunded: true, duplicate: true };
   if (original.status !== 'completed') throw new Error('Only confirmed, unrefunded deposits can be refunded.');
+  const { intent: sourceIntent, chargeId } = await depositChargeRecord(original);
+  if (!chargeId) {
+    throw new Error('The original Telegram charge ID is missing. No points were reserved and Telegram was not called. The payment receipt must be reconciled first.');
+  }
 
   let refundTransaction = await createWalletTransaction({
     userId: original.userId,
@@ -432,7 +456,7 @@ export async function refundStarsDeposit(transactionId, adminId) {
   try {
     const result = await api.refundStarPayment({
       user_id: Number(original.userId),
-      telegram_payment_charge_id: String(original.reference),
+      telegram_payment_charge_id: chargeId,
     });
     telegramConfirmed = result === true;
     if (!telegramConfirmed) throw new Error('Telegram did not confirm the refund.');
@@ -468,9 +492,14 @@ export async function refundStarsDeposit(transactionId, adminId) {
   try {
     await db.update(walletTransactions).set({ status: 'refunded', updatedAt: new Date() })
       .where(eq(walletTransactions.id, original.id)).run();
-    await updateWalletTransaction(refundTransaction.id, 'completed', String(original.reference));
-    await db.update(depositIntents).set({ status: 'refunded', updatedAt: new Date() })
-      .where(eq(depositIntents.telegramChargeId, String(original.reference))).run();
+    await updateWalletTransaction(refundTransaction.id, 'completed', 'Deposit #' + original.id);
+    if (sourceIntent?.id) {
+      await db.update(depositIntents).set({ status: 'refunded', updatedAt: new Date() })
+        .where(eq(depositIntents.id, Number(sourceIntent.id))).run();
+    } else {
+      await db.update(depositIntents).set({ status: 'refunded', updatedAt: new Date() })
+        .where(eq(depositIntents.telegramChargeId, chargeId)).run();
+    }
   } catch (error) {
     await updateWalletTransaction(refundTransaction.id, 'needs_review');
     await notifyAdmins('🚨 Telegram refunded Stars, but local refund reconciliation failed.\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nError: ' + String(error?.description || error?.message || error).slice(0, 220) + '\nManually reconcile local transaction status; do not call refundStarPayment again.');
