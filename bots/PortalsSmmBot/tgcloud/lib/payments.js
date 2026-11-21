@@ -325,7 +325,8 @@ export async function adminRefundsMessage(page = 0) {
   ];
   if (!visible.length) blocks.push({ type: 'paragraph', text: 'No refundable deposits are available on this page.' });
   for (const item of visible) {
-    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + item.points + ' Portal Points\nCharge: ' + String(item.reference).slice(0, 28) });
+    const { chargeId } = await depositChargeRecord(item);
+    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + item.points + ' Portal Points\nCharge: ' + chargeId.slice(0, 28) });
     blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
   }
   const nav = [];
@@ -391,6 +392,7 @@ export async function refundStarsDeposit(transactionId, adminId) {
   if (original.status === 'refunded') return { refunded: true, duplicate: true };
   if (original.status !== 'completed') throw new Error('Only confirmed, unrefunded deposits can be refunded.');
   const { intent: sourceIntent, chargeId } = await depositChargeRecord(original);
+  console.log('Stars refund charge lookup:', sourceIntent?.telegramChargeId ? 'deposit_intent' : 'wallet_reference', 'length=' + chargeId.length);
   if (!chargeId) {
     throw new Error('The original Telegram charge ID is missing. No points were reserved and Telegram was not called. The payment receipt must be reconciled first.');
   }
