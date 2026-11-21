@@ -112,6 +112,7 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true, canMa
     row(button('⭐ Payments', 'ps:admin:payments', 'primary'), button('Recent activity', 'ps:admin:transactions')),
     row(button('↩️ Refunds', 'ps:admin:refunds', 'danger'), button('💬 Payment support', 'ps:admin:paysupport')),
     row(button('🔌 Provider', 'ps:admin:provider'), button('📈 Services', 'ps:admin:services')),
+    row(button('Service setup guide', 'ps:admin:service-guide', 'primary')),
     row(button('🧹 Reset test data', 'ps:admin:resetdb', 'danger')),
   ];
   if (!databaseAvailable) {
@@ -155,10 +156,58 @@ export function providerAdminMessage() {
 }
 
 export function providerBalanceMessage(result) {
+  const services = result.services || [];
+  const enabled = services.filter(item => item.enabled).length;
+  const priced = services.filter(item => Number(item.customerPrice) > 0).length;
+  const latestSync = services.reduce((latest, item) => {
+    const value = item.lastSyncedAt instanceof Date ? item.lastSyncedAt.getTime() : Number(item.lastSyncedAt || 0) * 1000;
+    return Math.max(latest, value);
+  }, 0);
+  const date = latestSync ? new Date(latestSync).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Not synced yet';
   return { blocks: [
-    { type: 'heading', size: 1, text: '🔌 Provider connection' },
-    { type: 'paragraph', text: `Connection successful\nSupplier balance: ${result.balance} ${result.currency}` },
+    { type: 'heading', size: 1, text: 'Provider connection' },
+    { type: 'table', caption: 'Live connection check', is_bordered: true, is_compact: true, cells: [
+      [{ text: 'Check', is_header: true, align: 'left' }, { text: 'Result', is_header: true, align: 'right' }],
+      [{ text: 'API status' }, { text: [{ type: 'bold', text: 'Connected' }], align: 'right' }],
+      [{ text: 'Supplier' }, { text: 'smm.plus', align: 'right' }],
+      [{ text: 'Supplier balance' }, { text: Number(result.balance).toLocaleString('en-IN') + ' ' + result.currency, align: 'right' }],
+      [{ text: 'Telegram services' }, { text: String(services.length), align: 'right' }],
+      [{ text: 'Services with price' }, { text: String(priced), align: 'right' }],
+      [{ text: 'Enabled services' }, { text: String(enabled), align: 'right' }],
+      [{ text: 'Last catalogue sync' }, { text: date, align: 'right' }],
+    ] },
+    { type: 'details', summary: 'Connection information', blocks: [
+      { type: 'paragraph', text: 'The balance endpoint authenticated successfully. API credentials are intentionally not displayed. Catalogue counts come from the local Telegram-only service snapshot.' },
+    ] },
     row(button('‹ Provider', 'ps:admin:provider', 'link')),
+  ] };
+}
+
+export function serviceSetupGuideMessage() {
+  return { blocks: [
+    { type: 'heading', size: 1, text: 'Service setup guide' },
+    { type: 'paragraph', text: 'A synced service is not automatically available to customers. Review its supplier details, set a selling price, then enable it.' },
+    { type: 'anchor', name: 'steps' },
+    { type: 'heading', size: 2, text: 'Setup steps' },
+    { type: 'list', items: [
+      { value: 1, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Sync the catalogue. ' }, 'Open Provider → Sync services. Only Telegram services are imported.'] }] },
+      { value: 2, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Review the service. ' }, 'Check service ID, target type, supplier rate, minimum/maximum quantity, refill and cancellation support.'] }] },
+      { value: 3, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Set your selling price. ' }, 'Open the service and choose Set price. Enter the customer charge in whole Portal Points.'] }] },
+      { value: 4, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Enable it. ' }, 'Use Enable only after the price and service details have been checked.'] }] },
+      { value: 5, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Verify the customer view. ' }, 'Open the public Services page and inspect the description and price.'] }] },
+    ] },
+    { type: 'anchor', name: 'pricing' },
+    { type: 'heading', size: 2, text: 'Pricing calculation' },
+    { type: 'paragraph', text: 'The planning target is a 30% gross margin. First convert the supplier cost into INR using a verified FX rate. Then calculate the customer price:' },
+    { type: 'mathematical_expression', expression: String.raw`P=\operatorname{round}_{5}\left(\frac{C_{INR}}{(1-0.30)\times V_{INR/point}}\right)` },
+    { type: 'paragraph', text: 'P = selling Portal Points; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one Portal Point. Round to the nearest 5 points, not always upward.' },
+    { type: 'details', summary: 'Important supplier-rate warning', blocks: [
+      { type: 'paragraph', text: 'Do not assume every supplier rate is per 1,000 units. Read the service rate unit and calculate the cost for the actual order quantity. Confirm the provider currency, min/max quantity and any refill/cancel conditions before enabling.' },
+    ] },
+    { type: 'paragraph', text: [{ type: 'bold', text: 'Current safeguard: ' }, 'newly synced services stay disabled until a customer price is set and an administrator explicitly enables them.'] },
+    { type: 'paragraph', text: [{ type: 'anchor_link', text: 'Back to setup steps ↑', anchor_name: 'steps' }, '  ·  ', { type: 'anchor_link', text: 'Pricing ↑', anchor_name: 'pricing' }, '  ·  ', { type: 'anchor_link', text: 'Top ↑', anchor_name: '' }] },
+    row(button('Open Telegram catalogue', 'ps:admin:services', 'primary')),
+    row(button('‹ Administrator panel', 'ps:admin', 'link')),
   ] };
 }
 
