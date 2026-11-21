@@ -340,7 +340,7 @@ export default async function handleCallbackQuery(query) {
       if (data === 'ps:admin:payments') {
         return render(chatId, messageId, await adminPaymentsMessage('confirmed', 0));
       }
-      const paymentsPage = data.match(/^ps:admin:payments:(confirmed|review|refunded|failed):(\\d{1,4})$/);
+      const paymentsPage = data.match(/^ps:admin:payments:(confirmed|review|refunded|failed):(\d{1,4})$/);
       if (paymentsPage) {
         return render(chatId, messageId, await adminPaymentsMessage(paymentsPage[1], Number(paymentsPage[2])));
       }
