@@ -364,7 +364,7 @@ export async function refundStarsDeposit(transactionId, adminId) {
   if (original.status === 'refunded') return { refunded: true, duplicate: true };
   if (original.status !== 'completed') throw new Error('Only confirmed, unrefunded deposits can be refunded.');
 
-  const refundTransaction = await createWalletTransaction({
+  let refundTransaction = await createWalletTransaction({
     userId: original.userId,
     kind: 'refund',
     title: 'Telegram Stars refund',
@@ -374,10 +374,32 @@ export async function refundStarsDeposit(transactionId, adminId) {
     idempotencyKey: 'refund:' + original.id,
   });
   if (refundTransaction.status === 'completed') return { refunded: true, duplicate: true };
+
+  // A previous version marked every Telegram 400 response as failed, including
+  // CHARGE_ALREADY_REFUNDED. Permit a controlled retry of failed attempts with
+  // a fresh ledger idempotency key; never retry processing/needs_review states.
+  if (refundTransaction.status === 'failed') {
+    const retry = await db.run(
+      'UPDATE wallet_transactions SET status = :pending, reference = :reference, updated_at = unixepoch() WHERE id = :id AND status = :failed',
+      {
+        ':pending': 'pending',
+        ':reference': 'Deposit #' + original.id + ' · retry pending',
+        ':id': refundTransaction.id,
+        ':failed': 'failed',
+      },
+    );
+    if (Number(retry?.rowsAffected) !== 1) {
+      throw new Error('Another administrator is already retrying this refund.');
+    }
+    refundTransaction = await db.select().from(walletTransactions)
+      .where(eq(walletTransactions.id, refundTransaction.id)).get();
+  }
   if (refundTransaction.status !== 'pending') {
-    throw new Error('A previous refund attempt is not in a retryable state. Check the payment reconciliation screen.');
+    throw new Error('A previous refund attempt is still being processed or needs reconciliation. Do not retry it.');
   }
 
+  const attemptId = Math.random().toString(36).slice(2, 12);
+  await updateWalletTransaction(refundTransaction.id, 'pending', 'Deposit #' + original.id + ' · attempt ' + attemptId);
   const lock = await db.run(
     'UPDATE wallet_transactions SET status = :processing, updated_at = unixepoch() WHERE id = :id AND status = :pending',
     { ':processing': 'processing', ':id': refundTransaction.id, ':pending': 'pending' },
@@ -393,7 +415,7 @@ export async function refundStarsDeposit(transactionId, adminId) {
       transactionId: refundTransaction.id,
       amount: Number(original.points),
       kind: 'stars_refund_hold',
-      idempotencyKey: 'refund-hold:' + original.id,
+      idempotencyKey: 'refund-hold:' + original.id + ':' + attemptId,
     });
   } catch (error) {
     await updateWalletTransaction(refundTransaction.id, 'needs_review');
@@ -426,7 +448,7 @@ export async function refundStarsDeposit(transactionId, adminId) {
         transactionId: refundTransaction.id,
         amount: Number(original.points),
         kind: 'refund_hold_release',
-        idempotencyKey: 'refund-release:' + original.id,
+        idempotencyKey: 'refund-release:' + original.id + ':' + attemptId,
       });
       await updateWalletTransaction(refundTransaction.id, 'failed');
       const reason = description ? ' Telegram response: ' + description.slice(0, 220) : '';
