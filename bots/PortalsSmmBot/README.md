@@ -45,3 +45,14 @@ The one-time additive migration was explicitly owner-approved and applied with `
 5. Finalize launch checks and administrator support procedures.
 
 See [AGENTS.md](./AGENTS.md) for implementation rules, provider API details, pricing policy, security, and rollout requirements.
+
+
+## Maintenance update — 21 November 2026
+
+- Refund handling now resolves the canonical Telegram charge ID from the deposit intent linked to the wallet transaction. It validates the ID before creating a wallet hold or calling Telegram. The wallet reference helper no longer truncates stored references.
+- Provider connection details include the authenticated balance check, local Telegram catalogue totals, priced/enabled counts, and last sync time. This endpoint does not expose additional supplier profile details.
+- Added an administrator service setup guide and `/servicesetup`, including the approved pricing formula and supplier billing-unit warning.
+- Added persistent private-chat user tracking, referral attribution via `/start ref_USER_ID`, a `/referral` dashboard, global `/stats`, audited add/remove balance controls, and ban/unban controls.
+- Referral rewards remain disabled until the owner configures the qualifying minimum Stars amount and enables the feature. The configured reward remains 10% of the first qualifying successful deposit.
+- These new user/referral/moderation features add the `bot_users` table. The schema declaration is committed, but the additive migration has **not** been applied. User tracking and admin features that depend on this table remain inactive until the migration is explicitly approved and applied.
+- No migration, live Stars refund, provider order, or wallet adjustment was executed as part of this code update.
