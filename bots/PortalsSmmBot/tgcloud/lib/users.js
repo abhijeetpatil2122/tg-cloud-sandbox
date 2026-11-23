@@ -1,7 +1,7 @@
 import { db } from 'sdk';
-import { eq, sql, sum } from 'sdk/db';
+import { eq, sql } from 'sdk/db';
 
-import { botUsers, walletTransactions, walletLedger, serviceOrders, providerServices } from '../schema.js';
+import { botUsers } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction } from './wallet.js';
 import { isAdmin } from './admins.js';
 
