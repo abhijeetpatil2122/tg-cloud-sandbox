@@ -7,8 +7,6 @@ import { sendRich } from './ui.js';
 import { listAdmins } from './admins.js';
 import { isUserBanned } from './users.js';
 
-export const DEPOSIT_PACKAGES = [80, 160, 400, 4000, 8000];
-
 export const TERMS_VERSION = '2026-11-23';
 
 export async function hasAcceptedTerms(userId) {

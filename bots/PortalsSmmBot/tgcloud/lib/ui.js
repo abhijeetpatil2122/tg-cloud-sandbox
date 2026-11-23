@@ -73,7 +73,7 @@ const screens = {
   },
   support: {
     title: '💬 Support',
-    description: 'For service, order or payment assistance, contact @roexe. Include your order or transaction reference. Never share passwords or login codes.',
+    description: 'For service, order or payment assistance, include your order or transaction reference. Never share passwords or login codes.',
   },
 };
 
