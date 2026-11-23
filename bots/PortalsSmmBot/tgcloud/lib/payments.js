@@ -370,7 +370,7 @@ export async function refundPreviewMessage(transactionId) {
     ] },
     { type: 'paragraph', text: enoughPoints
       ? 'The customer currently has enough funds for the full wallet reversal.'
-      : 'Refund is blocked because the customer has spent some of the credited funds. Available balance: ' + balance + '. Required: ' + item.points + ' USD balance.' },
+      : 'Refund is blocked because the customer has spent some of the credited funds. Available balance: $' + balance + '. Required: $' + item.points + '.' },
     { type: 'details', summary: 'What happens when you confirm?', blocks: [
       { type: 'list', items: [
         { blocks: [{ type: 'paragraph', text: 'Telegram is asked to refund the original Stars charge.' }] },
