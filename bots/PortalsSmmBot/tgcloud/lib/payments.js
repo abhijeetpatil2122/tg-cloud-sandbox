@@ -124,6 +124,7 @@ export function depositMessage() {
     ] },
     { type: 'paragraph', text: 'Custom amounts are disabled. Choose one of the listed packages.' },
     { type: 'footer', text: '⭐ Payments are processed by Telegram. Your USD balance is internal store credit.' },
+    { type: 'buttons', buttons: [{ text: 'Buy Stars with Gram on Fragment', url: 'https://fragment.com/stars/buy' }] },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
 }
