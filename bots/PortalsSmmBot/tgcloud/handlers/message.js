@@ -2,15 +2,15 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { OWNER_IDS, FEATURES } from '../lib/config.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
-import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage } from '../lib/ui.js';
-import { adminSessions, userSessions, paymentSupportTickets } from '../schema.js';
+import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage, vpnUnavailableMessage } from '../lib/ui.js';
+import { adminSessions } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage, hasAcceptedTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
 import { listAdmins } from '../lib/admins.js';
 import { myOrdersMessage } from '../lib/orders.js';
 import { resetPreviewMessage } from '../lib/reset.js';
-import { trackUser, attributeReferral, isUserBanned, referralMessage, adminStatsMessage, adjustUserBalance, setUserBanned } from '../lib/users.js';
+import { trackUser, isUserBanned, adminStatsMessage, adjustUserBalance, setUserBanned } from '../lib/users.js';
 
 function parseCommand(value = '') {
   const match = value.trim().match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?(?:\s+([\s\S]*))?$/i);
@@ -225,8 +225,7 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/start' || parsed.command === '/menu') {
-      if (parsed.command === '/start' && parsed.argument) await attributeReferral(userId, parsed.argument);
-      return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
+        return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
     }
 
     if (parsed.command === '/deposit') {
@@ -250,19 +249,10 @@ export default async function handleMessage(message) {
       return;
     }
 
-    if (parsed.command === '/paysupport') {
-      await db.insert(userSessions).values({ userId, action: 'payment_support', createdAt: new Date() })
-        .onConflictDoUpdate({ target: userSessions.userId, set: { action: 'payment_support', createdAt: new Date() } }).run();
-      return await sendRich(chatId, {
-        blocks: [
-          { type: 'heading', size: 1, text: '💬 Payment support' },
-          { type: 'paragraph', text: 'Describe the payment problem in your next message. Include the transaction reference or approximate payment time if available. Never send passwords or login codes.' },
-          { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:support:cancel', style: 'link' }] },
-        ],
-      });
-    }
+    if (parsed.command === '/paysupport') return await sendRich(chatId, sectionMessage('support'));
 
     if (parsed.command === '/terms') return await sendRich(chatId, termsMessage());
+    if (parsed.command === '/vpn') return await sendRich(chatId, vpnUnavailableMessage());
 
     if (parsed.command === '/services') {
       try {
@@ -281,13 +271,6 @@ export default async function handleMessage(message) {
       }
     }
 
-    if (parsed.command === '/referral') {
-      try { return await sendRich(chatId, await referralMessage(userId)); }
-      catch (error) {
-        console.error('Referral page unavailable:', error?.message || error);
-        return await sendRich(chatId, sectionMessage('referral'));
-      }
-    }
 
     const sectionCommands = {
       '/deposit': 'deposit',
