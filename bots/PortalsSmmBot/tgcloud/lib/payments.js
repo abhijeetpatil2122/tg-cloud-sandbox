@@ -326,7 +326,7 @@ export async function adminRefundsMessage(page = 0) {
   if (!visible.length) blocks.push({ type: 'paragraph', text: 'No refundable deposits are available on this page.' });
   for (const item of visible) {
     const { chargeId } = await depositChargeRecord(item);
-    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + item.points + ' USD balance\nCharge: ' + chargeId.slice(0, 28) });
+    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + formatUsd(item.points) + ' wallet balance\nCharge:  + chargeId.slice(0, 28) });
     blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
   }
   const nav = [];
@@ -364,13 +364,13 @@ export async function refundPreviewMessage(transactionId) {
       [{ text: 'Field', is_header: true }, { text: 'Value', is_header: true }],
       [{ text: 'Customer' }, { text: String(item.userId) }],
       [{ text: 'Original payment' }, { text: Number(item.stars) + ' Stars' }],
-      [{ text: 'Points to reverse' }, { text: '$' + Number(item.points) }],
+      [{ text: 'Points to reverse' }, { text: formatUsd(item.points) }],
       [{ text: 'Current wallet balance' }, { text: '$' + balance }],
       [{ text: 'Telegram charge ID' }, { text: chargeId.slice(0, 40) }],
     ] },
     { type: 'paragraph', text: enoughPoints
       ? 'The customer currently has enough funds for the full wallet reversal.'
-      : 'Refund is blocked because the customer has spent some of the credited funds. Available balance: $' + balance + '. Required: $' + item.points + '.' },
+      : 'Refund is blocked because the customer has spent some of the credited funds. Available balance: ' + formatUsd(balance) + '. Required: ' + formatUsd(item.points) + '.' },
     { type: 'details', summary: 'What happens when you confirm?', blocks: [
       { type: 'list', items: [
         { blocks: [{ type: 'paragraph', text: 'Telegram is asked to refund the original Stars charge.' }] },
@@ -569,7 +569,7 @@ export async function adminPaymentsMessage(filter = 'confirmed', page = 0) {
         { text: '#' + item.id, align: 'left' },
         { text: String(item.userId), align: 'right' },
         { text: Number(item.stars).toLocaleString('en-IN'), align: 'right' },
-        { text: '$' + Number(item.points).toLocaleString('en-US'), align: 'right' },
+        { text: formatUsd(item.points), align: 'right' },
         { text: item.status.replace('_', ' '), align: 'right' },
       ]),
     ] });
