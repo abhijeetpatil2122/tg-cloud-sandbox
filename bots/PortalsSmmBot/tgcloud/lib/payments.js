@@ -132,8 +132,8 @@ export async function createStarsInvoice(userId, chatId, stars) {
   const amount = Number(stars);
   if (!FEATURES.depositsEnabled) throw new Error('Stars deposits are not enabled yet.');
   if (!await hasAcceptedTerms(userId)) throw new Error('Please read and accept the store terms before depositing.');
-  if (!Number.isSafeInteger(amount) || amount < 80 || amount > 8000) {
-    throw new Error('Choose a package from 80 to 8,000 Stars in multiples of 80.');
+  if (!Number.isSafeInteger(amount) || !DEPOSIT_PACKAGES.includes(amount)) {
+    throw new Error('Choose one of the available Stars packages.');
   }
   if (amount % Number(WALLET.starsPerDollar) !== 0) throw new Error('80 Stars = $1. Choose a whole-dollar package.');
   const points = amount / Number(WALLET.starsPerDollar);
@@ -562,14 +562,29 @@ export async function adminPaymentsMessage(filter = 'confirmed', page = 0) {
         { text: 'ID', is_header: true, align: 'left' },
         { text: 'Customer', is_header: true, align: 'right' },
         { text: 'Stars', is_header: true, align: 'right' },
-        { text: 'Points', is_header: true, align: 'right' },
+        { text: 'USD', is_header: true, align: 'right' },
         { text: 'Status', is_header: true, align: 'right' },
       ],
       ...visible.map(item => [
         { text: '#' + item.id, align: 'left' },
         { text: String(item.userId), align: 'right' },
         { text: Number(item.stars).toLocaleString('en-IN'), align: 'right' },
-        { text: Number(item.points).toLocaleString('en-IN'), align: 'right' },
+        { text: '
+        { text: item.status.replace('_', ' '), align: 'right' },
+      ]),
+    ] });
+    if (filter === 'confirmed') {
+      for (const item of visible) blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
+    }
+  }
+  const nav = [];
+  if (safePage > 0) nav.push({ text: '‹ Newer', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage - 1) });
+  if ((safePage + 1) * 6 < matching.length) nav.push({ text: 'Older ›', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage + 1) });
+  if (nav.length) blocks.push({ type: 'buttons', buttons: nav });
+  blocks.push({ type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] });
+  return { blocks };
+}
+ + Number(item.points).toLocaleString('en-US'), align: 'right' },
         { text: item.status.replace('_', ' '), align: 'right' },
       ]),
     ] });
