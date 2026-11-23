@@ -90,6 +90,14 @@ export function vpnUnavailableMessage() {
   ] };
 }
 
+export function vpnUnavailableMessage() {
+  return { blocks: [
+    { type: 'heading', size: 1, text: 'VPN Service' },
+    { type: 'paragraph', text: 'Currently out of service. VPN plans and ordering are unavailable until further notice.' },
+    row(button('‹ Main menu', 'ps:home', 'link')),
+  ] };
+}
+
 export function sectionMessage(section) {
   const page = screens[section];
   if (!page) return unavailableMessage();
@@ -97,6 +105,7 @@ export function sectionMessage(section) {
     { type: 'heading', size: 1, text: page.title },
     { type: 'paragraph', text: page.description },
     { type: 'divider' },
+    ...(section === 'support' ? [row({ text: 'Contact @roexe', url: 'https://t.me/roexe' })] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
