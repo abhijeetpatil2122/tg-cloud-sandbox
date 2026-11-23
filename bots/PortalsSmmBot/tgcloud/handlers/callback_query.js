@@ -17,15 +17,15 @@ import {
   adminServicesMessage,
   customerServicesMessage,
   customerServiceDetailsMessage,
+  vpnUnavailableMessage,
 } from '../lib/ui.js';
-import { adminSessions, userSessions } from '../schema.js';
+import { adminSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit, hasAcceptedTerms, acceptStoreTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
-import { adminPaymentSupportMessage, resolvePaymentSupportTicket } from '../lib/support.js';
 import { myOrdersMessage, orderDetailsMessage } from '../lib/orders.js';
 import { resetPreviewMessage, resetTestData, resetCompleteMessage } from '../lib/reset.js';
-import { trackUser, isUserBanned, referralMessage, adminStatsMessage } from '../lib/users.js';
+import { trackUser, isUserBanned, adminStatsMessage } from '../lib/users.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -113,21 +113,7 @@ export default async function handleCallbackQuery(query) {
         });
       }
     }
-    if (data === 'ps:support:cancel') {
-      await db.delete(userSessions).where(eq(userSessions.userId, userId)).run();
-      return render(chatId, messageId, sectionMessage('support'));
-    }
-    if (data === 'ps:support:payment') {
-      await db.insert(userSessions).values({ userId, action: 'payment_support', createdAt: new Date() })
-        .onConflictDoUpdate({ target: userSessions.userId, set: { action: 'payment_support', createdAt: new Date() } }).run();
-      return render(chatId, messageId, {
-        blocks: [
-          { type: 'heading', size: 1, text: '💬 Payment support' },
-          { type: 'paragraph', text: 'Describe the payment problem in your next message. Include a transaction reference or approximate payment time if available. Never send passwords or login codes.' },
-          { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:support:cancel', style: 'link' }] },
-        ],
-      });
-    }
+    if (data === 'ps:vpn') return render(chatId, messageId, vpnUnavailableMessage());
     if (data === 'ps:wallet') return render(chatId, messageId, await walletMessage(userId));
     if (data === 'ps:history') return render(chatId, messageId, await transactionHistoryMessage(userId, 0));
     if (data === 'ps:orders') return render(chatId, messageId, await myOrdersMessage(userId, 0));
@@ -167,10 +153,6 @@ export default async function handleCallbackQuery(query) {
       }
     }
 
-    if (data === 'ps:referral') {
-      try { return render(chatId, messageId, await referralMessage(userId)); }
-      catch { return render(chatId, messageId, sectionMessage('referral')); }
-    }
 
     const sections = {
       'ps:deposit': 'deposit',
@@ -335,24 +317,6 @@ export default async function handleCallbackQuery(query) {
         });
       }
 
-      if (data === 'ps:admin:paysupport') {
-        return render(chatId, messageId, await adminPaymentSupportMessage(0));
-      }
-      const paymentSupportPage = data.match(/^ps:admin:paysupport:(\d{1,4})$/);
-      if (paymentSupportPage) {
-        return render(chatId, messageId, await adminPaymentSupportMessage(Number(paymentSupportPage[1])));
-      }
-      const resolveSupport = data.match(/^ps:admin:paysupport:resolve:(\d{1,12})$/);
-      if (resolveSupport) {
-        const result = await resolvePaymentSupportTicket(Number(resolveSupport[1]));
-        return render(chatId, messageId, {
-          blocks: [
-            { type: 'heading', size: 1, text: result.resolved ? '✓ Request resolved' : 'Request already closed' },
-            { type: 'paragraph', text: result.resolved ? 'The customer has been notified.' : 'This support request is no longer open.' },
-            { type: 'buttons', buttons: [{ text: '‹ Payment support', callback_data: 'ps:admin:paysupport', style: 'link' }] },
-          ],
-        });
-      }
 
       if (data === 'ps:admin:refunds') {
         return render(chatId, messageId, await adminRefundsMessage(0));
