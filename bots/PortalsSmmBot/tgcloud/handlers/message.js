@@ -3,7 +3,7 @@ import { eq } from 'sdk/db';
 import { OWNER_IDS, FEATURES } from '../lib/config.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
 import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage, vpnUnavailableMessage } from '../lib/ui.js';
-import { adminSessions } from '../schema.js';
+import { adminSessions, userSessions } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage, hasAcceptedTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
@@ -56,6 +56,37 @@ export default async function handleMessage(message) {
         });
       }
       return;
+    }
+
+    if (text && !text.startsWith('/')) {
+      const userPending = await db.select().from(userSessions).where(eq(userSessions.userId, userId)).get();
+      if (userPending?.action === 'custom_deposit') {
+        const amount = Number(text);
+        if (!/^\\d{1,6}$/.test(text) || !Number.isSafeInteger(amount) || amount < 1 || amount > 100000) {
+          await sendRich(chatId, { blocks: [
+            { type: 'heading', size: 2, text: 'Invalid Stars amount' },
+            { type: 'paragraph', text: 'Send a whole number from 1 to 100,000 Stars.' },
+            { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:deposit:cancel', style: 'link' }] },
+          ] });
+          return;
+        }
+        await db.delete(userSessions).where(eq(userSessions.userId, userId)).run();
+        try {
+          await createStarsInvoice(userId, chatId, amount);
+          await sendRich(chatId, { blocks: [
+            { type: 'heading', size: 1, text: '⭐ Custom invoice created' },
+            { type: 'paragraph', text: amount + ' Stars · ' + (amount / 80).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + ' USD wallet credit. Your balance is updated only after Telegram confirms payment.' },
+            { type: 'buttons', buttons: [{ text: '‹ Deposit options', callback_data: 'ps:deposit', style: 'link' }] },
+          ] });
+        } catch (error) {
+          await sendRich(chatId, { blocks: [
+            { type: 'heading', size: 1, text: '⭐ Deposit not started' },
+            { type: 'paragraph', text: error?.message || 'The invoice could not be created. Please try again.' },
+            { type: 'buttons', buttons: [{ text: '‹ Deposit options', callback_data: 'ps:deposit', style: 'link' }] },
+          ] });
+        }
+        return;
+      }
     }
 
     if (text && !text.startsWith('/') && (OWNER_IDS.includes(userId) || await isAdmin(userId))) {
@@ -175,10 +206,13 @@ export default async function handleMessage(message) {
     const parsed = parseCommand(text);
     if (!parsed) return;
 
-    if (parsed.command === '/cancel' && (OWNER_IDS.includes(userId) || await isAdmin(userId))) {
-      const pending = await db.select().from(adminSessions)
-        .where(eq(adminSessions.userId, userId)).get();
-      if (pending) {
+    if (parsed.command === '/cancel') {
+      const userPending = await db.select().from(userSessions).where(eq(userSessions.userId, userId)).get();
+      if (userPending) await db.delete(userSessions).where(eq(userSessions.userId, userId)).run();
+      if (OWNER_IDS.includes(userId) || await isAdmin(userId)) {
+        const pending = await db.select().from(adminSessions)
+          .where(eq(adminSessions.userId, userId)).get();
+        if (pending) {
         await db.delete(adminSessions).where(eq(adminSessions.userId, userId)).run();
         await sendRich(chatId, {
           blocks: [
@@ -186,7 +220,12 @@ export default async function handleMessage(message) {
             { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
           ],
         });
+        }
       }
+      if (userPending) await sendRich(chatId, { blocks: [
+        { type: 'paragraph', text: 'Custom deposit cancelled.' },
+        { type: 'buttons', buttons: [{ text: '‹ Deposit options', callback_data: 'ps:deposit', style: 'link' }] },
+      ] });
       return;
     }
 

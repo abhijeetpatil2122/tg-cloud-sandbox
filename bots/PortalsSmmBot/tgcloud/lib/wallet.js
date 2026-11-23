@@ -49,7 +49,7 @@ export async function creditWalletPoints({
   idempotencyKey,
 }) {
   const points = Number(amount);
-  if (!Number.isSafeInteger(points) || points <= 0) throw new Error('Credit must be a positive whole number.');
+  if (!Number.isFinite(points) || points <= 0 || Math.round(points * 10000) !== points * 10000) throw new Error('Credit must be a positive amount with up to four decimal places.');
   const rows = await db.insert(walletLedger).values({
     userId: Number(userId),
     transactionId: Number(transactionId),
@@ -97,7 +97,7 @@ export async function debitWalletPoints({
 export function formatUsd(value, signed = false) {
   const amount = Number(value) || 0;
   const sign = amount < 0 ? '-' : (signed && amount > 0 ? '+' : '');
-  return `${sign}$${Math.abs(amount).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return `${sign}${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 }
 
 function formatDate(value) {
@@ -244,17 +244,29 @@ export async function adminTransactionsMessage(page = 0) {
       .offset(safePage * 10)
       .all();
     const blocks = [
-      { type: 'heading', size: 1, text: 'Recent transactions' },
-      { type: 'paragraph', text: 'Latest customer wallet activity.' },
+      { type: 'heading', size: 1, text: 'Recent activity' },
+      { type: 'paragraph', text: 'Latest customer wallet transactions.' },
       { type: 'divider' },
     ];
     if (!rows.length) {
-      blocks.push({ type: 'paragraph', text: 'No transactions have been recorded.' });
+      blocks.push({ type: 'paragraph', text: 'No activity has been recorded.' });
     } else {
-      for (const item of rows) {
-        blocks.push(transactionBlock(item, true));
-        blocks.push({ type: 'divider' });
-      }
+      blocks.push({ type: 'table', caption: 'Customer activity · newest first', is_bordered: true, is_striped: true, is_compact: true, cells: [
+        [
+          { text: 'Date', is_header: true, align: 'left' },
+          { text: 'User ID', is_header: true, align: 'right' },
+          { text: 'Activity', is_header: true, align: 'left' },
+          { text: 'Amount', is_header: true, align: 'right' },
+          { text: 'Status', is_header: true, align: 'right' },
+        ],
+        ...rows.map(item => [
+          { text: formatDate(item.createdAt), align: 'left' },
+          { text: String(item.userId), align: 'right' },
+          { text: String(item.title || item.kind || 'Wallet activity').slice(0, 40), align: 'left' },
+          { text: formatUsd(item.points, true), align: 'right' },
+          { text: statusText(item.status), align: 'right' },
+        ]),
+      ] });
     }
     const buttons = [];
     if (safePage > 0) buttons.push({ text: '‹ Newer', callback_data: `ps:admin:transactions:${safePage - 1}` });

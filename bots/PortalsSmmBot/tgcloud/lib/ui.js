@@ -29,7 +29,6 @@ export function homeMessage(name = 'there', showAdmin = false) {
     row(button('💬 Support', 'ps:support'), button('❔ Help', 'ps:help', 'link')),
   ];
   if (showAdmin) blocks.push(row(button('⚙️ Administrator panel', 'ps:admin')));
-  blocks.push({ type: 'footer', text: '⭐ 80 Stars = $1 · Payments confirmed by Telegram' });
   return { blocks };
 }
 
@@ -46,13 +45,11 @@ export function helpMessage() {
       { blocks: [{ type: 'paragraph', text: '/wallet — View your balance' }] },
       { blocks: [{ type: 'paragraph', text: '/history — View your transactions' }] },
       { blocks: [{ type: 'paragraph', text: '/support — Contact support' }] },
-      { blocks: [{ type: 'paragraph', text: '/servicehistory — View your service history' }] },
       { blocks: [{ type: 'paragraph', text: '/vpn — View VPN service status' }] },
       { blocks: [{ type: 'paragraph', text: '/paysupport — Get payment assistance' }] },
       { blocks: [{ type: 'paragraph', text: '/terms — Read store terms' }] }, 
       { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
     ] },
-    { type: 'paragraph', text: 'Your USD balance is internal store credit, not a bank deposit or cash withdrawal. 80 Telegram Stars = $1.' },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -82,8 +79,14 @@ const screens = {
 
 export function vpnUnavailableMessage() {
   return { blocks: [
-    { type: 'heading', size: 1, text: 'VPN Service' },
-    { type: 'paragraph', text: 'Currently out of service. VPN plans and ordering are unavailable until further notice.' },
+    { type: 'heading', size: 1, text: 'VPN Service Plans' },
+    { type: 'paragraph', text: 'All VPN plans are currently out of service. Orders and payments are disabled until service is restored.' },
+    { type: 'table', caption: 'VPN plan catalogue', is_bordered: true, is_compact: true, cells: [
+      [{ text: 'Plan', is_header: true }, { text: 'Price', is_header: true, align: 'right' }, { text: 'Status', is_header: true, align: 'right' }],
+      [{ text: 'Plan 1' }, { text: '$100', align: 'right' }, { text: 'Unavailable', align: 'right' }],
+      [{ text: 'Plan 2' }, { text: '$200', align: 'right' }, { text: 'Unavailable', align: 'right' }],
+      [{ text: 'Plan 3' }, { text: '$300', align: 'right' }, { text: 'Unavailable', align: 'right' }],
+    ] },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -95,7 +98,7 @@ export function sectionMessage(section) {
     { type: 'heading', size: 1, text: page.title },
     { type: 'paragraph', text: page.description },
     { type: 'divider' },
-    ...(section === 'support' ? [row({ text: 'Contact @roexe', url: 'https://t.me/roexe' })] : []),
+    ...(section === 'support' ? [row({ text: 'Contact support', url: 'tg://user?id=6522801911' })] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }

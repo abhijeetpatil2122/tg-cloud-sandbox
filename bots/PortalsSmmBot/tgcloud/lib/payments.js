@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { desc, eq, sql, sum } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
 import { depositIntents, walletLedger, walletTransactions, termsAcceptances } from '../schema.js';
-import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction } from './wallet.js';
+import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction, formatUsd } from './wallet.js';
 import { sendRich } from './ui.js';
 import { listAdmins } from './admins.js';
 import { isUserBanned } from './users.js';
@@ -122,9 +122,7 @@ export function depositMessage() {
       { text: '4,000 ⭐ · $50', callback_data: 'ps:deposit:4000' },
       { text: '8,000 ⭐ · $100', callback_data: 'ps:deposit:8000' },
     ] },
-    { type: 'paragraph', text: 'Custom amounts are disabled. Choose one of the listed packages.' },
-    { type: 'footer', text: '⭐ Payments are processed by Telegram. Your USD balance is internal store credit.' },
-    { type: 'buttons', buttons: [{ text: 'Buy Stars with Gram on Fragment', url: 'https://fragment.com/stars/buy' }] },
+    { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
 }
@@ -133,12 +131,13 @@ export async function createStarsInvoice(userId, chatId, stars) {
   const amount = Number(stars);
   if (!FEATURES.depositsEnabled) throw new Error('Stars deposits are not enabled yet.');
   if (!await hasAcceptedTerms(userId)) throw new Error('Please read and accept the store terms before depositing.');
-  if (!Number.isSafeInteger(amount) || !DEPOSIT_PACKAGES.includes(amount)) {
-    throw new Error('Choose one of the available Stars packages.');
+  if (!Number.isSafeInteger(amount) || amount < 1 || amount > 100000) {
+    throw new Error('Enter a whole number of Stars from 1 to 100,000.');
   }
-  if (amount % Number(WALLET.starsPerDollar) !== 0) throw new Error('80 Stars = $1. Choose a whole-dollar package.');
   const points = amount / Number(WALLET.starsPerDollar);
-  if (!Number.isSafeInteger(points) || points <= 0) throw new Error('The deposit amount is invalid.');
+  if (!Number.isFinite(points) || points <= 0 || Math.round(points * 10000) !== points * 10000) {
+    throw new Error('The deposit amount is invalid.');
+  }
 
   const payload = makePayload(userId);
   const transaction = await createWalletTransaction({
@@ -166,11 +165,11 @@ export async function createStarsInvoice(userId, chatId, stars) {
     return await api.sendInvoice({
       chat_id: chatId,
       title: 'USD wallet balance',
-      description: amount + ' Telegram Stars add $' + points + ' to your wallet.',
+      description: amount + ' Telegram Stars add ' + formatUsd(points) + ' to your wallet.',
       payload,
       provider_token: '',
       currency: 'XTR',
-      prices: [{ label: '$' + points + ' wallet balance', amount }],
+      prices: [{ label: formatUsd(points) + ' wallet balance', amount }],
     });
   } catch (error) {
     await db.update(depositIntents).set({ status: 'failed', updatedAt: new Date() })

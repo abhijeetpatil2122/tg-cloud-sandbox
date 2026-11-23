@@ -19,7 +19,7 @@ import {
   customerServiceDetailsMessage,
   vpnUnavailableMessage,
 } from '../lib/ui.js';
-import { adminSessions } from '../schema.js';
+import { adminSessions, userSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit, hasAcceptedTerms, acceptStoreTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
@@ -88,6 +88,20 @@ export default async function handleCallbackQuery(query) {
     }
     if (data === 'ps:deposit:accept') {
       await acceptStoreTerms(userId);
+      return render(chatId, messageId, depositMessage());
+    }
+    if (data === 'ps:deposit:custom') {
+      if (!await hasAcceptedTerms(userId)) return render(chatId, messageId, termsAcceptanceMessage());
+      await db.insert(userSessions).values({ userId, action: 'custom_deposit', createdAt: new Date() })
+        .onConflictDoUpdate({ target: userSessions.userId, set: { action: 'custom_deposit', createdAt: new Date() } }).run();
+      return render(chatId, messageId, { blocks: [
+        { type: 'heading', size: 2, text: 'Custom Stars deposit' },
+        { type: 'paragraph', text: 'Send the number of Stars you want to deposit. Minimum 1 Star; maximum 100,000 Stars. Example: 25' },
+        { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:deposit:cancel', style: 'link' }] },
+      ] });
+    }
+    if (data === 'ps:deposit:cancel') {
+      await db.delete(userSessions).where(eq(userSessions.userId, userId)).run();
       return render(chatId, messageId, depositMessage());
     }
     if (data === 'ps:terms') return render(chatId, messageId, termsMessage());
