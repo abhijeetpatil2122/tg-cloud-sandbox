@@ -228,7 +228,7 @@ export default async function handleMessage(message) {
       }
     }
 
-    if (parsed.command === '/orders') {
+    if (parsed.command === '/orders' || parsed.command === '/servicehistory') {
       try {
         return await sendRich(chatId, await myOrdersMessage(userId, 0));
       } catch (error) {
