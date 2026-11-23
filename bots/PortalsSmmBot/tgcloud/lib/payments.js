@@ -66,7 +66,7 @@ export function termsMessage() {
       { blocks: [{ type: 'paragraph', text: 'Delivery estimates are estimates; platform changes and supplier conditions can affect completion.' }] },
     ] },
     { type: 'heading', size: 2, text: '4. ↩️ Refunds and payment issues' },
-    { type: 'paragraph', text: 'Telegram Stars payment refunds are reviewed against the original Telegram charge and the USD balance credited. Where a refund is approved, the corresponding points are reversed. A refund may be blocked if the credited points have already been spent.' },
+    { type: 'paragraph', text: 'Telegram Stars payment refunds are reviewed against the original Telegram charge and the USD wallet funds credited. Where a refund is approved, the corresponding wallet funds are reversed. A refund may be blocked if the credited wallet funds have already been spent.' },
     { type: 'paragraph', text: 'For failed deposits, missing credits or refund questions, contact @roexe with the transaction reference. Never pay again while an earlier payment is under review.' },
     { type: 'heading', size: 2, text: '5. 🛡️ Fair use and account safety' },
     { type: 'list', items: [
@@ -239,10 +239,10 @@ export async function handleSuccessfulPayment(message) {
           .where(eq(depositIntents.id, intent.id)).run();
         await updateWalletTransaction(intent.transactionId, 'needs_review', chargeId || null);
       }
-      await notifyAdmins('⚠️ Payment needs review\nUser: ' + userId + '\nPayload: ' + payload.slice(0, 60) + '\nStars: ' + (Number(payment.total_amount) || 0) + '\nReceipt did not match a pending deposit. No points were credited.');
+      await notifyAdmins('⚠️ Payment needs review\nUser: ' + userId + '\nPayload: ' + payload.slice(0, 60) + '\nStars: ' + (Number(payment.total_amount) || 0) + '\nReceipt did not match a pending deposit. No wallet funds were credited.');
       await sendRich(message.chat.id, { blocks: [
         { type: 'heading', size: 1, text: '⚠️ Payment under review' },
-        { type: 'paragraph', text: 'Telegram confirmed a payment, but the deposit details need administrator review. Use /paysupport if you need help.' },
+        { type: 'paragraph', text: 'Telegram confirmed a payment, but the deposit details need administrator review. Contact @roexe if you need help.' },
       ] });
       return true;
     }
@@ -326,7 +326,7 @@ export async function adminRefundsMessage(page = 0) {
   if (!visible.length) blocks.push({ type: 'paragraph', text: 'No refundable deposits are available on this page.' });
   for (const item of visible) {
     const { chargeId } = await depositChargeRecord(item);
-    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + item.points + ' USD balance\nCharge: ' + chargeId.slice(0, 28) });
+    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + '$' + item.points + '\nCharge: ' + chargeId.slice(0, 28) });
     blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
   }
   const nav = [];
@@ -350,7 +350,7 @@ export async function refundPreviewMessage(transactionId) {
   const { chargeId } = await depositChargeRecord(item);
   if (!chargeId) return { blocks: [
     { type: 'heading', size: 1, text: '↩️ Refund unavailable' },
-    { type: 'paragraph', text: 'The original Telegram charge ID is missing from this deposit record. No wallet points were reserved and no refund request was sent. Reconcile the original successful_payment receipt first.' },
+    { type: 'paragraph', text: 'The original Telegram charge ID is missing from this deposit record. No wallet funds were reserved and no refund request was sent. Reconcile the original successful_payment receipt first.' },
     { type: 'buttons', buttons: [{ text: '‹ Refunds', callback_data: 'ps:admin:refunds', style: 'link' }] },
   ] };
   const balanceRow = await db.select({ total: sum(walletLedger.amount) })
@@ -369,8 +369,8 @@ export async function refundPreviewMessage(transactionId) {
       [{ text: 'Telegram charge ID' }, { text: chargeId.slice(0, 40) }],
     ] },
     { type: 'paragraph', text: enoughPoints
-      ? 'The customer currently has enough points for the full wallet reversal.'
-      : 'Refund is blocked because the customer has spent some of the credited points. Available balance: ' + balance + '. Required: $' + item.points + '. },
+      ? 'The customer currently has enough funds for the full wallet reversal.'
+      : 'Refund is blocked because the customer has spent some of the credited funds. Available balance: ' + balance + '. Required: $' + item.points + '. },
     { type: 'details', summary: 'What happens when you confirm?', blocks: [
       { type: 'list', items: [
         { blocks: [{ type: 'paragraph', text: 'Telegram is asked to refund the original Stars charge.' }] },
@@ -453,7 +453,7 @@ export async function refundStarsDeposit(transactionId, adminId) {
   } catch (error) {
     await updateWalletTransaction(refundTransaction.id, 'needs_review');
     await notifyAdmins('🚨 Refund wallet hold failed\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nError: ' + String(error?.description || error?.message || error).slice(0, 220));
-    throw new Error('The wallet could not safely reserve the points for this refund. Administrator review is required.');
+    throw new Error('The wallet could not safely reserve the funds for this refund. Administrator review is required.');
   }
   if (!debit.debited) {
     await updateWalletTransaction(refundTransaction.id, 'pending');
