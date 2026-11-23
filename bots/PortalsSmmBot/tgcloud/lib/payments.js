@@ -569,7 +569,7 @@ export async function adminPaymentsMessage(filter = 'confirmed', page = 0) {
         { text: '#' + item.id, align: 'left' },
         { text: String(item.userId), align: 'right' },
         { text: Number(item.stars).toLocaleString('en-IN'), align: 'right' },
-        { text: '
+        { text: '$' + Number(item.points).toLocaleString('en-US'), align: 'right' },
         { text: item.status.replace('_', ' '), align: 'right' },
       ]),
     ] });
