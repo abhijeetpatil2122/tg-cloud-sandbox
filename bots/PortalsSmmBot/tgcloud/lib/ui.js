@@ -20,7 +20,7 @@ export function homeMessage(name = 'there', showAdmin = false) {
   const blocks = [
     { type: 'heading', size: 1, text: '🚀 Portals SMM' },
     { type: 'paragraph', text: `Welcome, ${name}!` },
-    { type: 'paragraph', text: 'Your Telegram growth workspace — manage services, USD and orders in one place.' },
+    { type: 'paragraph', text: 'Your Telegram growth workspace — manage services, wallet and service history in one place.' },
     { type: 'heading', size: 2, text: '✨ Quick access' }, 
     { type: 'divider' },
     row(button('📈 Services', 'ps:services', 'primary'), button('⭐ Deposit', 'ps:deposit', 'success')),
@@ -29,7 +29,7 @@ export function homeMessage(name = 'there', showAdmin = false) {
     row(button('💬 Support', 'ps:support'), button('❔ Help', 'ps:help', 'link')),
   ];
   if (showAdmin) blocks.push(row(button('⚙️ Administrator panel', 'ps:admin')));
-  blocks.push({ type: 'footer', text: '⭐ Payments via Telegram Stars · USD are store credit' });
+  blocks.push({ type: 'footer', text: '⭐ 80 Stars = $1 · Payments confirmed by Telegram' });
   return { blocks };
 }
 
@@ -41,16 +41,16 @@ export function helpMessage() {
       { blocks: [{ type: 'paragraph', text: '/start — Open the storefront' }] },
       { blocks: [{ type: 'paragraph', text: '/menu — Return to the storefront' }] },
       { blocks: [{ type: 'paragraph', text: '/services — Browse Telegram services' }] },
-      { blocks: [{ type: 'paragraph', text: '/deposit — Add USD' }] },
-      { blocks: [{ type: 'paragraph', text: '/orders — View your orders' }] },
+      { blocks: [{ type: 'paragraph', text: '/deposit — Add wallet funds' }] },
+      { blocks: [{ type: 'paragraph', text: '/servicehistory — View your service history' }] },
       { blocks: [{ type: 'paragraph', text: '/wallet — View your balance' }] },
       { blocks: [{ type: 'paragraph', text: '/history — View your transactions' }] },
       { blocks: [{ type: 'paragraph', text: '/support — Contact support' }] },
-      { blocks: [{ type: 'paragraph', text: '/paysupport — Report a payment issue' }] },
+      { blocks: [{ type: 'paragraph', text: '/vpn — View VPN service status' }] },
       { blocks: [{ type: 'paragraph', text: '/terms — Read store terms' }] }, 
       { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
     ] },
-    { type: 'paragraph', text: 'USD are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
+    { type: 'paragraph', text: 'Your USD balance is internal store credit, not a bank deposit or cash withdrawal. 80 Telegram Stars = $1.' },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -58,7 +58,7 @@ export function helpMessage() {
 const screens = {
   services: {
     title: '📈 Services',
-    description: 'The service catalogue is being prepared. Available services will appear here once supplier rates and delivery terms have been reviewed.',
+    description: 'Browse the available Telegram services. VPN service is currently out of service.',
   },
   deposit: {
     title: '⭐ Deposit',
@@ -69,12 +69,8 @@ const screens = {
     description: 'Your USD balance and transaction history will appear here.',
   },
   orders: {
-    title: '📦 My Orders',
+    title: '🧾 Service History',
     description: 'Your order history and delivery status will appear here after the catalogue is enabled.',
-  },
-  referral: {
-    title: '🎁 Referral programme',
-    description: 'Your personal referral link and reward history will appear here when the programme is enabled.',
   },
   support: {
     title: '💬 Support',
@@ -219,7 +215,7 @@ export function serviceSetupGuideMessage() {
     { type: 'heading', size: 2, text: 'Pricing calculation' },
     { type: 'paragraph', text: 'The planning target is a 30% gross margin. First convert the supplier cost into INR using a verified FX rate. Then calculate the customer price:' },
     { type: 'mathematical_expression', expression: String.raw`P=\operatorname{round}_{5}\left(\frac{C_{INR}}{(1-0.30)\times V_{INR/point}}\right)` },
-    { type: 'paragraph', text: [{ type: 'italic', text: 'P = selling USD; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one Portal Point.' }, ' Round to the nearest 5 points, not always upward.'] },
+    { type: 'paragraph', text: [{ type: 'italic', text: 'P = selling USD; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one USD.' }, ' Round to the nearest 5 points, not always upward.'] },
     { type: 'details', summary: 'Important supplier-rate warning', blocks: [
       { type: 'paragraph', text: 'Do not assume every supplier rate is per 1,000 units. Read the service rate unit and calculate the cost for the actual order quantity. Confirm the provider currency, min/max quantity and any refill/cancel conditions before enabling.' },
     ] },
