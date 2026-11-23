@@ -62,7 +62,7 @@ const screens = {
   },
   deposit: {
     title: '⭐ Deposit',
-    description: 'Stars deposits are not enabled yet. Your balance will be credited only after Telegram confirms a successful payment.',
+    description: 'Choose a Telegram Stars package to add funds. 80 Stars = $1.',
   },
   wallet: {
     title: '💼 Wallet',
@@ -70,21 +70,13 @@ const screens = {
   },
   orders: {
     title: '🧾 Service History',
-    description: 'Your order history and delivery status will appear here after the catalogue is enabled.',
+    description: 'Your past service orders, charges and delivery statuses.',
   },
   support: {
     title: '💬 Support',
     description: 'For service, order or payment assistance, contact @roexe. Include your order or transaction reference. Never share passwords or login codes.',
   },
 };
-
-export function vpnUnavailableMessage() {
-  return { blocks: [
-    { type: 'heading', size: 1, text: 'VPN Service' },
-    { type: 'paragraph', text: 'Currently out of service. VPN plans and ordering are unavailable until further notice.' },
-    row(button('‹ Main menu', 'ps:home', 'link')),
-  ] };
-}
 
 export function vpnUnavailableMessage() {
   return { blocks: [
