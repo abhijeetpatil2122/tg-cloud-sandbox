@@ -18,7 +18,10 @@ export const PROVIDER = Object.freeze({
   timeoutMs: 15000,
 });
 
-export const WALLET = Object.freeze({ starsPerDollar: 80, currency: 'USD' });
+export const WALLET = Object.freeze({
+  pointsPerPaidStar: 1,
+  pointLabel: 'Portal Points',
+});
 
 export const REFERRALS = Object.freeze({
   rewardPercent: 10,
@@ -33,7 +36,7 @@ export const PRICING = Object.freeze({
 });
 
 export const SUPPORT = Object.freeze({
-  username: 'roexe',
+  username: '',
 });
 
 export const FEATURES = Object.freeze({
