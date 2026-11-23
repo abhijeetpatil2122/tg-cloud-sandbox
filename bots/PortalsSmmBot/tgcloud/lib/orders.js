@@ -34,7 +34,7 @@ export async function myOrdersMessage(userId, page = 0) {
     .all();
 
   const blocks = [
-    { type: 'heading', size: 1, text: '🧾 Service History' },
+    { type: 'heading', size: 1, text: '📦 My orders' },
     { type: 'paragraph', text: 'Your recent service orders and delivery updates.' },
     { type: 'divider' },
   ];
@@ -62,7 +62,7 @@ export async function orderDetailsMessage(userId, orderId) {
     return { blocks: [
       { type: 'heading', size: 1, text: 'Order not found' },
       { type: 'paragraph', text: 'This order does not exist or does not belong to your account.' },
-      { type: 'buttons', buttons: [{ text: '‹ Service History', callback_data: 'ps:orders', style: 'link' }] },
+      { type: 'buttons', buttons: [{ text: '‹ My orders', callback_data: 'ps:orders', style: 'link' }] },
     ] };
   }
 
@@ -73,7 +73,7 @@ export async function orderDetailsMessage(userId, orderId) {
     { type: 'paragraph', text: 'Keep this order ID when contacting support.' },
     { type: 'buttons', buttons: [
       { text: '💬 Support', callback_data: 'ps:support' },
-      { text: '‹ Service History', callback_data: 'ps:orders', style: 'link' },
+      { text: '‹ My orders', callback_data: 'ps:orders', style: 'link' },
     ] },
   ] };
 }
