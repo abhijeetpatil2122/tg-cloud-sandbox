@@ -9,7 +9,7 @@ import { isUserBanned } from './users.js';
 
 export const DEPOSIT_PACKAGES = [80, 160, 400, 4000, 8000];
 
-export const TERMS_VERSION = '2026-11-21';
+export const TERMS_VERSION = '2026-11-23';
 
 export async function hasAcceptedTerms(userId) {
   const row = await db.select().from(termsAcceptances)
@@ -165,7 +165,7 @@ export async function createStarsInvoice(userId, chatId, stars) {
     return await api.sendInvoice({
       chat_id: chatId,
       title: 'USD wallet balance',
-      description: amount + ' Telegram Stars add $' + points + ' to your wallet.
+      description: amount + ' Telegram Stars add $' + points + ' to your wallet.',
       payload,
       provider_token: '',
       currency: 'XTR',
