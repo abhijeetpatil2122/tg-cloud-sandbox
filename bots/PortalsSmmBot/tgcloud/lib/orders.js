@@ -42,7 +42,7 @@ export async function myOrdersMessage(userId, page = 0) {
   else if (!rows.length) blocks.push({ type: 'paragraph', text: 'There are no more orders on this page.' });
 
   for (const item of rows) {
-    blocks.push({ type: 'paragraph', text: 'Order #' + item.id + ' · ' + item.serviceName + '\n' + Number(item.quantity).toLocaleString('en-IN') + ' units · ' + Number(item.points).toLocaleString('en-IN') + ' Portal Points\nStatus: ' + statusLabel(item.providerStatus || item.status) + '\n' + formatDate(item.createdAt) });
+    blocks.push({ type: 'paragraph', text: 'Order #' + item.id + ' · ' + item.serviceName + '\n' + Number(item.quantity).toLocaleString('en-IN') + ' units · ' + Number(item.points).toLocaleString('en-IN') + ' USD\nStatus: ' + statusLabel(item.providerStatus || item.status) + '\n' + formatDate(item.createdAt) });
     blocks.push({ type: 'buttons', buttons: [{ text: 'View order #' + item.id, callback_data: 'ps:order:' + item.id }] });
     blocks.push({ type: 'divider' });
   }
@@ -68,7 +68,7 @@ export async function orderDetailsMessage(userId, orderId) {
 
   return { blocks: [
     { type: 'heading', size: 1, text: '📦 Order #' + item.id },
-    { type: 'paragraph', text: item.serviceName + '\nQuantity: ' + Number(item.quantity).toLocaleString('en-IN') + '\nCharged: ' + Number(item.points).toLocaleString('en-IN') + ' Portal Points\nStatus: ' + statusLabel(item.providerStatus || item.status) + '\nCreated: ' + formatDate(item.createdAt) },
+    { type: 'paragraph', text: item.serviceName + '\nQuantity: ' + Number(item.quantity).toLocaleString('en-IN') + '\nCharged: ' + Number(item.points).toLocaleString('en-IN') + ' USD\nStatus: ' + statusLabel(item.providerStatus || item.status) + '\nCreated: ' + formatDate(item.createdAt) },
     { type: 'paragraph', text: 'Target: ' + String(item.target).slice(0, 180) },
     { type: 'paragraph', text: 'Keep this order ID when contacting support.' },
     { type: 'buttons', buttons: [
