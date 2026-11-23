@@ -98,7 +98,7 @@ export function sectionMessage(section) {
     { type: 'heading', size: 1, text: page.title },
     { type: 'paragraph', text: page.description },
     { type: 'divider' },
-    ...(section === 'support' ? [row({ text: 'Contact support', url: 'tg://user?id=6522801911' })] : []),
+    ...(section === 'support' ? [row({ text: 'Contact @roexe', url: 'tg://user?id=6522801911' })] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }

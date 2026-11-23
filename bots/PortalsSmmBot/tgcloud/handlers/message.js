@@ -62,7 +62,7 @@ export default async function handleMessage(message) {
       const userPending = await db.select().from(userSessions).where(eq(userSessions.userId, userId)).get();
       if (userPending?.action === 'custom_deposit') {
         const amount = Number(text);
-        if (!/^\\d{1,6}$/.test(text) || !Number.isSafeInteger(amount) || amount < 1 || amount > 100000) {
+        if (!/^\d{1,6}$/.test(text) || !Number.isSafeInteger(amount) || amount < 1 || amount > 100000) {
           await sendRich(chatId, { blocks: [
             { type: 'heading', size: 2, text: 'Invalid Stars amount' },
             { type: 'paragraph', text: 'Send a whole number from 1 to 100,000 Stars.' },
