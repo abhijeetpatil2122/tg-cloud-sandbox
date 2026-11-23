@@ -20,16 +20,16 @@ export function homeMessage(name = 'there', showAdmin = false) {
   const blocks = [
     { type: 'heading', size: 1, text: '🚀 Portals SMM' },
     { type: 'paragraph', text: `Welcome, ${name}!` },
-    { type: 'paragraph', text: 'Your Telegram growth workspace — manage services, Portal Points and orders in one place.' },
+    { type: 'paragraph', text: 'Your Telegram growth workspace — manage services, USD and orders in one place.' },
     { type: 'heading', size: 2, text: '✨ Quick access' }, 
     { type: 'divider' },
     row(button('📈 Services', 'ps:services', 'primary'), button('⭐ Deposit', 'ps:deposit', 'success')),
     row(button('💼 Wallet', 'ps:wallet'), button('🧾 History', 'ps:history')),
-    row(button('📦 My Orders', 'ps:orders'), button('🎁 Referral', 'ps:referral')),
+    row(button('🧾 Service History', 'ps:orders'), button('🔒 VPN Service', 'ps:vpn')),
     row(button('💬 Support', 'ps:support'), button('❔ Help', 'ps:help', 'link')),
   ];
   if (showAdmin) blocks.push(row(button('⚙️ Administrator panel', 'ps:admin')));
-  blocks.push({ type: 'footer', text: '⭐ Payments via Telegram Stars · Portal Points are store credit' });
+  blocks.push({ type: 'footer', text: '⭐ Payments via Telegram Stars · USD are store credit' });
   return { blocks };
 }
 
@@ -41,17 +41,16 @@ export function helpMessage() {
       { blocks: [{ type: 'paragraph', text: '/start — Open the storefront' }] },
       { blocks: [{ type: 'paragraph', text: '/menu — Return to the storefront' }] },
       { blocks: [{ type: 'paragraph', text: '/services — Browse Telegram services' }] },
-      { blocks: [{ type: 'paragraph', text: '/deposit — Add Portal Points' }] },
+      { blocks: [{ type: 'paragraph', text: '/deposit — Add USD' }] },
       { blocks: [{ type: 'paragraph', text: '/orders — View your orders' }] },
       { blocks: [{ type: 'paragraph', text: '/wallet — View your balance' }] },
       { blocks: [{ type: 'paragraph', text: '/history — View your transactions' }] },
-      { blocks: [{ type: 'paragraph', text: '/referral — View your referral details' }] },
       { blocks: [{ type: 'paragraph', text: '/support — Contact support' }] },
       { blocks: [{ type: 'paragraph', text: '/paysupport — Report a payment issue' }] },
       { blocks: [{ type: 'paragraph', text: '/terms — Read store terms' }] }, 
       { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
     ] },
-    { type: 'paragraph', text: 'Portal Points are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
+    { type: 'paragraph', text: 'USD are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -67,7 +66,7 @@ const screens = {
   },
   wallet: {
     title: '💼 Wallet',
-    description: 'Your Portal Points balance and transaction history will appear here.',
+    description: 'Your USD balance and transaction history will appear here.',
   },
   orders: {
     title: '📦 My Orders',
@@ -79,9 +78,17 @@ const screens = {
   },
   support: {
     title: '💬 Support',
-    description: 'For payment failures or Stars deposit questions, use /paysupport. Include your transaction or order reference and never share passwords or login codes.',
+    description: 'For service, order or payment assistance, contact @roexe. Include your order or transaction reference. Never share passwords or login codes.',
   },
 };
+
+export function vpnUnavailableMessage() {
+  return { blocks: [
+    { type: 'heading', size: 1, text: 'VPN Service' },
+    { type: 'paragraph', text: 'Currently out of service. VPN plans and ordering are unavailable until further notice.' },
+    row(button('‹ Main menu', 'ps:home', 'link')),
+  ] };
+}
 
 export function sectionMessage(section) {
   const page = screens[section];
@@ -110,7 +117,7 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true, canMa
     { type: 'paragraph', text: `Designated owners: 6522801911 · 1314643983` },
     { type: 'paragraph', text: `Registered administrators: ${ids.length}` },
     row(button('⭐ Payments', 'ps:admin:payments', 'primary'), button('Recent activity', 'ps:admin:transactions')),
-    row(button('↩️ Refunds', 'ps:admin:refunds', 'danger'), button('💬 Payment support', 'ps:admin:paysupport')),
+    row(button('↩️ Refunds', 'ps:admin:refunds', 'danger')),
     row(button('🔌 Provider', 'ps:admin:provider'), button('📈 Services', 'ps:admin:services')),
     row(button('Service setup guide', 'ps:admin:service-guide', 'primary')),
     row(button('Global statistics', 'ps:admin:stats', 'primary')),
@@ -195,7 +202,7 @@ export function serviceSetupGuideMessage() {
     { type: 'list', items: [
       { value: 1, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Sync the catalogue. ' }, 'Open Provider → Sync services. Only Telegram services are imported.'] }] },
       { value: 2, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Review the service. ' }, 'Check service ID, target type, supplier rate, minimum/maximum quantity, refill and cancellation support.'] }] },
-      { value: 3, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Set your selling price. ' }, 'Open the service and choose Set price. Enter the customer charge in whole Portal Points.'] }] },
+      { value: 3, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Set your selling price. ' }, 'Open the service and choose Set price. Enter the customer charge in whole USD.'] }] },
       { value: 4, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Enable it. ' }, 'Use Enable only after the price and service details have been checked.'] }] },
       { value: 5, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Verify the customer view. ' }, 'Open the public Services page and inspect the description and price.'] }] },
     ] },
@@ -203,7 +210,7 @@ export function serviceSetupGuideMessage() {
     { type: 'heading', size: 2, text: 'Pricing calculation' },
     { type: 'paragraph', text: 'The planning target is a 30% gross margin. First convert the supplier cost into INR using a verified FX rate. Then calculate the customer price:' },
     { type: 'mathematical_expression', expression: String.raw`P=\operatorname{round}_{5}\left(\frac{C_{INR}}{(1-0.30)\times V_{INR/point}}\right)` },
-    { type: 'paragraph', text: [{ type: 'italic', text: 'P = selling Portal Points; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one Portal Point.' }, ' Round to the nearest 5 points, not always upward.'] },
+    { type: 'paragraph', text: [{ type: 'italic', text: 'P = selling USD; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one Portal Point.' }, ' Round to the nearest 5 points, not always upward.'] },
     { type: 'details', summary: 'Important supplier-rate warning', blocks: [
       { type: 'paragraph', text: 'Do not assume every supplier rate is per 1,000 units. Read the service rate unit and calculate the cost for the actual order quantity. Confirm the provider currency, min/max quantity and any refill/cancel conditions before enabling.' },
     ] },
@@ -232,7 +239,7 @@ export function adminServicesMessage(services = [], page = 0) {
       [{ text: 'Type', align: 'left' }, { text: item.type, align: 'right' }],
       [{ text: 'Supplier rate', align: 'left' }, { text: String(item.rate), align: 'right' }],
       [{ text: 'Quantity', align: 'left' }, { text: item.minQty + '–' + item.maxQty, align: 'right' }],
-      [{ text: 'Customer price', align: 'left' }, { text: Number(item.customerPrice) > 0 ? item.customerPrice + ' Portal Points' : 'Not set', align: 'right' }],
+      [{ text: 'Customer price', align: 'left' }, { text: Number(item.customerPrice) > 0 ? '$' + Number(item.customerPrice).toLocaleString('en-US') : 'Not set', align: 'right' }],
       [{ text: 'Refill / cancel', align: 'left' }, { text: (item.refill ? 'Refill' : 'No refill') + ' · ' + (item.cancel ? 'Cancel' : 'No cancel'), align: 'right' }],
       [{ text: 'Status', align: 'left' }, { text: item.enabled ? 'Enabled' : 'Disabled', align: 'right' }],
     ] });
@@ -283,7 +290,7 @@ export function customerServiceDetailsMessage(item) {
     { type: 'heading', size: 1, text: '📈 ' + item.name },
     { type: 'table', caption: 'Service details · ID ' + item.serviceId, is_bordered: false, is_striped: true, is_compact: true, cells: [
       [{ text: 'Details', is_header: true, align: 'left' }, { text: 'Information', is_header: true, align: 'right' }],
-      [{ text: 'Price', align: 'left' }, { text: [{ type: 'bold', text: Number(item.customerPrice).toLocaleString('en-IN') + ' Portal Points' }],
+      [{ text: 'Price', align: 'left' }, { text: [{ type: 'bold', text: '$' + Number(item.customerPrice).toLocaleString('en-US') }] }],
       [{ text: 'Quantity range', align: 'left' }, { text: Number(item.minQty).toLocaleString('en-IN') + ' – ' + Number(item.maxQty).toLocaleString('en-IN') }],
       [{ text: 'Category', align: 'left' }, { text: item.category || 'Telegram' }],
       [{ text: 'Service type', align: 'left' }, { text: item.type }],
