@@ -57,7 +57,7 @@ export function helpMessage() {
 const screens = {
   services: {
     title: '📈 Services',
-    description: 'Browse the available Telegram services. VPN service is currently out of service.',
+    description: 'Browse the available Telegram services and view VPN plan information.',
   },
   deposit: {
     title: '⭐ Deposit',
@@ -77,16 +77,17 @@ const screens = {
   },
 };
 
-export function vpnUnavailableMessage() {
+export function vpnPlansMessage() {
   return { blocks: [
     { type: 'heading', size: 1, text: 'VPN Service Plans' },
-    { type: 'paragraph', text: 'All VPN plans are currently out of service. Orders and payments are disabled until service is restored.' },
-    { type: 'table', caption: 'VPN plan catalogue', is_bordered: true, is_compact: true, cells: [
-      [{ text: 'Plan', is_header: true }, { text: 'Price', is_header: true, align: 'right' }, { text: 'Status', is_header: true, align: 'right' }],
-      [{ text: 'Plan 1' }, { text: '$100', align: 'right' }, { text: 'Unavailable', align: 'right' }],
-      [{ text: 'Plan 2' }, { text: '$200', align: 'right' }, { text: 'Unavailable', align: 'right' }],
-      [{ text: 'Plan 3' }, { text: '$300', align: 'right' }, { text: 'Unavailable', align: 'right' }],
+    { type: 'paragraph', text: 'VPN plans are listed below. Contact support to confirm current availability, setup requirements and plan details before proceeding.' },
+    { type: 'table', caption: 'VPN plan catalogue', is_bordered: true, is_striped: true, is_compact: false, cells: [
+      [{ text: 'Plan', is_header: true }, { text: 'Price', is_header: true, align: 'right' }],
+      [{ text: 'Plan 1' }, { text: '$100', align: 'right' }],
+      [{ text: 'Plan 2' }, { text: '$200', align: 'right' }],
+      [{ text: 'Plan 3' }, { text: '$300', align: 'right' }],
     ] },
+    row({ text: 'Ask about VPN plans', url: 'tg://user?id=6522801911' }),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
