@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { OWNER_IDS, FEATURES } from '../lib/config.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
-import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage } from '../lib/ui.js';
+import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage, vpnUnavailableMessage } from '../lib/ui.js';
 import { adminSessions } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';

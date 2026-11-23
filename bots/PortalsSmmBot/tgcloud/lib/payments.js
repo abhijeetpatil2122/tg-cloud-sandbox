@@ -9,7 +9,7 @@ import { isUserBanned } from './users.js';
 
 export const DEPOSIT_PACKAGES = [80, 160, 400, 4000, 8000];
 
-export const TERMS_VERSION = '2026-11-21';
+export const TERMS_VERSION = '2026-11-23';
 
 export async function hasAcceptedTerms(userId) {
   const row = await db.select().from(termsAcceptances)
@@ -370,7 +370,435 @@ export async function refundPreviewMessage(transactionId) {
     ] },
     { type: 'paragraph', text: enoughPoints
       ? 'The customer currently has enough funds for the full wallet reversal.'
-      : 'Refund is blocked because the customer has spent some of the credited funds. Available balance: ' + balance + '. Required: $' + item.points + '. },
+      : 'Refund is blocked because the customer has spent some of the credited funds. Available balance: 
+    { type: 'details', summary: 'What happens when you confirm?', blocks: [
+      { type: 'list', items: [
+        { blocks: [{ type: 'paragraph', text: 'Telegram is asked to refund the original Stars charge.' }] },
+        { blocks: [{ type: 'paragraph', text: 'The credited USD balance is reversed in the wallet ledger.' }] },
+        { blocks: [{ type: 'paragraph', text: 'The original deposit and refund are retained in transaction history.' }] },
+      ] },
+    ] },
+  ];
+  if (enoughPoints) blocks.push({ type: 'buttons', buttons: [{ text: 'Confirm full refund', callback_data: 'ps:admin:refund:confirm:' + item.id, style: 'danger' }] });
+  blocks.push({ type: 'buttons', buttons: [{ text: '‹ Back to refunds', callback_data: 'ps:admin:refunds', style: 'link' }] });
+  return { blocks };
+}
+export async function refundStarsDeposit(transactionId, adminId) {
+  const original = await db.select().from(walletTransactions)
+    .where(eq(walletTransactions.id, Number(transactionId))).get();
+  if (!original || original.kind !== 'deposit' || Number(original.stars) <= 0) {
+    throw new Error('This is not a valid Telegram Stars deposit.');
+  }
+  if (original.status === 'refunded') return { refunded: true, duplicate: true };
+  if (original.status !== 'completed') throw new Error('Only confirmed, unrefunded deposits can be refunded.');
+  const { intent: sourceIntent, chargeId } = await depositChargeRecord(original);
+  console.log('Stars refund charge lookup:', sourceIntent?.telegramChargeId ? 'deposit_intent' : 'wallet_reference', 'length=' + chargeId.length);
+  if (!chargeId) {
+    throw new Error('The original Telegram charge ID is missing. No points were reserved and Telegram was not called. The payment receipt must be reconciled first.');
+  }
+
+  let refundTransaction = await createWalletTransaction({
+    userId: original.userId,
+    kind: 'refund',
+    title: 'Telegram Stars refund',
+    points: -Number(original.points),
+    stars: Number(original.stars),
+    reference: 'Deposit #' + original.id,
+    idempotencyKey: 'refund:' + original.id,
+  });
+  if (refundTransaction.status === 'completed') return { refunded: true, duplicate: true };
+
+  // A previous version marked every Telegram 400 response as failed, including
+  // CHARGE_ALREADY_REFUNDED. Permit a controlled retry of failed attempts with
+  // a fresh ledger idempotency key; never retry processing/needs_review states.
+  if (refundTransaction.status === 'failed') {
+    const retry = await db.run(
+      'UPDATE wallet_transactions SET status = :pending, reference = :reference, updated_at = unixepoch() WHERE id = :id AND status = :failed',
+      {
+        ':pending': 'pending',
+        ':reference': 'Deposit #' + original.id + ' · retry pending',
+        ':id': refundTransaction.id,
+        ':failed': 'failed',
+      },
+    );
+    if (Number(retry?.rowsAffected) !== 1) {
+      throw new Error('Another administrator is already retrying this refund.');
+    }
+    refundTransaction = await db.select().from(walletTransactions)
+      .where(eq(walletTransactions.id, refundTransaction.id)).get();
+  }
+  if (refundTransaction.status !== 'pending') {
+    throw new Error('A previous refund attempt is still being processed or needs reconciliation. Do not retry it.');
+  }
+
+  const attemptId = Math.random().toString(36).slice(2, 12);
+  await updateWalletTransaction(refundTransaction.id, 'pending', 'Deposit #' + original.id + ' · attempt ' + attemptId);
+  const lock = await db.run(
+    'UPDATE wallet_transactions SET status = :processing, updated_at = unixepoch() WHERE id = :id AND status = :pending',
+    { ':processing': 'processing', ':id': refundTransaction.id, ':pending': 'pending' },
+  );
+  if (Number(lock?.rowsAffected) !== 1) {
+    throw new Error('Another administrator is already processing this refund.');
+  }
+
+  let debit;
+  try {
+    debit = await debitWalletPoints({
+      userId: original.userId,
+      transactionId: refundTransaction.id,
+      amount: Number(original.points),
+      kind: 'stars_refund_hold',
+      idempotencyKey: 'refund-hold:' + original.id + ':' + attemptId,
+    });
+  } catch (error) {
+    await updateWalletTransaction(refundTransaction.id, 'needs_review');
+    await notifyAdmins('🚨 Refund wallet hold failed\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nError: ' + String(error?.description || error?.message || error).slice(0, 220));
+    throw new Error('The wallet could not safely reserve the funds for this refund. Administrator review is required.');
+  }
+  if (!debit.debited) {
+    await updateWalletTransaction(refundTransaction.id, 'pending');
+    throw new Error('Refund blocked: the customer has spent some of the credited USD balance. Restore the required balance before retrying.');
+  }
+
+  let telegramConfirmed = false;
+  let telegramAlreadyRefunded = false;
+  try {
+    const result = await api.refundStarPayment({
+      user_id: Number(original.userId),
+      telegram_payment_charge_id: chargeId,
+    });
+    telegramConfirmed = result === true;
+    if (!telegramConfirmed) throw new Error('Telegram did not confirm the refund.');
+  } catch (error) {
+    const description = String(error?.description || error?.message || '');
+    const code = Number(error?.code || 0);
+    if (/CHARGE_ALREADY_REFUNDED/i.test(description)) {
+      telegramConfirmed = true;
+      telegramAlreadyRefunded = true;
+    } else if (code >= 400 && code < 500) {
+      await creditWalletPoints({
+        userId: original.userId,
+        transactionId: refundTransaction.id,
+        amount: Number(original.points),
+        kind: 'refund_hold_release',
+        idempotencyKey: 'refund-release:' + original.id + ':' + attemptId,
+      });
+      await updateWalletTransaction(refundTransaction.id, 'failed');
+      const reason = description ? ' Telegram response: ' + description.slice(0, 220) : '';
+      throw new Error('Telegram rejected the refund. The wallet hold has been released.' + reason);
+    } else {
+      await updateWalletTransaction(refundTransaction.id, 'needs_review');
+      await notifyAdmins('🚨 Refund needs reconciliation\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nTelegram method: ' + String(error?.method || 'refundStarPayment') + '\nError: ' + description.slice(0, 220) + '\nThe wallet reversal remains held. Check Telegram Stars transactions before retrying.');
+      throw new Error('Telegram refund status is uncertain. The points remain held for administrator review; do not retry yet.');
+    }
+  }
+
+  if (!telegramConfirmed) {
+    await updateWalletTransaction(refundTransaction.id, 'needs_review');
+    throw new Error('Telegram refund status could not be confirmed. Administrator review is required.');
+  }
+
+  try {
+    await db.update(walletTransactions).set({ status: 'refunded', updatedAt: new Date() })
+      .where(eq(walletTransactions.id, original.id)).run();
+    await updateWalletTransaction(refundTransaction.id, 'completed', 'Deposit #' + original.id);
+    if (sourceIntent?.id) {
+      await db.update(depositIntents).set({ status: 'refunded', updatedAt: new Date() })
+        .where(eq(depositIntents.id, Number(sourceIntent.id))).run();
+    } else {
+      await db.update(depositIntents).set({ status: 'refunded', updatedAt: new Date() })
+        .where(eq(depositIntents.telegramChargeId, chargeId)).run();
+    }
+  } catch (error) {
+    await updateWalletTransaction(refundTransaction.id, 'needs_review');
+    await notifyAdmins('🚨 Telegram refunded Stars, but local refund reconciliation failed.\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nError: ' + String(error?.description || error?.message || error).slice(0, 220) + '\nManually reconcile local transaction status; do not call refundStarPayment again.');
+    throw new Error('Telegram refund was accepted, but local records need administrator reconciliation. Do not retry.');
+  }
+
+  try {
+    await api.sendMessage({
+      chat_id: Number(original.userId),
+      text: '↩️ Your Telegram Stars payment has been refunded. ' + original.stars + ' Stars were returned and ' + original.points + ' USD balance was reversed.',
+    });
+  } catch (notifyError) {
+    console.error('Refund customer notification failed:', notifyError?.description || notifyError?.message || notifyError);
+  }
+  await notifyAdmins('↩️ Stars refund completed\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nStars: ' + original.stars + (telegramAlreadyRefunded ? '\nTelegram reported that this charge was already refunded; local records were reconciled.' : ''));
+  return { refunded: true, duplicate: telegramAlreadyRefunded };
+}
+
+export async function adminPaymentsMessage(filter = 'confirmed', page = 0) {
+  const filters = {
+    confirmed: { title: 'Confirmed payments', statuses: ['completed'] },
+    review: { title: 'Payments needing review', statuses: ['needs_review', 'processing'] },
+    refunded: { title: 'Refunded payments', statuses: ['refunded'] },
+    failed: { title: 'Failed payments', statuses: ['failed'] },
+  };
+  const selected = filters[filter] || filters.confirmed;
+  const safePage = Math.max(0, Math.min(1000, Number(page) || 0));
+  const deposits = await db.select().from(walletTransactions)
+    .where(eq(walletTransactions.kind, 'deposit'))
+    .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id))
+    .all();
+  const matching = deposits.filter(item => selected.statuses.includes(item.status) && item.reference);
+  const visible = matching.slice(safePage * 6, safePage * 6 + 6);
+  const blocks = [
+    { type: 'heading', size: 1, text: '⭐ ' + selected.title },
+    { type: 'paragraph', text: 'Only Telegram-confirmed payment records are treated as paid deposits. Unpaid invoice attempts are not shown here.' },
+    { type: 'buttons', buttons: [
+      { text: 'Confirmed', callback_data: 'ps:admin:payments:confirmed:0', style: filter === 'confirmed' ? 'primary' : 'link' },
+      { text: 'Review', callback_data: 'ps:admin:payments:review:0', style: filter === 'review' ? 'primary' : 'link' },
+    ] },
+    { type: 'buttons', buttons: [
+      { text: 'Refunded', callback_data: 'ps:admin:payments:refunded:0', style: filter === 'refunded' ? 'primary' : 'link' },
+      { text: 'Failed', callback_data: 'ps:admin:payments:failed:0', style: filter === 'failed' ? 'primary' : 'link' },
+    ] },
+    { type: 'divider' },
+  ];
+  if (!visible.length) blocks.push({ type: 'paragraph', text: 'No payment records in this section.' });
+  else {
+    blocks.push({ type: 'table', caption: 'Payment ledger · newest first', is_bordered: false, is_striped: true, is_compact: true, cells: [
+      [
+        { text: 'ID', is_header: true, align: 'left' },
+        { text: 'Customer', is_header: true, align: 'right' },
+        { text: 'Stars', is_header: true, align: 'right' },
+        { text: 'Points', is_header: true, align: 'right' },
+        { text: 'Status', is_header: true, align: 'right' },
+      ],
+      ...visible.map(item => [
+        { text: '#' + item.id, align: 'left' },
+        { text: String(item.userId), align: 'right' },
+        { text: Number(item.stars).toLocaleString('en-IN'), align: 'right' },
+        { text: Number(item.points).toLocaleString('en-IN'), align: 'right' },
+        { text: item.status.replace('_', ' '), align: 'right' },
+      ]),
+    ] });
+    if (filter === 'confirmed') {
+      for (const item of visible) blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
+    }
+  }
+  const nav = [];
+  if (safePage > 0) nav.push({ text: '‹ Newer', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage - 1) });
+  if ((safePage + 1) * 6 < matching.length) nav.push({ text: 'Older ›', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage + 1) });
+  if (nav.length) blocks.push({ type: 'buttons', buttons: nav });
+  blocks.push({ type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] });
+  return { blocks };
+}
+ + balance + '. Required: 
+    { type: 'details', summary: 'What happens when you confirm?', blocks: [
+      { type: 'list', items: [
+        { blocks: [{ type: 'paragraph', text: 'Telegram is asked to refund the original Stars charge.' }] },
+        { blocks: [{ type: 'paragraph', text: 'The credited USD balance is reversed in the wallet ledger.' }] },
+        { blocks: [{ type: 'paragraph', text: 'The original deposit and refund are retained in transaction history.' }] },
+      ] },
+    ] },
+  ];
+  if (enoughPoints) blocks.push({ type: 'buttons', buttons: [{ text: 'Confirm full refund', callback_data: 'ps:admin:refund:confirm:' + item.id, style: 'danger' }] });
+  blocks.push({ type: 'buttons', buttons: [{ text: '‹ Back to refunds', callback_data: 'ps:admin:refunds', style: 'link' }] });
+  return { blocks };
+}
+export async function refundStarsDeposit(transactionId, adminId) {
+  const original = await db.select().from(walletTransactions)
+    .where(eq(walletTransactions.id, Number(transactionId))).get();
+  if (!original || original.kind !== 'deposit' || Number(original.stars) <= 0) {
+    throw new Error('This is not a valid Telegram Stars deposit.');
+  }
+  if (original.status === 'refunded') return { refunded: true, duplicate: true };
+  if (original.status !== 'completed') throw new Error('Only confirmed, unrefunded deposits can be refunded.');
+  const { intent: sourceIntent, chargeId } = await depositChargeRecord(original);
+  console.log('Stars refund charge lookup:', sourceIntent?.telegramChargeId ? 'deposit_intent' : 'wallet_reference', 'length=' + chargeId.length);
+  if (!chargeId) {
+    throw new Error('The original Telegram charge ID is missing. No points were reserved and Telegram was not called. The payment receipt must be reconciled first.');
+  }
+
+  let refundTransaction = await createWalletTransaction({
+    userId: original.userId,
+    kind: 'refund',
+    title: 'Telegram Stars refund',
+    points: -Number(original.points),
+    stars: Number(original.stars),
+    reference: 'Deposit #' + original.id,
+    idempotencyKey: 'refund:' + original.id,
+  });
+  if (refundTransaction.status === 'completed') return { refunded: true, duplicate: true };
+
+  // A previous version marked every Telegram 400 response as failed, including
+  // CHARGE_ALREADY_REFUNDED. Permit a controlled retry of failed attempts with
+  // a fresh ledger idempotency key; never retry processing/needs_review states.
+  if (refundTransaction.status === 'failed') {
+    const retry = await db.run(
+      'UPDATE wallet_transactions SET status = :pending, reference = :reference, updated_at = unixepoch() WHERE id = :id AND status = :failed',
+      {
+        ':pending': 'pending',
+        ':reference': 'Deposit #' + original.id + ' · retry pending',
+        ':id': refundTransaction.id,
+        ':failed': 'failed',
+      },
+    );
+    if (Number(retry?.rowsAffected) !== 1) {
+      throw new Error('Another administrator is already retrying this refund.');
+    }
+    refundTransaction = await db.select().from(walletTransactions)
+      .where(eq(walletTransactions.id, refundTransaction.id)).get();
+  }
+  if (refundTransaction.status !== 'pending') {
+    throw new Error('A previous refund attempt is still being processed or needs reconciliation. Do not retry it.');
+  }
+
+  const attemptId = Math.random().toString(36).slice(2, 12);
+  await updateWalletTransaction(refundTransaction.id, 'pending', 'Deposit #' + original.id + ' · attempt ' + attemptId);
+  const lock = await db.run(
+    'UPDATE wallet_transactions SET status = :processing, updated_at = unixepoch() WHERE id = :id AND status = :pending',
+    { ':processing': 'processing', ':id': refundTransaction.id, ':pending': 'pending' },
+  );
+  if (Number(lock?.rowsAffected) !== 1) {
+    throw new Error('Another administrator is already processing this refund.');
+  }
+
+  let debit;
+  try {
+    debit = await debitWalletPoints({
+      userId: original.userId,
+      transactionId: refundTransaction.id,
+      amount: Number(original.points),
+      kind: 'stars_refund_hold',
+      idempotencyKey: 'refund-hold:' + original.id + ':' + attemptId,
+    });
+  } catch (error) {
+    await updateWalletTransaction(refundTransaction.id, 'needs_review');
+    await notifyAdmins('🚨 Refund wallet hold failed\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nError: ' + String(error?.description || error?.message || error).slice(0, 220));
+    throw new Error('The wallet could not safely reserve the funds for this refund. Administrator review is required.');
+  }
+  if (!debit.debited) {
+    await updateWalletTransaction(refundTransaction.id, 'pending');
+    throw new Error('Refund blocked: the customer has spent some of the credited USD balance. Restore the required balance before retrying.');
+  }
+
+  let telegramConfirmed = false;
+  let telegramAlreadyRefunded = false;
+  try {
+    const result = await api.refundStarPayment({
+      user_id: Number(original.userId),
+      telegram_payment_charge_id: chargeId,
+    });
+    telegramConfirmed = result === true;
+    if (!telegramConfirmed) throw new Error('Telegram did not confirm the refund.');
+  } catch (error) {
+    const description = String(error?.description || error?.message || '');
+    const code = Number(error?.code || 0);
+    if (/CHARGE_ALREADY_REFUNDED/i.test(description)) {
+      telegramConfirmed = true;
+      telegramAlreadyRefunded = true;
+    } else if (code >= 400 && code < 500) {
+      await creditWalletPoints({
+        userId: original.userId,
+        transactionId: refundTransaction.id,
+        amount: Number(original.points),
+        kind: 'refund_hold_release',
+        idempotencyKey: 'refund-release:' + original.id + ':' + attemptId,
+      });
+      await updateWalletTransaction(refundTransaction.id, 'failed');
+      const reason = description ? ' Telegram response: ' + description.slice(0, 220) : '';
+      throw new Error('Telegram rejected the refund. The wallet hold has been released.' + reason);
+    } else {
+      await updateWalletTransaction(refundTransaction.id, 'needs_review');
+      await notifyAdmins('🚨 Refund needs reconciliation\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nTelegram method: ' + String(error?.method || 'refundStarPayment') + '\nError: ' + description.slice(0, 220) + '\nThe wallet reversal remains held. Check Telegram Stars transactions before retrying.');
+      throw new Error('Telegram refund status is uncertain. The points remain held for administrator review; do not retry yet.');
+    }
+  }
+
+  if (!telegramConfirmed) {
+    await updateWalletTransaction(refundTransaction.id, 'needs_review');
+    throw new Error('Telegram refund status could not be confirmed. Administrator review is required.');
+  }
+
+  try {
+    await db.update(walletTransactions).set({ status: 'refunded', updatedAt: new Date() })
+      .where(eq(walletTransactions.id, original.id)).run();
+    await updateWalletTransaction(refundTransaction.id, 'completed', 'Deposit #' + original.id);
+    if (sourceIntent?.id) {
+      await db.update(depositIntents).set({ status: 'refunded', updatedAt: new Date() })
+        .where(eq(depositIntents.id, Number(sourceIntent.id))).run();
+    } else {
+      await db.update(depositIntents).set({ status: 'refunded', updatedAt: new Date() })
+        .where(eq(depositIntents.telegramChargeId, chargeId)).run();
+    }
+  } catch (error) {
+    await updateWalletTransaction(refundTransaction.id, 'needs_review');
+    await notifyAdmins('🚨 Telegram refunded Stars, but local refund reconciliation failed.\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nError: ' + String(error?.description || error?.message || error).slice(0, 220) + '\nManually reconcile local transaction status; do not call refundStarPayment again.');
+    throw new Error('Telegram refund was accepted, but local records need administrator reconciliation. Do not retry.');
+  }
+
+  try {
+    await api.sendMessage({
+      chat_id: Number(original.userId),
+      text: '↩️ Your Telegram Stars payment has been refunded. ' + original.stars + ' Stars were returned and ' + original.points + ' USD balance was reversed.',
+    });
+  } catch (notifyError) {
+    console.error('Refund customer notification failed:', notifyError?.description || notifyError?.message || notifyError);
+  }
+  await notifyAdmins('↩️ Stars refund completed\nAdmin: ' + adminId + '\nCustomer: ' + original.userId + '\nDeposit: #' + original.id + '\nStars: ' + original.stars + (telegramAlreadyRefunded ? '\nTelegram reported that this charge was already refunded; local records were reconciled.' : ''));
+  return { refunded: true, duplicate: telegramAlreadyRefunded };
+}
+
+export async function adminPaymentsMessage(filter = 'confirmed', page = 0) {
+  const filters = {
+    confirmed: { title: 'Confirmed payments', statuses: ['completed'] },
+    review: { title: 'Payments needing review', statuses: ['needs_review', 'processing'] },
+    refunded: { title: 'Refunded payments', statuses: ['refunded'] },
+    failed: { title: 'Failed payments', statuses: ['failed'] },
+  };
+  const selected = filters[filter] || filters.confirmed;
+  const safePage = Math.max(0, Math.min(1000, Number(page) || 0));
+  const deposits = await db.select().from(walletTransactions)
+    .where(eq(walletTransactions.kind, 'deposit'))
+    .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id))
+    .all();
+  const matching = deposits.filter(item => selected.statuses.includes(item.status) && item.reference);
+  const visible = matching.slice(safePage * 6, safePage * 6 + 6);
+  const blocks = [
+    { type: 'heading', size: 1, text: '⭐ ' + selected.title },
+    { type: 'paragraph', text: 'Only Telegram-confirmed payment records are treated as paid deposits. Unpaid invoice attempts are not shown here.' },
+    { type: 'buttons', buttons: [
+      { text: 'Confirmed', callback_data: 'ps:admin:payments:confirmed:0', style: filter === 'confirmed' ? 'primary' : 'link' },
+      { text: 'Review', callback_data: 'ps:admin:payments:review:0', style: filter === 'review' ? 'primary' : 'link' },
+    ] },
+    { type: 'buttons', buttons: [
+      { text: 'Refunded', callback_data: 'ps:admin:payments:refunded:0', style: filter === 'refunded' ? 'primary' : 'link' },
+      { text: 'Failed', callback_data: 'ps:admin:payments:failed:0', style: filter === 'failed' ? 'primary' : 'link' },
+    ] },
+    { type: 'divider' },
+  ];
+  if (!visible.length) blocks.push({ type: 'paragraph', text: 'No payment records in this section.' });
+  else {
+    blocks.push({ type: 'table', caption: 'Payment ledger · newest first', is_bordered: false, is_striped: true, is_compact: true, cells: [
+      [
+        { text: 'ID', is_header: true, align: 'left' },
+        { text: 'Customer', is_header: true, align: 'right' },
+        { text: 'Stars', is_header: true, align: 'right' },
+        { text: 'Points', is_header: true, align: 'right' },
+        { text: 'Status', is_header: true, align: 'right' },
+      ],
+      ...visible.map(item => [
+        { text: '#' + item.id, align: 'left' },
+        { text: String(item.userId), align: 'right' },
+        { text: Number(item.stars).toLocaleString('en-IN'), align: 'right' },
+        { text: Number(item.points).toLocaleString('en-IN'), align: 'right' },
+        { text: item.status.replace('_', ' '), align: 'right' },
+      ]),
+    ] });
+    if (filter === 'confirmed') {
+      for (const item of visible) blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
+    }
+  }
+  const nav = [];
+  if (safePage > 0) nav.push({ text: '‹ Newer', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage - 1) });
+  if ((safePage + 1) * 6 < matching.length) nav.push({ text: 'Older ›', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage + 1) });
+  if (nav.length) blocks.push({ type: 'buttons', buttons: nav });
+  blocks.push({ type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] });
+  return { blocks };
+}
+ + item.points + '.' },
     { type: 'details', summary: 'What happens when you confirm?', blocks: [
       { type: 'list', items: [
         { blocks: [{ type: 'paragraph', text: 'Telegram is asked to refund the original Stars charge.' }] },
