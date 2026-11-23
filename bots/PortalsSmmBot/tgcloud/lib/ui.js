@@ -20,16 +20,16 @@ export function homeMessage(name = 'there', showAdmin = false) {
   const blocks = [
     { type: 'heading', size: 1, text: '🚀 Portals SMM' },
     { type: 'paragraph', text: `Welcome, ${name}!` },
-    { type: 'paragraph', text: 'Your Telegram growth workspace — manage services, Portal Points and orders in one place.' },
+    { type: 'paragraph', text: 'Your Telegram growth workspace — manage services, USD balance and orders in one place.' },
     { type: 'heading', size: 2, text: '✨ Quick access' }, 
     { type: 'divider' },
     row(button('📈 Services', 'ps:services', 'primary'), button('⭐ Deposit', 'ps:deposit', 'success')),
     row(button('💼 Wallet', 'ps:wallet'), button('🧾 History', 'ps:history')),
-    row(button('📦 My Orders', 'ps:orders'), button('🎁 Referral', 'ps:referral')),
+    row(button('🧾 Service History', 'ps:orders'), button('🔒 VPN Service', 'ps:vpn')),
     row(button('💬 Support', 'ps:support'), button('❔ Help', 'ps:help', 'link')),
   ];
   if (showAdmin) blocks.push(row(button('⚙️ Administrator panel', 'ps:admin')));
-  blocks.push({ type: 'footer', text: '⭐ Payments via Telegram Stars · Portal Points are store credit' });
+  blocks.push({ type: 'footer', text: '⭐ Payments via Telegram Stars · USD balance are store credit' });
   return { blocks };
 }
 
@@ -41,7 +41,7 @@ export function helpMessage() {
       { blocks: [{ type: 'paragraph', text: '/start — Open the storefront' }] },
       { blocks: [{ type: 'paragraph', text: '/menu — Return to the storefront' }] },
       { blocks: [{ type: 'paragraph', text: '/services — Browse Telegram services' }] },
-      { blocks: [{ type: 'paragraph', text: '/deposit — Add Portal Points' }] },
+      { blocks: [{ type: 'paragraph', text: '/deposit — Add USD balance' }] },
       { blocks: [{ type: 'paragraph', text: '/orders — View your orders' }] },
       { blocks: [{ type: 'paragraph', text: '/wallet — View your balance' }] },
       { blocks: [{ type: 'paragraph', text: '/history — View your transactions' }] },
@@ -51,7 +51,7 @@ export function helpMessage() {
       { blocks: [{ type: 'paragraph', text: '/terms — Read store terms' }] }, 
       { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
     ] },
-    { type: 'paragraph', text: 'Portal Points are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
+    { type: 'paragraph', text: 'USD balance are internal store credit. They are not cash and cannot be withdrawn as Telegram Stars.' },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -67,21 +67,25 @@ const screens = {
   },
   wallet: {
     title: '💼 Wallet',
-    description: 'Your Portal Points balance and transaction history will appear here.',
+    description: 'Your USD balance balance and transaction history will appear here.',
   },
   orders: {
     title: '📦 My Orders',
     description: 'Your order history and delivery status will appear here after the catalogue is enabled.',
   },
-  referral: {
-    title: '🎁 Referral programme',
-    description: 'Your personal referral link and reward history will appear here when the programme is enabled.',
-  },
   support: {
     title: '💬 Support',
-    description: 'For payment failures or Stars deposit questions, use /paysupport. Include your transaction or order reference and never share passwords or login codes.',
+    description: 'For service, order or payment assistance, contact @roexe. Include your order or transaction reference. Never share passwords or login codes.',
   },
 };
+
+export function vpnUnavailableMessage() {
+  return { blocks: [
+    { type: 'heading', size: 1, text: 'VPN Service' },
+    { type: 'paragraph', text: 'Currently out of service. VPN plans and ordering are unavailable until further notice.' },
+    row(button('‹ Main menu', 'ps:home', 'link')),
+  ] };
+}
 
 export function sectionMessage(section) {
   const page = screens[section];
@@ -110,7 +114,7 @@ export function adminPanelMessage(adminIds = [], databaseAvailable = true, canMa
     { type: 'paragraph', text: `Designated owners: 6522801911 · 1314643983` },
     { type: 'paragraph', text: `Registered administrators: ${ids.length}` },
     row(button('⭐ Payments', 'ps:admin:payments', 'primary'), button('Recent activity', 'ps:admin:transactions')),
-    row(button('↩️ Refunds', 'ps:admin:refunds', 'danger'), button('💬 Payment support', 'ps:admin:paysupport')),
+    row(button('↩️ Refunds', 'ps:admin:refunds', 'danger')),
     row(button('🔌 Provider', 'ps:admin:provider'), button('📈 Services', 'ps:admin:services')),
     row(button('Service setup guide', 'ps:admin:service-guide', 'primary')),
     row(button('Global statistics', 'ps:admin:stats', 'primary')),
@@ -195,7 +199,7 @@ export function serviceSetupGuideMessage() {
     { type: 'list', items: [
       { value: 1, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Sync the catalogue. ' }, 'Open Provider → Sync services. Only Telegram services are imported.'] }] },
       { value: 2, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Review the service. ' }, 'Check service ID, target type, supplier rate, minimum/maximum quantity, refill and cancellation support.'] }] },
-      { value: 3, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Set your selling price. ' }, 'Open the service and choose Set price. Enter the customer charge in whole Portal Points.'] }] },
+      { value: 3, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Set your selling price. ' }, 'Open the service and choose Set price. Enter the customer charge in whole USD balance.'] }] },
       { value: 4, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Enable it. ' }, 'Use Enable only after the price and service details have been checked.'] }] },
       { value: 5, blocks: [{ type: 'paragraph', text: [{ type: 'bold', text: 'Verify the customer view. ' }, 'Open the public Services page and inspect the description and price.'] }] },
     ] },
@@ -203,7 +207,7 @@ export function serviceSetupGuideMessage() {
     { type: 'heading', size: 2, text: 'Pricing calculation' },
     { type: 'paragraph', text: 'The planning target is a 30% gross margin. First convert the supplier cost into INR using a verified FX rate. Then calculate the customer price:' },
     { type: 'mathematical_expression', expression: String.raw`P=\operatorname{round}_{5}\left(\frac{C_{INR}}{(1-0.30)\times V_{INR/point}}\right)` },
-    { type: 'paragraph', text: [{ type: 'italic', text: 'P = selling Portal Points; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one Portal Point.' }, ' Round to the nearest 5 points, not always upward.'] },
+    { type: 'paragraph', text: [{ type: 'italic', text: 'P = selling USD balance; C = supplier cost in INR for the exact requested quantity; V = approved INR accounting value of one Portal Point.' }, ' Round to the nearest 5 points, not always upward.'] },
     { type: 'details', summary: 'Important supplier-rate warning', blocks: [
       { type: 'paragraph', text: 'Do not assume every supplier rate is per 1,000 units. Read the service rate unit and calculate the cost for the actual order quantity. Confirm the provider currency, min/max quantity and any refill/cancel conditions before enabling.' },
     ] },
@@ -232,7 +236,7 @@ export function adminServicesMessage(services = [], page = 0) {
       [{ text: 'Type', align: 'left' }, { text: item.type, align: 'right' }],
       [{ text: 'Supplier rate', align: 'left' }, { text: String(item.rate), align: 'right' }],
       [{ text: 'Quantity', align: 'left' }, { text: item.minQty + '–' + item.maxQty, align: 'right' }],
-      [{ text: 'Customer price', align: 'left' }, { text: Number(item.customerPrice) > 0 ? item.customerPrice + ' Portal Points' : 'Not set', align: 'right' }],
+      [{ text: 'Customer price', align: 'left' }, { text: Number(item.customerPrice) > 0 ? ' : 'Not set', align: 'right' }],
       [{ text: 'Refill / cancel', align: 'left' }, { text: (item.refill ? 'Refill' : 'No refill') + ' · ' + (item.cancel ? 'Cancel' : 'No cancel'), align: 'right' }],
       [{ text: 'Status', align: 'left' }, { text: item.enabled ? 'Enabled' : 'Disabled', align: 'right' }],
     ] });
@@ -283,7 +287,217 @@ export function customerServiceDetailsMessage(item) {
     { type: 'heading', size: 1, text: '📈 ' + item.name },
     { type: 'table', caption: 'Service details · ID ' + item.serviceId, is_bordered: false, is_striped: true, is_compact: true, cells: [
       [{ text: 'Details', is_header: true, align: 'left' }, { text: 'Information', is_header: true, align: 'right' }],
-      [{ text: 'Price', align: 'left' }, { text: [{ type: 'bold', text: Number(item.customerPrice).toLocaleString('en-IN') + ' Portal Points' }],
+      [{ text: 'Price', align: 'left' }, { text: [{ type: 'bold', text: ' }],
+      [{ text: 'Quantity range', align: 'left' }, { text: Number(item.minQty).toLocaleString('en-IN') + ' – ' + Number(item.maxQty).toLocaleString('en-IN') }],
+      [{ text: 'Category', align: 'left' }, { text: item.category || 'Telegram' }],
+      [{ text: 'Service type', align: 'left' }, { text: item.type }],
+      [{ text: 'Refill', align: 'left' }, { text: item.refill ? 'Available' : 'Not available' }],
+      [{ text: 'Cancellation', align: 'left' }, { text: item.cancel ? 'Available on request' : 'Not available' }],
+    ] },
+    { type: 'details', summary: 'Before placing an order', blocks: [
+      { type: 'list', items: [
+        { blocks: [{ type: 'paragraph', text: 'Check the target format and quantity limits.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Use a public Telegram target where required.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Never share passwords, login codes or account credentials.' }] },
+      ] },
+    ] },
+    row(button('‹ Services', 'ps:services', 'link')),
+  ] };
+}
+export async function sendRich(chatId, richMessage) {
+  return api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
+}
+
+export async function editRich(chatId, messageId, richMessage) {
+  return api.editMessageText({
+    chat_id: chatId,
+    message_id: messageId,
+    rich_message: richMessage,
+  });
+}
+
+export async function sendHome(chatId, user, showAdmin = false) {
+  return sendRich(chatId, homeMessage(fullName(user), showAdmin));
+}
+
+export async function sendHelp(chatId) {
+  return sendRich(chatId, helpMessage());
+}
+ + Number(item.customerPrice).toLocaleString('en-US') : 'Not set', align: 'right' }],
+      [{ text: 'Refill / cancel', align: 'left' }, { text: (item.refill ? 'Refill' : 'No refill') + ' · ' + (item.cancel ? 'Cancel' : 'No cancel'), align: 'right' }],
+      [{ text: 'Status', align: 'left' }, { text: item.enabled ? 'Enabled' : 'Disabled', align: 'right' }],
+    ] });
+    blocks.push(row(
+      button('Set price', 'ps:admin:service:price:' + item.serviceId),
+      button(item.enabled ? 'Disable' : 'Enable', 'ps:admin:service:' + (item.enabled ? 'disable' : 'enable') + ':' + item.serviceId, item.enabled ? 'danger' : 'success'),
+    ));
+    blocks.push({ type: 'divider' });
+  }
+  const buttons = [];
+  if (safePage > 0) buttons.push(button('‹ Previous', 'ps:admin:services:' + (safePage - 1)));
+  if (start + 6 < services.length) buttons.push(button('Next ›', 'ps:admin:services:' + (safePage + 1)));
+  if (buttons.length) blocks.push(row(...buttons));
+  blocks.push(row(button('Sync services', 'ps:admin:services:sync', 'success')));
+  blocks.push(row(button('‹ Provider', 'ps:admin:provider', 'link')));
+  return { blocks };
+}
+export function customerServicesMessage(services = [], page = 0) {
+  const safePage = Math.max(0, Number(page) || 0);
+  const start = safePage * 10;
+  const visible = services.slice(start, start + 10);
+  const blocks = [
+    { type: 'heading', size: 1, text: '📈 Services' },
+    { type: 'paragraph', text: 'Choose a Telegram service.' },
+  ];
+  if (!services.length) {
+    blocks.push({ type: 'paragraph', text: 'No services are available at the moment.' });
+  } else {
+    for (let i = 0; i < visible.length; i += 2) {
+      const first = visible[i];
+      const second = visible[i + 1];
+      blocks.push(row(
+        button(first.name.slice(0, 60), `ps:service:${first.serviceId}`),
+        ...(second ? [button(second.name.slice(0, 60), `ps:service:${second.serviceId}`)] : []),
+      ));
+    }
+    const navigation = [];
+    if (safePage > 0) navigation.push(button('‹ Previous', `ps:services:${safePage - 1}`));
+    if (start + 10 < services.length) navigation.push(button('Next ›', `ps:services:${safePage + 1}`));
+    if (navigation.length) blocks.push(row(...navigation));
+  }
+  blocks.push(row(button('‹ Main menu', 'ps:home', 'link')));
+  return { blocks };
+}
+
+export function customerServiceDetailsMessage(item) {
+  return { blocks: [
+    { type: 'heading', size: 1, text: '📈 ' + item.name },
+    { type: 'table', caption: 'Service details · ID ' + item.serviceId, is_bordered: false, is_striped: true, is_compact: true, cells: [
+      [{ text: 'Details', is_header: true, align: 'left' }, { text: 'Information', is_header: true, align: 'right' }],
+      [{ text: 'Price', align: 'left' }, { text: [{ type: 'bold', text: Number(item.customerPrice).toLocaleString('en-IN') + ' USD balance' }],
+      [{ text: 'Quantity range', align: 'left' }, { text: Number(item.minQty).toLocaleString('en-IN') + ' – ' + Number(item.maxQty).toLocaleString('en-IN') }],
+      [{ text: 'Category', align: 'left' }, { text: item.category || 'Telegram' }],
+      [{ text: 'Service type', align: 'left' }, { text: item.type }],
+      [{ text: 'Refill', align: 'left' }, { text: item.refill ? 'Available' : 'Not available' }],
+      [{ text: 'Cancellation', align: 'left' }, { text: item.cancel ? 'Available on request' : 'Not available' }],
+    ] },
+    { type: 'details', summary: 'Before placing an order', blocks: [
+      { type: 'list', items: [
+        { blocks: [{ type: 'paragraph', text: 'Check the target format and quantity limits.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Use a public Telegram target where required.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Never share passwords, login codes or account credentials.' }] },
+      ] },
+    ] },
+    row(button('‹ Services', 'ps:services', 'link')),
+  ] };
+}
+export async function sendRich(chatId, richMessage) {
+  return api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
+}
+
+export async function editRich(chatId, messageId, richMessage) {
+  return api.editMessageText({
+    chat_id: chatId,
+    message_id: messageId,
+    rich_message: richMessage,
+  });
+}
+
+export async function sendHome(chatId, user, showAdmin = false) {
+  return sendRich(chatId, homeMessage(fullName(user), showAdmin));
+}
+
+export async function sendHelp(chatId) {
+  return sendRich(chatId, helpMessage());
+}
+ + Number(item.customerPrice).toLocaleString('en-US') }],
+      [{ text: 'Quantity range', align: 'left' }, { text: Number(item.minQty).toLocaleString('en-IN') + ' – ' + Number(item.maxQty).toLocaleString('en-IN') }],
+      [{ text: 'Category', align: 'left' }, { text: item.category || 'Telegram' }],
+      [{ text: 'Service type', align: 'left' }, { text: item.type }],
+      [{ text: 'Refill', align: 'left' }, { text: item.refill ? 'Available' : 'Not available' }],
+      [{ text: 'Cancellation', align: 'left' }, { text: item.cancel ? 'Available on request' : 'Not available' }],
+    ] },
+    { type: 'details', summary: 'Before placing an order', blocks: [
+      { type: 'list', items: [
+        { blocks: [{ type: 'paragraph', text: 'Check the target format and quantity limits.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Use a public Telegram target where required.' }] },
+        { blocks: [{ type: 'paragraph', text: 'Never share passwords, login codes or account credentials.' }] },
+      ] },
+    ] },
+    row(button('‹ Services', 'ps:services', 'link')),
+  ] };
+}
+export async function sendRich(chatId, richMessage) {
+  return api.sendRichMessage({ chat_id: chatId, rich_message: richMessage });
+}
+
+export async function editRich(chatId, messageId, richMessage) {
+  return api.editMessageText({
+    chat_id: chatId,
+    message_id: messageId,
+    rich_message: richMessage,
+  });
+}
+
+export async function sendHome(chatId, user, showAdmin = false) {
+  return sendRich(chatId, homeMessage(fullName(user), showAdmin));
+}
+
+export async function sendHelp(chatId) {
+  return sendRich(chatId, helpMessage());
+}
+ + Number(item.customerPrice).toLocaleString('en-US') : 'Not set', align: 'right' }],
+      [{ text: 'Refill / cancel', align: 'left' }, { text: (item.refill ? 'Refill' : 'No refill') + ' · ' + (item.cancel ? 'Cancel' : 'No cancel'), align: 'right' }],
+      [{ text: 'Status', align: 'left' }, { text: item.enabled ? 'Enabled' : 'Disabled', align: 'right' }],
+    ] });
+    blocks.push(row(
+      button('Set price', 'ps:admin:service:price:' + item.serviceId),
+      button(item.enabled ? 'Disable' : 'Enable', 'ps:admin:service:' + (item.enabled ? 'disable' : 'enable') + ':' + item.serviceId, item.enabled ? 'danger' : 'success'),
+    ));
+    blocks.push({ type: 'divider' });
+  }
+  const buttons = [];
+  if (safePage > 0) buttons.push(button('‹ Previous', 'ps:admin:services:' + (safePage - 1)));
+  if (start + 6 < services.length) buttons.push(button('Next ›', 'ps:admin:services:' + (safePage + 1)));
+  if (buttons.length) blocks.push(row(...buttons));
+  blocks.push(row(button('Sync services', 'ps:admin:services:sync', 'success')));
+  blocks.push(row(button('‹ Provider', 'ps:admin:provider', 'link')));
+  return { blocks };
+}
+export function customerServicesMessage(services = [], page = 0) {
+  const safePage = Math.max(0, Number(page) || 0);
+  const start = safePage * 10;
+  const visible = services.slice(start, start + 10);
+  const blocks = [
+    { type: 'heading', size: 1, text: '📈 Services' },
+    { type: 'paragraph', text: 'Choose a Telegram service.' },
+  ];
+  if (!services.length) {
+    blocks.push({ type: 'paragraph', text: 'No services are available at the moment.' });
+  } else {
+    for (let i = 0; i < visible.length; i += 2) {
+      const first = visible[i];
+      const second = visible[i + 1];
+      blocks.push(row(
+        button(first.name.slice(0, 60), `ps:service:${first.serviceId}`),
+        ...(second ? [button(second.name.slice(0, 60), `ps:service:${second.serviceId}`)] : []),
+      ));
+    }
+    const navigation = [];
+    if (safePage > 0) navigation.push(button('‹ Previous', `ps:services:${safePage - 1}`));
+    if (start + 10 < services.length) navigation.push(button('Next ›', `ps:services:${safePage + 1}`));
+    if (navigation.length) blocks.push(row(...navigation));
+  }
+  blocks.push(row(button('‹ Main menu', 'ps:home', 'link')));
+  return { blocks };
+}
+
+export function customerServiceDetailsMessage(item) {
+  return { blocks: [
+    { type: 'heading', size: 1, text: '📈 ' + item.name },
+    { type: 'table', caption: 'Service details · ID ' + item.serviceId, is_bordered: false, is_striped: true, is_compact: true, cells: [
+      [{ text: 'Details', is_header: true, align: 'left' }, { text: 'Information', is_header: true, align: 'right' }],
+      [{ text: 'Price', align: 'left' }, { text: [{ type: 'bold', text: Number(item.customerPrice).toLocaleString('en-IN') + ' USD balance' }],
       [{ text: 'Quantity range', align: 'left' }, { text: Number(item.minQty).toLocaleString('en-IN') + ' – ' + Number(item.maxQty).toLocaleString('en-IN') }],
       [{ text: 'Category', align: 'left' }, { text: item.category || 'Telegram' }],
       [{ text: 'Service type', align: 'left' }, { text: item.type }],
