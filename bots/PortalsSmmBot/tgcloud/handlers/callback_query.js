@@ -17,15 +17,15 @@ import {
   adminServicesMessage,
   customerServicesMessage,
   customerServiceDetailsMessage,
+  vpnUnavailableMessage,
 } from '../lib/ui.js';
-import { adminSessions, userSessions } from '../schema.js';
+import { adminSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit, hasAcceptedTerms, acceptStoreTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
-import { adminPaymentSupportMessage, resolvePaymentSupportTicket } from '../lib/support.js';
 import { myOrdersMessage, orderDetailsMessage } from '../lib/orders.js';
 import { resetPreviewMessage, resetTestData, resetCompleteMessage } from '../lib/reset.js';
-import { trackUser, isUserBanned, referralMessage, adminStatsMessage } from '../lib/users.js';
+import { trackUser, isUserBanned, adminStatsMessage } from '../lib/users.js';
 
 async function answer(id, text = '') {
   const params = { callback_query_id: id };
@@ -99,7 +99,7 @@ export default async function handleCallbackQuery(query) {
         return render(chatId, messageId, {
           blocks: [
             { type: 'heading', size: 1, text: '⭐ Invoice created' },
-            { type: 'paragraph', text: 'Complete the Telegram Stars payment in the invoice message. Your Portal Points will be credited after Telegram confirms payment.' },
+            { type: 'paragraph', text: 'Complete the Telegram Stars payment in the invoice message. Your USD wallet balance will be credited after Telegram confirms payment.' },
             { type: 'buttons', buttons: [{ text: '‹ Deposit options', callback_data: 'ps:deposit', style: 'link' }] },
           ],
         });
@@ -113,21 +113,7 @@ export default async function handleCallbackQuery(query) {
         });
       }
     }
-    if (data === 'ps:support:cancel') {
-      await db.delete(userSessions).where(eq(userSessions.userId, userId)).run();
-      return render(chatId, messageId, sectionMessage('support'));
-    }
-    if (data === 'ps:support:payment') {
-      await db.insert(userSessions).values({ userId, action: 'payment_support', createdAt: new Date() })
-        .onConflictDoUpdate({ target: userSessions.userId, set: { action: 'payment_support', createdAt: new Date() } }).run();
-      return render(chatId, messageId, {
-        blocks: [
-          { type: 'heading', size: 1, text: '💬 Payment support' },
-          { type: 'paragraph', text: 'Describe the payment problem in your next message. Include a transaction reference or approximate payment time if available. Never send passwords or login codes.' },
-          { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:support:cancel', style: 'link' }] },
-        ],
-      });
-    }
+    if (data === 'ps:vpn') return render(chatId, messageId, vpnUnavailableMessage());
     if (data === 'ps:wallet') return render(chatId, messageId, await walletMessage(userId));
     if (data === 'ps:history') return render(chatId, messageId, await transactionHistoryMessage(userId, 0));
     if (data === 'ps:orders') return render(chatId, messageId, await myOrdersMessage(userId, 0));
@@ -165,11 +151,6 @@ export default async function handleCallbackQuery(query) {
       } catch {
         return render(chatId, messageId, customerServicesMessage([]));
       }
-    }
-
-    if (data === 'ps:referral') {
-      try { return render(chatId, messageId, await referralMessage(userId)); }
-      catch { return render(chatId, messageId, sectionMessage('referral')); }
     }
 
     const sections = {
@@ -229,8 +210,8 @@ export default async function handleCallbackQuery(query) {
         await db.insert(adminSessions).values({ userId, action, createdAt: new Date() })
           .onConflictDoUpdate({ target: adminSessions.userId, set: { action, createdAt: new Date() } }).run();
         const prompts = {
-          balance_add: ['Add Portal Points', 'Send: USER_ID AMOUNT followed by an optional reason. Example: 123456789 50 goodwill'],
-          balance_remove: ['Remove Portal Points', 'Send: USER_ID AMOUNT followed by an optional reason. The debit is blocked if the wallet balance is insufficient.'],
+          balance_add: ['Add USD balance', 'Send: USER_ID AMOUNT followed by an optional reason. Example: 123456789 50 goodwill'],
+          balance_remove: ['Remove USD balance', 'Send: USER_ID AMOUNT followed by an optional reason. The debit is blocked if the wallet balance is insufficient.'],
           user_ban: ['Ban customer', 'Send the numeric Telegram user ID to restrict. Administrator accounts are protected.'],
           user_unban: ['Unban customer', 'Send the numeric Telegram user ID to restore access.'],
         };
@@ -329,27 +310,8 @@ export default async function handleCallbackQuery(query) {
         return render(chatId, messageId, {
           blocks: [
             { type: 'heading', size: 2, text: 'Set customer price' },
-            { type: 'paragraph', text: 'Send the selling price in whole Portal Points. The service will remain disabled until you enable it.' },
+            { type: 'paragraph', text: 'Send the selling price in whole USD. The service will remain disabled until you enable it.' },
             { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
-          ],
-        });
-      }
-
-      if (data === 'ps:admin:paysupport') {
-        return render(chatId, messageId, await adminPaymentSupportMessage(0));
-      }
-      const paymentSupportPage = data.match(/^ps:admin:paysupport:(\d{1,4})$/);
-      if (paymentSupportPage) {
-        return render(chatId, messageId, await adminPaymentSupportMessage(Number(paymentSupportPage[1])));
-      }
-      const resolveSupport = data.match(/^ps:admin:paysupport:resolve:(\d{1,12})$/);
-      if (resolveSupport) {
-        const result = await resolvePaymentSupportTicket(Number(resolveSupport[1]));
-        return render(chatId, messageId, {
-          blocks: [
-            { type: 'heading', size: 1, text: result.resolved ? '✓ Request resolved' : 'Request already closed' },
-            { type: 'paragraph', text: result.resolved ? 'The customer has been notified.' : 'This support request is no longer open.' },
-            { type: 'buttons', buttons: [{ text: '‹ Payment support', callback_data: 'ps:admin:paysupport', style: 'link' }] },
           ],
         });
       }
@@ -372,7 +334,7 @@ export default async function handleCallbackQuery(query) {
           return render(chatId, messageId, {
             blocks: [
               { type: 'heading', size: 1, text: result.duplicate ? '↩️ Refund already completed' : '↩️ Refund completed' },
-              { type: 'paragraph', text: result.duplicate ? 'This deposit has already been refunded.' : 'Telegram confirmed the Stars refund and the Portal Points reversal was recorded.' },
+              { type: 'paragraph', text: result.duplicate ? 'This deposit has already been refunded.' : 'Telegram confirmed the Stars refund and the USD wallet balance reversal was recorded.' },
               { type: 'buttons', buttons: [{ text: '‹ Refunds', callback_data: 'ps:admin:refunds', style: 'link' }] },
             ],
           });
