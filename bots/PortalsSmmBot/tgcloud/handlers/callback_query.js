@@ -17,7 +17,7 @@ import {
   adminServicesMessage,
   customerServicesMessage,
   customerServiceDetailsMessage,
-  vpnUnavailableMessage,
+  vpnPlansMessage,
 } from '../lib/ui.js';
 import { adminSessions, userSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
@@ -127,7 +127,7 @@ export default async function handleCallbackQuery(query) {
         });
       }
     }
-    if (data === 'ps:vpn') return render(chatId, messageId, vpnUnavailableMessage());
+    if (data === 'ps:vpn') return render(chatId, messageId, vpnPlansMessage());
     if (data === 'ps:wallet') return render(chatId, messageId, await walletMessage(userId));
     if (data === 'ps:history') return render(chatId, messageId, await transactionHistoryMessage(userId, 0));
     if (data === 'ps:orders') return render(chatId, messageId, await myOrdersMessage(userId, 0));
