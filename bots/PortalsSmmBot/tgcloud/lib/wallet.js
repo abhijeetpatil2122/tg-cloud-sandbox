@@ -94,10 +94,10 @@ export async function debitWalletPoints({
   return { debited: false, duplicate: false, reason: 'insufficient_funds' };
 }
 
-export function formatUsd(value) {
+function formatPoints(value) {
   const amount = Number(value) || 0;
   const sign = amount > 0 ? '+' : '';
-  return `${sign}$${Math.abs(amount).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return `${sign}${amount.toLocaleString('en-IN')} Portal Points`;
 }
 
 function formatDate(value) {
@@ -128,7 +128,7 @@ function statusText(status) {
 function transactionBlock(item, includeUser = false) {
   const parts = [
     item.title || 'Wallet transaction',
-    formatUsd(item.points),
+    formatPoints(item.points),
     `Status: ${statusText(item.status)}`,
     formatDate(item.createdAt),
   ];
@@ -155,7 +155,7 @@ export async function walletMessage(userId) {
     const balance = Number(balanceRow?.total || 0);
     const blocks = [
       { type: 'heading', size: 1, text: 'Wallet' },
-      { type: 'paragraph', text: `Available balance\n${formatUsd(balance)}` },
+      { type: 'paragraph', text: `Available balance\n${balance.toLocaleString('en-IN')} Portal Points` },
       { type: 'divider' },
       { type: 'heading', size: 2, text: 'Recent transactions' },
     ];
@@ -202,7 +202,7 @@ export async function transactionHistoryMessage(userId, page = 0) {
 
     const blocks = [
       { type: 'heading', size: 1, text: 'Transaction history' },
-      { type: 'paragraph', text: 'Deposits, service purchases and wallet adjustments.' },
+      { type: 'paragraph', text: 'Deposits, purchases, rewards and wallet adjustments.' },
       { type: 'divider' },
     ];
     if (!rows.length && safePage === 0) {
