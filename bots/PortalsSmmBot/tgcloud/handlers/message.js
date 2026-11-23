@@ -163,7 +163,7 @@ export default async function handleMessage(message) {
         await sendRich(chatId, {
           blocks: [
             { type: 'heading', size: 2, text: 'Price updated' },
-            { type: 'paragraph', text: `Service #${priceInput[1]} is now priced at ${'$' + Number(text).toLocaleString('en-US') + '.` },
+            { type: 'paragraph', text: 'Service #' + priceInput[1] + ' is now priced at $' + Number(text).toLocaleString('en-US') + '.' },
             { type: 'buttons', buttons: [{ text: '‹ Telegram services', callback_data: 'ps:admin:services', style: 'link' }] },
           ],
         });
