@@ -210,8 +210,8 @@ export default async function handleCallbackQuery(query) {
         await db.insert(adminSessions).values({ userId, action, createdAt: new Date() })
           .onConflictDoUpdate({ target: adminSessions.userId, set: { action, createdAt: new Date() } }).run();
         const prompts = {
-          balance_add: ['Add USD balance', 'Send: USER_ID AMOUNT followed by an optional reason. Example: 123456789 50 goodwill'],
-          balance_remove: ['Remove USD balance', 'Send: USER_ID AMOUNT followed by an optional reason. The debit is blocked if the wallet balance is insufficient.'],
+          balance_add: ['Add USD balance', 'Send: USER_ID AMOUNT_USD followed by an optional reason. Example: 123456789 50 goodwill'],
+          balance_remove: ['Remove USD balance', 'Send: USER_ID AMOUNT_USD followed by an optional reason. The debit is blocked if the wallet balance is insufficient.'],
           user_ban: ['Ban customer', 'Send the numeric Telegram user ID to restrict. Administrator accounts are protected.'],
           user_unban: ['Unban customer', 'Send the numeric Telegram user ID to restore access.'],
         };
