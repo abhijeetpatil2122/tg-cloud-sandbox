@@ -584,18 +584,3 @@ export async function adminPaymentsMessage(filter = 'confirmed', page = 0) {
   blocks.push({ type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] });
   return { blocks };
 }
- + Number(item.points).toLocaleString('en-US'), align: 'right' },
-        { text: item.status.replace('_', ' '), align: 'right' },
-      ]),
-    ] });
-    if (filter === 'confirmed') {
-      for (const item of visible) blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
-    }
-  }
-  const nav = [];
-  if (safePage > 0) nav.push({ text: '‹ Newer', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage - 1) });
-  if ((safePage + 1) * 6 < matching.length) nav.push({ text: 'Older ›', callback_data: 'ps:admin:payments:' + filter + ':' + (safePage + 1) });
-  if (nav.length) blocks.push({ type: 'buttons', buttons: nav });
-  blocks.push({ type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] });
-  return { blocks };
-}
