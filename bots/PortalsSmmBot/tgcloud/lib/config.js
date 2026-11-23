@@ -20,11 +20,6 @@ export const PROVIDER = Object.freeze({
 
 export const WALLET = Object.freeze({ starsPerDollar: 80, currency: 'USD' });
 
-export const REFERRALS = Object.freeze({
-  rewardPercent: 10,
-  minimumQualifyingStars: 0,
-});
-
 export const PRICING = Object.freeze({
   targetGrossMarginPercent: 30,
   roundingStep: 5,
@@ -39,6 +34,5 @@ export const SUPPORT = Object.freeze({
 export const FEATURES = Object.freeze({
   depositsEnabled: true,
   ordersEnabled: false,
-  referralsEnabled: false,
   providerSyncEnabled: true,
 });
