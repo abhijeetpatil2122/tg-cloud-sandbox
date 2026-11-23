@@ -2,7 +2,7 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { OWNER_IDS, FEATURES } from '../lib/config.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
-import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage, vpnUnavailableMessage } from '../lib/ui.js';
+import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage, vpnPlansMessage } from '../lib/ui.js';
 import { adminSessions, userSessions } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
@@ -257,7 +257,7 @@ export default async function handleMessage(message) {
     if (parsed.command === '/paysupport') return await sendRich(chatId, sectionMessage('support'));
 
     if (parsed.command === '/terms') return await sendRich(chatId, termsMessage());
-    if (parsed.command === '/vpn') return await sendRich(chatId, vpnUnavailableMessage());
+    if (parsed.command === '/vpn') return await sendRich(chatId, vpnPlansMessage());
 
     if (parsed.command === '/services') {
       try {
