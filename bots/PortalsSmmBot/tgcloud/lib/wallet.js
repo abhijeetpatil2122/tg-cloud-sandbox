@@ -94,9 +94,9 @@ export async function debitWalletPoints({
   return { debited: false, duplicate: false, reason: 'insufficient_funds' };
 }
 
-export function formatUsd(value) {
+export function formatUsd(value, signed = false) {
   const amount = Number(value) || 0;
-  const sign = amount > 0 ? '+' : '';
+  const sign = amount < 0 ? '-' : (signed && amount > 0 ? '+' : '');
   return `${sign}$${Math.abs(amount).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
@@ -128,7 +128,7 @@ function statusText(status) {
 function transactionBlock(item, includeUser = false) {
   const parts = [
     item.title || 'Wallet transaction',
-    formatUsd(item.points),
+    formatUsd(item.points, true),
     `Status: ${statusText(item.status)}`,
     formatDate(item.createdAt),
   ];
