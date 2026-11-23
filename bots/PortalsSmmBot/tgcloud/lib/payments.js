@@ -326,7 +326,7 @@ export async function adminRefundsMessage(page = 0) {
   if (!visible.length) blocks.push({ type: 'paragraph', text: 'No refundable deposits are available on this page.' });
   for (const item of visible) {
     const { chargeId } = await depositChargeRecord(item);
-    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + formatUsd(item.points) + ' wallet balance\nCharge:  + chargeId.slice(0, 28) });
+    blocks.push({ type: 'paragraph', text: '#' + item.id + ' · User ' + item.userId + '\n' + item.stars + ' Stars · ' + formatUsd(item.points) + ' wallet balance\nCharge: ' + chargeId.slice(0, 28) });
     blocks.push({ type: 'buttons', buttons: [{ text: 'Review refund #' + item.id, callback_data: 'ps:admin:refund:' + item.id, style: 'danger' }] });
   }
   const nav = [];
@@ -365,7 +365,7 @@ export async function refundPreviewMessage(transactionId) {
       [{ text: 'Customer' }, { text: String(item.userId) }],
       [{ text: 'Original payment' }, { text: Number(item.stars) + ' Stars' }],
       [{ text: 'Points to reverse' }, { text: formatUsd(item.points) }],
-      [{ text: 'Current wallet balance' }, { text: '$' + balance }],
+      [{ text: 'Current wallet balance' }, { text: formatUsd(balance) }],
       [{ text: 'Telegram charge ID' }, { text: chargeId.slice(0, 40) }],
     ] },
     { type: 'paragraph', text: enoughPoints
