@@ -32,24 +32,34 @@ export function homeMessage(name = 'there', showAdmin = false) {
   return { blocks };
 }
 
-export function helpMessage() {
+export function helpMessage(showAdmin = false) {
+  const items = [
+    '/start — Open the storefront',
+    '/menu — Return to the main menu',
+    '/services — Browse available Telegram services',
+    '/deposit [stars] — Open deposit options or request an invoice for a Star amount',
+    '/wallet — View your wallet balance',
+    '/history — View wallet transactions',
+    '/orders — View service orders (also available as /servicehistory)',
+    '/support — Contact service support',
+    '/paysupport — Get help with a payment or deposit',
+    '/vpn — View VPN plans and contact support',
+    '/terms — Read store terms',
+    '/help — View this command guide',
+    '/cancel — Cancel an active custom-deposit input',
+  ];
+  if (showAdmin) items.push(
+    '/admin — Open the administrator panel',
+    '/payments — Review Stars payment records',
+    '/refund [transaction_id] — Review a Stars refund',
+    '/servicesetup — Open the service configuration guide',
+    '/stats — View administrator statistics',
+    '/resetdb — Review and reset temporary test data',
+  );
   return { blocks: [
     { type: 'heading', size: 1, text: '❔ Help' },
-    { type: 'paragraph', text: 'Use the buttons below or the commands to navigate the Portals SMM storefront.' },
-    { type: 'list', items: [
-      { blocks: [{ type: 'paragraph', text: '/start — Open the storefront' }] },
-      { blocks: [{ type: 'paragraph', text: '/menu — Return to the storefront' }] },
-      { blocks: [{ type: 'paragraph', text: '/services — Browse Telegram services' }] },
-      { blocks: [{ type: 'paragraph', text: '/deposit — Add wallet funds' }] },
-      { blocks: [{ type: 'paragraph', text: '/servicehistory — View your service history' }] },
-      { blocks: [{ type: 'paragraph', text: '/wallet — View your balance' }] },
-      { blocks: [{ type: 'paragraph', text: '/history — View your transactions' }] },
-      { blocks: [{ type: 'paragraph', text: '/support — Contact support' }] },
-      { blocks: [{ type: 'paragraph', text: '/vpn — View VPN service status' }] },
-      { blocks: [{ type: 'paragraph', text: '/paysupport — Get payment assistance' }] },
-      { blocks: [{ type: 'paragraph', text: '/terms — Read store terms' }] }, 
-      { blocks: [{ type: 'paragraph', text: '/help — View this help page' }] },
-    ] },
+    { type: 'paragraph', text: 'Use the menu buttons or these commands to navigate the storefront.' },
+    { type: 'list', items: items.map(text => ({ blocks: [{ type: 'paragraph', text }] })) },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
