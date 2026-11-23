@@ -240,37 +240,32 @@ export async function adminTransactionsMessage(page = 0) {
     const rows = await db.select().from(walletTransactions)
       .where(customerHistoryFilter)
       .orderBy(desc(walletTransactions.createdAt), desc(walletTransactions.id))
-      .limit(10)
-      .offset(safePage * 10)
+      .limit(5)
+      .offset(safePage * 5)
       .all();
     const blocks = [
       { type: 'heading', size: 1, text: 'Recent activity' },
-      { type: 'paragraph', text: 'Latest customer wallet transactions.' },
+      { type: 'paragraph', text: 'Latest customer wallet transactions, newest first.' },
       { type: 'divider' },
     ];
     if (!rows.length) {
       blocks.push({ type: 'paragraph', text: 'No activity has been recorded.' });
     } else {
-      blocks.push({ type: 'table', caption: 'Customer activity · newest first', is_bordered: true, is_striped: true, is_compact: true, cells: [
-        [
-          { text: 'Date', is_header: true, align: 'left' },
-          { text: 'User ID', is_header: true, align: 'right' },
-          { text: 'Activity', is_header: true, align: 'left' },
-          { text: 'Amount', is_header: true, align: 'right' },
-          { text: 'Status', is_header: true, align: 'right' },
-        ],
-        ...rows.map(item => [
-          { text: formatDate(item.createdAt), align: 'left' },
-          { text: String(item.userId), align: 'right' },
-          { text: String(item.title || item.kind || 'Wallet activity').slice(0, 40), align: 'left' },
-          { text: formatUsd(item.points, true), align: 'right' },
-          { text: statusText(item.status), align: 'right' },
-        ]),
-      ] });
+      for (const item of rows) {
+        blocks.push({ type: 'table', caption: '#' + item.id + ' · ' + String(item.title || item.kind || 'Wallet activity').slice(0, 48), is_bordered: true, is_striped: true, is_compact: false, cells: [
+          [{ text: 'Field', is_header: true, align: 'left' }, { text: 'Details', is_header: true, align: 'left' }],
+          [{ text: 'Date' }, { text: formatDate(item.createdAt) }],
+          [{ text: 'User ID' }, { text: String(item.userId) }],
+          [{ text: 'Activity' }, { text: String(item.title || item.kind || 'Wallet activity').slice(0, 64) }],
+          [{ text: 'Amount' }, { text: formatUsd(item.points, true) }],
+          [{ text: 'Status' }, { text: statusText(item.status) }],
+        ] });
+        blocks.push({ type: 'divider' });
+      }
     }
     const buttons = [];
     if (safePage > 0) buttons.push({ text: '‹ Newer', callback_data: `ps:admin:transactions:${safePage - 1}` });
-    if (rows.length === 10) buttons.push({ text: 'Older ›', callback_data: `ps:admin:transactions:${safePage + 1}` });
+    if (rows.length === 5) buttons.push({ text: 'Older ›', callback_data: `ps:admin:transactions:${safePage + 1}` });
     if (buttons.length) blocks.push({ type: 'buttons', buttons });
     blocks.push({ type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] });
     return { blocks };
@@ -278,7 +273,7 @@ export async function adminTransactionsMessage(page = 0) {
     console.error('Admin transaction history unavailable:', error?.description || error?.message || 'database not ready');
     return {
       blocks: [
-        { type: 'heading', size: 1, text: 'Recent transactions' },
+        { type: 'heading', size: 1, text: 'Recent activity' },
         { type: 'paragraph', text: 'Transaction records will appear here once the wallet is enabled.' },
         { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
       ],
