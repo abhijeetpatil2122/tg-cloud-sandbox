@@ -80,7 +80,7 @@ export default async function handleCallbackQuery(query) {
       ));
     }
 
-    if (data === 'ps:help') return render(chatId, messageId, helpMessage());
+    if (data === 'ps:help') return render(chatId, messageId, helpMessage(await isAdmin(userId)));
 
     if (data === 'ps:deposit') {
       if (!FEATURES.depositsEnabled) return render(chatId, messageId, depositUnavailableMessage());
