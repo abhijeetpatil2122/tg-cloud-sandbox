@@ -293,7 +293,7 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/help') {
-      return await sendRich(chatId, helpMessage());
+      return await sendRich(chatId, helpMessage(await isAdmin(userId)));
     }
 
     if (parsed.command === '/refund') {
