@@ -44,7 +44,7 @@ export function termsMessage() {
     { type: 'paragraph', text: 'Please read these terms before using the store. They explain payments, store credit, service requirements and support.' },
     { type: 'heading', size: 2, text: '1. ⭐ Payments' },
     { type: 'list', items: [
-      { blocks: [{ type: 'paragraph', text: 'Payments are accepted in Telegram Stars (XTR).' }] },
+      { blocks: [{ type: 'paragraph', text: 'Payments are accepted in Telegram Stars (XTR). Gram holders can purchase Stars through Fragment and then pay here with Stars.' }] },
       { blocks: [{ type: 'paragraph', text: 'A deposit is credited only after Telegram sends a verified successful payment receipt.' }] },
       { blocks: [{ type: 'paragraph', text: 'An invoice, payment attempt, screenshot or pre-checkout approval is not proof of payment.' }] },
     ] },
@@ -110,7 +110,7 @@ export function depositUnavailableMessage() {
 export function depositMessage() {
   return { blocks: [
     { type: 'heading', size: 1, text: '⭐ Add funds' },
-    { type: 'paragraph', text: 'Pay with Telegram Stars. 80 Stars = $1.00 in your wallet.' },
+    { type: 'paragraph', text: 'Pay with Telegram Stars. 80 Stars = $1.00 in your wallet. Gram holders can buy Stars through Fragment, then use those Stars here.' },
     { type: 'divider' },
     { type: 'paragraph', text: 'Choose a package:' },
     { type: 'buttons', buttons: [
