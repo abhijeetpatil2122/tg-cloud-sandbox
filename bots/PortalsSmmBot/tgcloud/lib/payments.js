@@ -108,7 +108,7 @@ export function depositUnavailableMessage() {
 export function depositMessage() {
   return { blocks: [
     { type: 'heading', size: 1, text: '⭐ Add funds' },
-    { type: 'paragraph', text: 'Pay with Telegram Stars. 80 Stars = $1.00 in your wallet. Gram holders can buy Stars through Fragment, then use those Stars here.' },
+    { type: 'paragraph', text: 'Pay with Telegram Stars. 80 Stars = $1.00 in your wallet.' },
     { type: 'divider' },
     { type: 'paragraph', text: 'Choose a package:' },
     { type: 'buttons', buttons: [
