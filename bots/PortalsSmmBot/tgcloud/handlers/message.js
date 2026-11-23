@@ -3,14 +3,13 @@ import { eq } from 'sdk/db';
 import { OWNER_IDS, FEATURES } from '../lib/config.js';
 import { addAdmin, isAdmin } from '../lib/admins.js';
 import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerServicesMessage, serviceSetupGuideMessage } from '../lib/ui.js';
-import { adminSessions, userSessions, paymentSupportTickets } from '../schema.js';
+import { adminSessions } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
 import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage, hasAcceptedTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
-import { listAdmins } from '../lib/admins.js';
 import { myOrdersMessage } from '../lib/orders.js';
 import { resetPreviewMessage } from '../lib/reset.js';
-import { trackUser, attributeReferral, isUserBanned, referralMessage, adminStatsMessage, adjustUserBalance, setUserBanned } from '../lib/users.js';
+import { trackUser, isUserBanned, adminStatsMessage, adjustUserBalance, setUserBanned } from '../lib/users.js';
 
 function parseCommand(value = '') {
   const match = value.trim().match(/^\/([a-z0-9_]+)(?:@[a-z0-9_]+)?(?:\s+([\s\S]*))?$/i);
@@ -47,39 +46,6 @@ export default async function handleMessage(message) {
         { type: 'paragraph', text: 'This account is currently restricted from using the storefront. Contact support if you believe this is a mistake.' },
       ] });
       return;
-    }
-
-    if (message.chat.type === 'private' && text && !text.startsWith('/')) {
-      const userSession = await db.select().from(userSessions)
-        .where(eq(userSessions.userId, userId)).get();
-      if (userSession?.action === 'payment_support') {
-        const ticket = await db.insert(paymentSupportTickets).values({
-          userId,
-          message: text.slice(0, 3000),
-          status: 'open',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }).returning().run();
-        await db.delete(userSessions).where(eq(userSessions.userId, userId)).run();
-        const ticketId = ticket?.[0]?.id;
-        try {
-          const admins = await listAdmins();
-          await Promise.all(admins.map(id => api.sendMessage({
-            chat_id: id,
-            text: '💬 New payment support request\nTicket: #' + ticketId + '\nUser: ' + userId + '\nMessage: ' + text.slice(0, 1800),
-          }).catch(error => console.error('Payment support notification failed:', error?.description || error))));
-        } catch (error) {
-          console.error('Could not notify payment support admins:', error?.description || error);
-        }
-        await sendRich(chatId, {
-          blocks: [
-            { type: 'heading', size: 1, text: '💬 Request received' },
-            { type: 'paragraph', text: 'Your payment support request has been sent to the team. Reference: #' + ticketId + '. Please keep this number for follow-up.' },
-            { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
-          ],
-        });
-        return;
-      }
     }
 
     if (message.chat.type !== 'private') {
@@ -140,12 +106,12 @@ export default async function handleMessage(message) {
           { type: 'table', is_bordered: true, is_compact: true, cells: [
             [{ text: 'Field', is_header: true }, { text: 'Value', is_header: true }],
             [{ text: 'Customer ID' }, { text: String(result.userId), align: 'right' }],
-            [{ text: 'Adjustment' }, { text: result.points + ' Portal Points ' + result.direction, align: 'right' }],
+            [{ text: 'Adjustment' }, { text: '$' + result.points + ' ' + result.direction, align: 'right' }],
             [{ text: 'Ledger transaction' }, { text: '#' + result.transactionId, align: 'right' }],
           ] },
           { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
         ] });
-        try { await api.sendMessage({ chat_id: result.userId, text: 'An administrator ' + result.direction + ' ' + result.points + ' Portal Points to your wallet.' }); } catch {}
+        try { await api.sendMessage({ chat_id: result.userId, text: 'An administrator ' + result.direction + ' ' + '$' + result.points + ' to your wallet.' }); } catch {}
         return;
       }
 
@@ -186,7 +152,7 @@ export default async function handleMessage(message) {
           await sendRich(chatId, {
             blocks: [
               { type: 'heading', size: 2, text: 'Invalid price' },
-              { type: 'paragraph', text: 'Send a positive whole number of Portal Points, or cancel.' },
+              { type: 'paragraph', text: 'Send a positive whole USD amount, or cancel.' },
               { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:admin:cancel', style: 'link' }] },
             ],
           });
@@ -197,7 +163,7 @@ export default async function handleMessage(message) {
         await sendRich(chatId, {
           blocks: [
             { type: 'heading', size: 2, text: 'Price updated' },
-            { type: 'paragraph', text: `Service #${priceInput[1]} is now priced at ${Number(text).toLocaleString('en-IN')} Portal Points.` },
+            { type: 'paragraph', text: `Service #${priceInput[1]} is now priced at ${'$' + Number(text).toLocaleString('en-US') + '.` },
             { type: 'buttons', buttons: [{ text: '‹ Telegram services', callback_data: 'ps:admin:services', style: 'link' }] },
           ],
         });
@@ -225,8 +191,7 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/start' || parsed.command === '/menu') {
-      if (parsed.command === '/start' && parsed.argument) await attributeReferral(userId, parsed.argument);
-      return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
+        return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
     }
 
     if (parsed.command === '/deposit') {
@@ -250,19 +215,10 @@ export default async function handleMessage(message) {
       return;
     }
 
-    if (parsed.command === '/paysupport') {
-      await db.insert(userSessions).values({ userId, action: 'payment_support', createdAt: new Date() })
-        .onConflictDoUpdate({ target: userSessions.userId, set: { action: 'payment_support', createdAt: new Date() } }).run();
-      return await sendRich(chatId, {
-        blocks: [
-          { type: 'heading', size: 1, text: '💬 Payment support' },
-          { type: 'paragraph', text: 'Describe the payment problem in your next message. Include the transaction reference or approximate payment time if available. Never send passwords or login codes.' },
-          { type: 'buttons', buttons: [{ text: 'Cancel', callback_data: 'ps:support:cancel', style: 'link' }] },
-        ],
-      });
-    }
+    if (parsed.command === '/paysupport') return await sendRich(chatId, sectionMessage('support'));
 
     if (parsed.command === '/terms') return await sendRich(chatId, termsMessage());
+    if (parsed.command === '/vpn') return await sendRich(chatId, vpnUnavailableMessage());
 
     if (parsed.command === '/services') {
       try {
@@ -278,14 +234,6 @@ export default async function handleMessage(message) {
       } catch (error) {
         console.error('Order history unavailable:', error?.description || error?.message || error);
         return await sendRich(chatId, sectionMessage('orders'));
-      }
-    }
-
-    if (parsed.command === '/referral') {
-      try { return await sendRich(chatId, await referralMessage(userId)); }
-      catch (error) {
-        console.error('Referral page unavailable:', error?.message || error);
-        return await sendRich(chatId, sectionMessage('referral'));
       }
     }
 
