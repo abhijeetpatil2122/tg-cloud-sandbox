@@ -56,27 +56,49 @@ export function helpMessage(showAdmin = false) {
     '/stats — View administrator statistics',
     '/resetdb — Review and reset temporary test data',
   );
+
+  const helpSection = (heading, points) => [
+    { type: 'heading', size: 3, text: heading },
+    { type: 'list', items: points.map(point => ({
+      blocks: [{ type: 'paragraph', text: point }],
+    })) },
+  ];
+
   return { blocks: [
     { type: 'heading', size: 1, text: '❔ Help' },
-    { type: 'expandable_blockquote', text: [
-      { type: 'bold', text: '💳 Payments' },
-      '\nTelegram Stars payments are automatic. Your balance is credited instantly after Telegram confirms a successful payment. For payment assistance, contact Portal Support.',
-      '\n\n',
-      { type: 'bold', text: '💼 Wallet' },
-      '\nWallet balance is store credit in USD, not withdrawable cash.',
-      '\n\n',
-      { type: 'bold', text: '📈 Orders' },
-      '\nCheck service details, requirements and delivery estimates before ordering. Delivery times may vary.',
-      '\n\n',
-      { type: 'bold', text: '↩️ Refunds' },
-      '\nRefunds are reviewed individually. Spent balance may not be refundable.',
-      '\n\n',
-      { type: 'bold', text: '🔄 Guaranteed Refill' },
-      '\nIf your order includes a refill guarantee and you experience a drop within the guarantee period, contact Support with your order ID for assistance.',
-      '\n\n',
-      { type: 'bold', text: '🛡️ Fair Use' },
-      '\nFraud, payment abuse and service exploitation are prohibited.',
-    ] },
+    {
+      type: 'expandable_blockquote',
+      blocks: [
+        ...helpSection('💳 Payments', [
+          'Choose a Telegram Stars package or enter a custom amount.',
+          'Your wallet is credited only after Telegram confirms the successful payment.',
+          'For a missing or delayed credit, contact Portal Support with the payment reference.',
+        ]),
+        ...helpSection('💼 Wallet', [
+          'Your wallet displays available store credit in USD.',
+          'Wallet credit is for purchases inside the storefront and is not withdrawable cash.',
+        ]),
+        ...helpSection('📈 Orders', [
+          'Review the service description, target format and quantity limits before ordering.',
+          'Delivery estimates can vary by service and supplier.',
+          'Use Order History to track order references and statuses.',
+        ]),
+        ...helpSection('↩️ Refunds', [
+          'Refund requests are reviewed against the original payment and order status.',
+          'Spent wallet credit may not be refundable.',
+          'Never make a second payment for an invoice already confirmed by Telegram.',
+        ]),
+        ...helpSection('🔄 Guaranteed Refill', [
+          'A refill is available only when the selected service includes a refill guarantee.',
+          'If a drop occurs during the guarantee period, contact Support with your order ID.',
+        ]),
+        ...helpSection('🛡️ Fair Use', [
+          'Use services only for lawful purposes and follow each service’s requirements.',
+          'Fraud, payment abuse, reselling access without permission and service exploitation are prohibited.',
+          'Never share Telegram passwords, login codes or account credentials.',
+        ]),
+      ],
+    },
     { type: 'paragraph', text: 'Use the menu buttons or these commands to navigate the storefront.' },
     { type: 'list', items: commands.map(text => ({ blocks: [{ type: 'paragraph', text }] })) },
     row(button('‹ Main menu', 'ps:home', 'link')),
@@ -102,7 +124,7 @@ const screens = {
   },
   support: {
     title: '💬 Support',
-    description: 'For service, Order refills or payment assistance, include your order or transaction reference.',
+    description: 'For service issues, order refills or payment assistance, include your order or transaction reference. Contact: Portal Support (Telegram ID 9170717027). If the contact button does not open, search this ID in Telegram.',
   },
 };
 
@@ -111,7 +133,7 @@ export function vpnPlansMessage() {
     { type: 'heading', size: 1, text: '🔐 Portals VPN — Choose Your Plan' },
     { type: 'paragraph', text: 'Get 1-year access with unlimited country coverage.' },
     { type: 'heading', size: 2, text: 'Available Plans' },
-    { type: 'table', caption: 'VPN plans', is_bordered: true, is_striped: true, is_compact: false, cells: [
+    { type: 'table', caption: 'VPN plans', is_bordered: true, is_striped: true, cells: [
       [{ text: 'Plan', is_header: true }, { text: 'Price', is_header: true, align: 'right' }],
       [{ text: '🥉 Basic Plan' }, { text: '$100', align: 'right' }],
       [{ text: '🥈 Advanced Plan' }, { text: '$200', align: 'right' }],
@@ -119,7 +141,7 @@ export function vpnPlansMessage() {
     ] },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Validity: ' }, '1 Year'] },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Country Coverage: ' }, 'Unlimited countries'] },
-    row({ text: 'Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId }),
+    row({ text: '💬 Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId }),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -268,7 +290,7 @@ export function adminServicesMessage(services = [], page = 0) {
   ];
   if (!rows.length) blocks.push({ type: 'paragraph', text: 'No Telegram services have been synced yet.' });
   for (const item of rows) {
-    blocks.push({ type: 'table', caption: 'Service #' + item.serviceId + ' · ' + item.name, is_bordered: true, is_striped: true, is_compact: false, cells: [
+    blocks.push({ type: 'table', caption: 'Service #' + item.serviceId + ' · ' + item.name, is_bordered: true, is_striped: true,  cells: [
       [{ text: 'Field', is_header: true, align: 'left' }, { text: 'Value', is_header: true, align: 'right' }],
       [{ text: 'Category', align: 'left' }, { text: item.category || 'Telegram', align: 'right' }],
       [{ text: 'Type', align: 'left' }, { text: item.type, align: 'right' }],
