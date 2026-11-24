@@ -1,6 +1,6 @@
 import { api, db } from 'sdk';
 import { desc, eq, sql, sum } from 'sdk/db';
-import { FEATURES, WALLET, SUPPORT } from './config.js';
+import { FEATURES, WALLET } from './config.js';
 import { depositIntents, walletLedger, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction, formatUsd } from './wallet.js';
 import { sendRich } from './ui.js';
