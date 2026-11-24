@@ -45,7 +45,7 @@ Initial menu sections:
 - **My Orders** — recent orders, provider status, quantity, and order details.
 - **Referral** — personal deep link, eligible referral count, earned points, and referral rules.
 - **Support** — support contact and order-specific help.
-- **Terms / FAQ** — clear service limitations, delivery/refill/cancellation terms, and payment/referral rules.
+- **Service guidance** — clear service limitations, delivery/refill/cancellation details, and payment/referral guidance.
 
 Use Telegram Rich Messages for headings, sections, tables/details where useful, and Rich Message text buttons or block buttons for menu/navigation. Use only verified current Bot API structures. Button callback data must be compact (1–64 bytes), versioned/prefixed, and never contain trusted prices, balances, provider keys, or authorization claims.
 
@@ -308,7 +308,7 @@ The following remain launch decisions:
 3. Minimum qualifying referral deposit, caps, and reversal policy.
 4. Initial approved provider services and target types, based on the live service list.
 5. Production credential handling before live provider orders.
-6. Support contact and final service/refund/terms wording.
+6. Support contact and final service/refund wording.
 7. Final order/refund policy for partial completion and provider failures.
 
 ## Official and provider references
@@ -340,7 +340,7 @@ Next stages:
 2. Verify the provider connection and review the actual Telegram service list. The current configured key is a dummy test value.
 3. Complete Telegram Stars deposit intents, successful-payment crediting, and refund reconciliation.
 4. Complete customer order input, pricing confirmation, safe debit, provider submission, status tracking, and aftercare.
-5. Complete referrals, user lookup, support, terms, and the remaining administrator tools.
+5. Complete referrals, user lookup, support, and the remaining administrator tools.
 
 ## Administrator access update
 
@@ -350,11 +350,11 @@ The two owner accounts are Telegram user IDs 6522801911 and 1314643983. Both are
 
 This snapshot records the explicitly approved work completed on this date; it does not authorize future destructive changes or live commerce actions.
 
-- The additive Serverless database migration completed successfully: **5 changes applied, 0 skipped**. The schema includes Stars deposit intents, explicit terms acceptance, payment support tickets, and order history tables alongside the existing wallet/provider tables.
+- The additive Serverless database migration completed successfully: **5 changes applied, 0 skipped**. The schema includes Stars deposit intents, payment support tickets, and order history tables alongside the existing wallet/provider tables.
 - The updated runtime modules are deployed. The webhook is in sync and allows message, callback_query, and pre_checkout_query; pending updates were zero at verification.
 - FEATURES.providerSyncEnabled and FEATURES.depositsEnabled are enabled in the deployed configuration.
 - Provider balance authentication was confirmed by the owner. The first post-migration services catalogue sync has **not** yet been run/verified. Use the admin Provider → Sync services action; it is read-only with respect to supplier funds. If it imports zero entries, use the returned category/name diagnostics to refine the Telegram filter.
-- Telegram Stars invoice creation, pre-checkout validation, verified successful_payment crediting, idempotency, user/admin payment notifications, and terms acceptance are implemented. No real Stars payment has been made as part of development verification.
+- Telegram Stars invoice creation, pre-checkout validation, verified successful_payment crediting, idempotency, and user/admin payment notifications are implemented. No real Stars payment has been made as part of development verification.
 - /paysupport creates a support ticket and notifies administrators; the admin panel includes a paginated support inbox.
 - Admin /refund lists completed Stars deposits and requires confirmation. Only full refunds are supported, and only when the customer still has enough Portal Points for the reversal. Ambiguous refund API failures are held for administrator reconciliation. No live refund was executed during development.
 - /orders and transaction history are paginated. Order placement/fulfilment remains disabled until supplier billing units and the approved Portal Points price model are verified. Do not enable it by guessing that every supplier rate is per 1,000.
@@ -366,9 +366,9 @@ This snapshot records the explicitly approved work completed on this date; it do
 - Stars refund flow now separates Telegram API errors from local database reconciliation. It handles Telegram's CHARGE_ALREADY_REFUNDED response as an already-completed refund, preserves the points hold for ambiguous outcomes, and releases it only for definitive Bot API rejections. The admin confirmation screen shows the customer's current Portal Points balance and blocks confirmation if the full reversal cannot be funded.
 - Telegram's actual refundStarPayment Bot API method and parameter names are used. Admin-visible failures now include the Telegram rejection description instead of masking it with a generic error. No live refund was issued during this code update.
 - Unpaid invoice attempts remain internal in deposit_intents for pre-checkout verification, but pending deposit rows are excluded from customer wallet/history and admin recent transaction views. The dedicated admin payments screen separates confirmed, needs-review, refunded and failed records, each newest first with pagination.
-- Customer and administrator service details now use captioned Rich Message tables. Store terms use section headings, lists, a conversion table, inline bold, and expandable details. The /terms command and deposit acceptance screen share one versioned terms source; current version is 2026-11-21.
+- Customer and administrator service details now use captioned Rich Message tables. Help guidance uses an expandable Rich Message quotation; store terms pages and deposit acceptance prompts are no longer part of the bot interface.
 - /payments is an administrator-only command and panel view. /resetdb is an administrator-only, private-chat-only, two-step temporary reset command.
-- /resetdb clears terms acceptances, unfinished/failed deposit intents and matching pending/failed deposit transaction rows, payment-support tickets, temporary user/admin sessions, and service order test records. It preserves confirmed/refunded Stars transaction records, the append-only wallet ledger and customer balances, provider catalogue/pricing, and administrator accounts. Never broaden this reset without owner review.
+- /resetdb clears unfinished/failed deposit intents and matching pending/failed deposit transaction rows, payment-support tickets, temporary user/admin sessions, and service order test records. It preserves confirmed/refunded Stars transaction records, the append-only wallet ledger and customer balances, provider catalogue/pricing, and administrator accounts. Never broaden this reset without owner review.
 - Financial/admin commands are restricted to private chats. The regular transaction and order history remains newest-first with stable ID tie-breaks; provider services are sorted by enabled status, category and service ID; support tickets are newest-first.
 - No schema changes were introduced in this update; no database migration is required. Do not run a migration for these code-only changes.
 
