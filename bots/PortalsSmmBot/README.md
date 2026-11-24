@@ -4,13 +4,13 @@ Telegram-first SMM storefront built on Telegram Serverless.
 
 ## Current status
 
-The storefront now includes Rich Message navigation, the improved start menu, owner-managed administrator access, paginated wallet/order history, Telegram-only catalogue import, Telegram Stars invoice and receipt handling, payment support intake, formatted/versioned terms, administrator payment status views, and administrator Stars refund controls.
+The storefront now includes Rich Message navigation, the improved start menu, owner-managed administrator access, paginated wallet/order history, Telegram-only catalogue import, Telegram Stars invoice and receipt handling, payment support contact, administrator payment status views, and administrator Stars refund controls.
 
-The schema now also includes deposit intents, terms acceptance, payment support tickets, and order history. **The additive database migration completed on 20 November 2026: 5 changes applied, 0 skipped.** The deployed configuration enables read-only provider catalogue sync and Telegram Stars deposits. The owner has confirmed that Telegram services now appear in the customer catalogue.
+The schema now also includes deposit intents, payment support tickets, and order history. **The additive database migration completed on 20 November 2026: 5 changes applied, 0 skipped.** The deployed configuration enables read-only provider catalogue sync and Telegram Stars deposits. The owner has confirmed that Telegram services now appear in the customer catalogue.
 
 Customer order submission remains disabled until supplier billing units and the approved Portal Points price model are verified. Referral rewards remain disabled until the owner chooses the minimum qualifying Stars deposit threshold. New supplier services remain disabled until an administrator reviews and prices them.
 
-The current Rich Message UI uses captioned service tables, structured terms with headings/lists/details, and inline bold formatting. Customer and admin histories exclude unpaid invoice attempts; the admin `/payments` view separates confirmed, review, refunded and failed deposits. `/resetdb` is a temporary, two-step admin-only cleanup for terms acceptances and unfinished/test workflow data; it preserves confirmed Stars payments, the append-only wallet ledger, balances, provider catalogue and administrator accounts. Refund handling now surfaces Telegram's actual rejection reason, recognizes already-refunded charges, and supports safe retry of previously rejected attempts. No live refund was run during this update.
+The current Rich Message UI uses captioned service tables, expandable help guidance, and inline bold formatting. Customer and admin histories exclude unpaid invoice attempts; the admin `/payments` view separates confirmed, review, refunded and failed deposits. `/resetdb` is a temporary, two-step admin-only cleanup for unfinished/test workflow data; it preserves confirmed Stars payments, the append-only wallet ledger, balances, provider catalogue and administrator accounts. Refund handling now surfaces Telegram's actual rejection reason, recognizes already-refunded charges, and supports safe retry of previously rejected attempts. No live refund was run during this update.
 
 ## Platform and services
 
