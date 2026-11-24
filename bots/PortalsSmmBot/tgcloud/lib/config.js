@@ -28,7 +28,8 @@ export const PRICING = Object.freeze({
 });
 
 export const SUPPORT = Object.freeze({
-  username: 'roexe',
+  displayName: 'Portal Support',
+  userId: 9170717027,
 });
 
 export const FEATURES = Object.freeze({
