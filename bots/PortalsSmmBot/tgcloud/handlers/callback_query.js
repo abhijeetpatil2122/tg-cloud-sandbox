@@ -36,9 +36,11 @@ async function answer(id, text = '') {
 
 async function editTarget(chatId, messageId, richMessage) {
   if (messageId && typeof messageId === 'object' && messageId.inline_message_id) {
+    const { reply_markup, ...content } = richMessage || {};
     return api.editMessageText({
       inline_message_id: messageId.inline_message_id,
-      rich_message: richMessage,
+      rich_message: content,
+      ...(reply_markup ? { reply_markup } : {}),
     });
   }
   if (messageId) return editRich(chatId, messageId, richMessage);
@@ -53,10 +55,8 @@ async function render(chatId, messageId, richMessage) {
     console.error('PortalsSmmBot rich screen edit failed:', editError?.description || editError?.message || editError);
   }
 
-  // Preserve URL buttons in the fallback send. Silently stripping them made
-  // the support profile action disappear from Deposit, Support and VPN screens.
-  // If Telegram rejects the URL, surface the real API error instead of
-  // pretending that the requested screen was rendered successfully.
+  // sendRich preserves the separate Bot API inline keyboard attached to a
+  // Rich Message, including the support profile URL action.
   try {
     return await sendRich(chatId, richMessage);
   } catch (sendError) {
