@@ -34,19 +34,53 @@ async function answer(id, text = '') {
   await api.answerCallbackQuery(params);
 }
 
+function withoutUrlButtons(richMessage) {
+  const blocks = (richMessage?.blocks || []).flatMap(block => {
+    if (block?.type !== 'buttons' || !Array.isArray(block.buttons)) return [block];
+    const buttons = block.buttons.filter(button => !button?.url);
+    return buttons.length ? [{ ...block, buttons }] : [];
+  });
+  return { ...richMessage, blocks };
+}
+
+async function editTarget(chatId, messageId, richMessage) {
+  if (messageId && typeof messageId === 'object' && messageId.inline_message_id) {
+    return api.editMessageText({
+      inline_message_id: messageId.inline_message_id,
+      rich_message: richMessage,
+    });
+  }
+  if (messageId) return editRich(chatId, messageId, richMessage);
+  return null;
+}
+
 async function render(chatId, messageId, richMessage) {
   try {
-    if (messageId && typeof messageId === 'object' && messageId.inline_message_id) {
-      return await api.editMessageText({
-        inline_message_id: messageId.inline_message_id,
-        rich_message: richMessage,
-      });
-    }
-    if (messageId) return await editRich(chatId, messageId, richMessage);
+    const edited = await editTarget(chatId, messageId, richMessage);
+    if (edited) return edited;
   } catch (editError) {
-    console.error('PortalsSmmBot rich screen edit failed; sending a new message:', editError?.description || editError?.message || editError);
+    console.error('PortalsSmmBot rich screen edit failed:', editError?.description || editError?.message || editError);
   }
-  return sendRich(chatId, richMessage);
+
+  try {
+    return await sendRich(chatId, richMessage);
+  } catch (sendError) {
+    const fallback = withoutUrlButtons(richMessage);
+    const removedUrlButtons = JSON.stringify(fallback) !== JSON.stringify(richMessage);
+    console.error('PortalsSmmBot rich screen send failed:', sendError?.description || sendError?.message || sendError);
+    if (!removedUrlButtons) throw sendError;
+
+    // A user-ID deep link can be restricted by the target user's Telegram
+    // privacy settings. Keep the requested screen usable and show its visible
+    // support ID even if Telegram rejects the URL button itself.
+    try {
+      const edited = await editTarget(chatId, messageId, fallback);
+      if (edited) return edited;
+    } catch (fallbackEditError) {
+      console.error('PortalsSmmBot fallback screen edit failed:', fallbackEditError?.description || fallbackEditError?.message || fallbackEditError);
+    }
+    return sendRich(chatId, fallback);
+  }
 }
 
 async function getAdminIds() {
