@@ -1,6 +1,6 @@
 import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
-import { OWNER_IDS, FEATURES } from '../lib/config.js';
+import { OWNER_IDS, FEATURES, SUPPORT } from '../lib/config.js';
 import { addAdmin, isAdmin, isOwner, listAdmins, removeAdmin } from '../lib/admins.js';
 import {
   adminAddPromptMessage,
@@ -132,6 +132,21 @@ export default async function handleCallbackQuery(query) {
     }
     if (data === 'ps:vpn') {
       return await render(chatId, messageId, vpnPlansMessage());
+    }
+    if (data === 'ps:support:contact') {
+      // Use the classic Bot API inline keyboard for the user deep link.
+      // Rich Message URL buttons have repeatedly produced "Action unavailable"
+      // in the user's Telegram client despite the same URL being documented.
+      return await api.sendMessage({
+        chat_id: chatId,
+        text: 'Open the support profile using the button below.',
+        reply_markup: {
+          inline_keyboard: [[{
+            text: 'Open Portal Support',
+            url: 'tg://user?id=' + SUPPORT.userId,
+          }]],
+        },
+      });
     }
 
     // Only database-backed actions need user tracking and ban enforcement.
