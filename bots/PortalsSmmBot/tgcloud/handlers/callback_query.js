@@ -489,7 +489,7 @@ export default async function handleCallbackQuery(query) {
       'Method: ' + (error?.method || 'runtime'),
       'Code: ' + (error?.code ?? 'n/a'),
       'Error: ' + detail,
-    ].join('\\n');
+    ].join('\n');
     console.error('PortalsSmmBot callback handler failed:', diagnostic, error?.stack || '');
     // Send the exact failure only to designated owners; never expose internals
     // in the customer's storefront error screen.
