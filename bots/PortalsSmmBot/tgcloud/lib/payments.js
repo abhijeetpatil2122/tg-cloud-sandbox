@@ -48,9 +48,8 @@ export function depositMessage() {
     ] },
     { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
     { type: 'buttons', buttons: [{ text: '💎 Add Balance via Crypto', url: 'tg://user?id=' + SUPPORT.userId }] },
-    { type: 'paragraph', text: 'For a manual crypto top-up, contact ' + SUPPORT.displayName + ' and share the amount you want to add. Your balance is updated only after the payment is verified.' },
-    { type: 'buttons', buttons: [{ text: '💬 Contact ' + SUPPORT.displayName, url: 'tg://user?id=' + SUPPORT.userId }] },
-    { type: 'paragraph', text: SUPPORT.displayName + ' · Telegram ID: ' + SUPPORT.userId },
+    { type: 'paragraph', text: 'For a manual crypto top-up, use the profile button below and share the amount you want to add. Your balance is updated only after the payment is verified.' },
+    { type: 'buttons', align: 'left', buttons: [{ text: 'Open profile', url: 'tg://user?id=' + SUPPORT.userId }] },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
 }
@@ -216,7 +215,7 @@ export async function handleSuccessfulPayment(message) {
     try {
       await sendRich(message.chat.id, { blocks: [
         { type: 'heading', size: 1, text: '⚠️ Payment received — review required' },
-        { type: 'paragraph', text: 'Telegram confirmed your payment. The wallet update needs administrator review; please do not pay again. Contact Portal Support for assistance.' },
+        { type: 'paragraph', text: 'Telegram confirmed your payment. The wallet update needs administrator review; please do not pay again. use the Support section for assistance.' },
       ] });
     } catch {}
     return true;
