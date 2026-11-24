@@ -3,7 +3,7 @@ import { desc, eq, sql, sum } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
 import { depositIntents, walletLedger, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction, formatUsd } from './wallet.js';
-import { sendRich, supportProfileButtonBlock } from './ui.js';
+import { sendRich, supportProfileButtonBlock, cryptoTopUpButtonBlock } from './ui.js';
 import { listAdmins } from './admins.js';
 import { isUserBanned } from './users.js';
 
@@ -52,7 +52,7 @@ export function depositMessage() {
       ] },
       { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
       { type: 'paragraph', text: 'For a manual crypto top-up, open the support profile below and share the amount you want to add. Your balance is updated only after the payment is verified.' },
-      supportProfileButtonBlock(),
+      cryptoTopUpButtonBlock(),
       { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
     ],
   };
