@@ -14,7 +14,7 @@ export function supportProfileButtonBlock() {
     type: 'buttons',
     buttons: [{
       text: 'Open support profile',
-      url: 'tg://user?id=' + SUPPORT.userId,
+      url: 'https://t.me/' + SUPPORT.username,
     }],
   };
 }
