@@ -142,6 +142,7 @@ export function vpnPlansMessage() {
     { type: 'paragraph', text: [{ type: 'bold', text: 'Validity: ' }, '1 Year'] },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Country Coverage: ' }, 'Unlimited countries'] },
     row({ text: '💬 Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId }),
+    { type: 'paragraph', text: 'Support ID: ' + SUPPORT.userId + ' · Search this ID in Telegram if the contact button does not open.' },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
