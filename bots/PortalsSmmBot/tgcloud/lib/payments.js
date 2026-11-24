@@ -1,85 +1,11 @@
 import { api, db } from 'sdk';
 import { desc, eq, sql, sum } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
-import { depositIntents, walletLedger, walletTransactions, termsAcceptances } from '../schema.js';
+import { depositIntents, walletLedger, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction, formatUsd } from './wallet.js';
 import { sendRich } from './ui.js';
 import { listAdmins } from './admins.js';
 import { isUserBanned } from './users.js';
-
-export const TERMS_VERSION = '2026-11-23';
-
-export async function hasAcceptedTerms(userId) {
-  const row = await db.select().from(termsAcceptances)
-    .where(eq(termsAcceptances.userId, Number(userId))).get();
-  return Boolean(row && row.version === TERMS_VERSION);
-}
-
-export async function acceptStoreTerms(userId) {
-  await db.insert(termsAcceptances).values({
-    userId: Number(userId),
-    version: TERMS_VERSION,
-    acceptedAt: new Date(),
-  }).onConflictDoUpdate({
-    target: termsAcceptances.userId,
-    set: { version: TERMS_VERSION, acceptedAt: new Date() },
-  }).run();
-}
-
-export function termsAcceptanceMessage() {
-  return { blocks: [
-    { type: 'heading', size: 1, text: '📜 Before you deposit' },
-    { type: 'paragraph', text: 'Please review the store terms before adding wallet funds.' },
-    { type: 'buttons', buttons: [{ text: 'Read store terms', callback_data: 'ps:terms', style: 'primary' }] },
-    { type: 'buttons', buttons: [{ text: '✓ I agree — continue', callback_data: 'ps:deposit:accept', style: 'success' }] },
-    { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
-  ] };
-}
-
-export function termsMessage() {
-  return { blocks: [
-    { type: 'heading', size: 1, text: '📜 Portals SMM — Store terms' },
-    { type: 'paragraph', text: 'Please read these terms before using the store. They explain payments, store credit, service requirements and support.' },
-    { type: 'heading', size: 2, text: '1. ⭐ Payments' },
-    { type: 'list', items: [
-      { blocks: [{ type: 'paragraph', text: 'Payments are accepted in Telegram Stars (XTR).' }] },
-      { blocks: [{ type: 'paragraph', text: 'A deposit is credited only after Telegram sends a verified successful payment receipt.' }] },
-      { blocks: [{ type: 'paragraph', text: 'An invoice, payment attempt, screenshot or pre-checkout approval is not proof of payment.' }] },
-    ] },
-    { type: 'table', caption: 'Wallet conversion', is_bordered: true, is_compact: true, cells: [
-      [{ text: 'Telegram Stars', is_header: true }, { text: 'USD balance', is_header: true }],
-      [{ text: '80 Stars' }, { text: [{ type: 'bold', text: '$1.00' }] }],
-      [{ text: '160 Stars' }, { text: [{ type: 'bold', text: '$2.00' }] }],
-      [{ text: '400 Stars' }, { text: [{ type: 'bold', text: '$5.00' }] }],
-      [{ text: '4,000 Stars' }, { text: [{ type: 'bold', text: '$50.00' }] }],
-      [{ text: '8,000 Stars' }, { text: [{ type: 'bold', text: '$100.00' }] }],
-    ] },
-    { type: 'heading', size: 2, text: '2. 💼 USD wallet balance' },
-    { type: 'paragraph', text: 'The USD figure is an internal wallet accounting balance, not a bank deposit or cash withdrawal.' },
-    { type: 'heading', size: 2, text: '3. 📈 Services and orders' },
-    { type: 'list', items: [
-      { blocks: [{ type: 'paragraph', text: 'Each service has its own target format, quantity limits, capabilities and delivery conditions.' }] },
-      { blocks: [{ type: 'paragraph', text: 'Review the service description and price before placing an order.' }] },
-      { blocks: [{ type: 'paragraph', text: 'Never provide Telegram passwords, login codes, recovery codes or account credentials.' }] },
-      { blocks: [{ type: 'paragraph', text: 'Delivery estimates are estimates; platform changes and supplier conditions can affect completion.' }] },
-    ] },
-    { type: 'heading', size: 2, text: '4. ↩️ Refunds and payment issues' },
-    { type: 'paragraph', text: 'Telegram Stars payment refunds are reviewed against the original Telegram charge and the USD balance credited. Where a refund is approved, the corresponding wallet funds are reversed. A refund may be blocked if the credited wallet funds have already been spent.' },
-    { type: 'paragraph', text: 'For failed deposits, missing credits or refund questions, contact @roexe with the transaction reference. Never pay again while an earlier payment is under review.' },
-    { type: 'heading', size: 2, text: '5. 🛡️ Fair use and account safety' },
-    { type: 'list', items: [
-      { blocks: [{ type: 'paragraph', text: 'Fake accounts, fraudulent payments and attempts to exploit the service are prohibited.' }] },
-      { blocks: [{ type: 'paragraph', text: 'Do not use the service for unlawful activity or to violate Telegram or third-party platform rules.' }] },
-      { blocks: [{ type: 'paragraph', text: 'We may review suspicious activity where abuse is reasonably suspected.' }] },
-    ] },
-    { type: 'details', summary: 'Need help or have a payment dispute?', blocks: [
-      { type: 'paragraph', text: 'Contact @roexe with the payment reference, amount and approximate time. Do not share passwords, login codes or private credentials.' },
-    ] },
-    { type: 'footer', text: 'By selecting “I agree”, you confirm that you have read and accepted these store terms.' },
-    { type: 'buttons', buttons: [{ text: '✓ I agree — continue', callback_data: 'ps:deposit:accept', style: 'success' }] },
-    { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
-  ] };
-}
 
 function makePayload(userId) {
   // Opaque database reference, not an authorization token.
@@ -121,6 +47,7 @@ export function depositMessage() {
       { text: '8,000 ⭐ · $100', callback_data: 'ps:deposit:8000' },
     ] },
     { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
+    { type: 'buttons', buttons: [{ text: '💬 Payment Support', url: 'tg://user?id=9170717027' }] },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
 }
@@ -128,7 +55,6 @@ export function depositMessage() {
 export async function createStarsInvoice(userId, chatId, stars) {
   const amount = Number(stars);
   if (!FEATURES.depositsEnabled) throw new Error('Stars deposits are not enabled yet.');
-  if (!await hasAcceptedTerms(userId)) throw new Error('Please read and accept the store terms before depositing.');
   if (!Number.isSafeInteger(amount) || amount < 1 || amount > 100000) {
     throw new Error('Enter a whole number of Stars from 1 to 100,000.');
   }
