@@ -22,7 +22,7 @@ import {
 import { adminSessions, userSessions } from '../schema.js';
 import { adminTransactionsMessage, transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { checkProviderBalance, listTelegramServices, setTelegramServiceEnabled, syncTelegramServices } from '../lib/provider.js';
-import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit, hasAcceptedTerms, acceptStoreTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
+import { createStarsInvoice, depositMessage, depositUnavailableMessage, adminRefundsMessage, refundPreviewMessage, refundStarsDeposit, adminPaymentsMessage } from '../lib/payments.js';
 import { myOrdersMessage, orderDetailsMessage } from '../lib/orders.js';
 import { resetPreviewMessage, resetTestData, resetCompleteMessage } from '../lib/reset.js';
 import { trackUser, isUserBanned, adminStatsMessage } from '../lib/users.js';
@@ -84,14 +84,9 @@ export default async function handleCallbackQuery(query) {
 
     if (data === 'ps:deposit') {
       if (!FEATURES.depositsEnabled) return render(chatId, messageId, depositUnavailableMessage());
-      return render(chatId, messageId, await hasAcceptedTerms(userId) ? depositMessage() : termsAcceptanceMessage());
-    }
-    if (data === 'ps:deposit:accept') {
-      await acceptStoreTerms(userId);
       return render(chatId, messageId, depositMessage());
     }
     if (data === 'ps:deposit:custom') {
-      if (!await hasAcceptedTerms(userId)) return render(chatId, messageId, termsAcceptanceMessage());
       await db.insert(userSessions).values({ userId, action: 'custom_deposit', createdAt: new Date() })
         .onConflictDoUpdate({ target: userSessions.userId, set: { action: 'custom_deposit', createdAt: new Date() } }).run();
       return render(chatId, messageId, { blocks: [
@@ -104,10 +99,8 @@ export default async function handleCallbackQuery(query) {
       await db.delete(userSessions).where(eq(userSessions.userId, userId)).run();
       return render(chatId, messageId, depositMessage());
     }
-    if (data === 'ps:terms') return render(chatId, messageId, termsMessage());
     const depositChoice = data.match(/^ps:deposit:(\d{1,5})$/);
     if (depositChoice) {
-      if (!await hasAcceptedTerms(userId)) return render(chatId, messageId, termsAcceptanceMessage());
       try {
         await createStarsInvoice(userId, chatId, Number(depositChoice[1]));
         return render(chatId, messageId, {
