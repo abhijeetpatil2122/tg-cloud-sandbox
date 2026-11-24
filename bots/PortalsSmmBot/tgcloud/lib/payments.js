@@ -168,7 +168,7 @@ export async function handleSuccessfulPayment(message) {
       await notifyAdmins('⚠️ Payment needs review\nUser: ' + userId + '\nPayload: ' + payload.slice(0, 60) + '\nStars: ' + (Number(payment.total_amount) || 0) + '\nReceipt did not match a pending deposit. No wallet funds were credited.');
       await sendRich(message.chat.id, { blocks: [
         { type: 'heading', size: 1, text: '⚠️ Payment under review' },
-        { type: 'paragraph', text: 'Telegram confirmed a payment, but the deposit details need administrator review. Contact Portal Support if you need help.' },
+        { type: 'paragraph', text: 'Telegram confirmed a payment, but the deposit details need administrator review. Use the Support section if you need help.' },
       ] });
       return true;
     }
