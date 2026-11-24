@@ -1,6 +1,6 @@
 import { api, db } from 'sdk';
 import { desc, eq, sql, sum } from 'sdk/db';
-import { FEATURES, WALLET } from './config.js';
+import { FEATURES, WALLET, SUPPORT } from './config.js';
 import { depositIntents, walletLedger, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction, formatUsd } from './wallet.js';
 import { sendRich } from './ui.js';
@@ -47,7 +47,7 @@ export function depositMessage() {
       { text: '8,000 ⭐ · $100', callback_data: 'ps:deposit:8000' },
     ] },
     { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
-    { type: 'buttons', buttons: [{ text: '💬 Payment Support', url: 'tg://user?id=9170717027' }] },
+    { type: 'buttons', buttons: [{ text: '💬 Payment Support', url: 'tg://user?id=' + SUPPORT.userId }] },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
 }
@@ -166,7 +166,7 @@ export async function handleSuccessfulPayment(message) {
       await notifyAdmins('⚠️ Payment needs review\nUser: ' + userId + '\nPayload: ' + payload.slice(0, 60) + '\nStars: ' + (Number(payment.total_amount) || 0) + '\nReceipt did not match a pending deposit. No wallet funds were credited.');
       await sendRich(message.chat.id, { blocks: [
         { type: 'heading', size: 1, text: '⚠️ Payment under review' },
-        { type: 'paragraph', text: 'Telegram confirmed a payment, but the deposit details need administrator review. Contact @roexe if you need help.' },
+        { type: 'paragraph', text: 'Telegram confirmed a payment, but the deposit details need administrator review. Contact Portal Support if you need help.' },
       ] });
       return true;
     }
@@ -213,7 +213,7 @@ export async function handleSuccessfulPayment(message) {
     try {
       await sendRich(message.chat.id, { blocks: [
         { type: 'heading', size: 1, text: '⚠️ Payment received — review required' },
-        { type: 'paragraph', text: 'Telegram confirmed your payment. The wallet update needs administrator review; please do not pay again. Contact @roexe for assistance.' },
+        { type: 'paragraph', text: 'Telegram confirmed your payment. The wallet update needs administrator review; please do not pay again. Contact Portal Support for assistance.' },
       ] });
     } catch {}
     return true;
