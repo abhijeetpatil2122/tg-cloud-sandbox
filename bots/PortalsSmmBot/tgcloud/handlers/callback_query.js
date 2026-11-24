@@ -117,12 +117,12 @@ export default async function handleCallbackQuery(query) {
     // In particular, a slow user-registry lookup must not stall Deposit,
     // Support, or VPN navigation after the user taps a Rich Message button.
     if (data === 'ps:home') {
-      return render(chatId, messageId, homeMessage(
+      return await render(chatId, messageId, homeMessage(
         [query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there',
         OWNER_IDS.includes(userId),
       ));
     }
-    if (data === 'ps:help') return render(chatId, messageId, helpMessage(false));
+    if (data === 'ps:help') return await render(chatId, messageId, helpMessage(false));
     if (data === 'ps:deposit') {
       const screen = FEATURES.depositsEnabled ? depositMessage() : depositUnavailableMessage();
       return await render(chatId, messageId, screen);
