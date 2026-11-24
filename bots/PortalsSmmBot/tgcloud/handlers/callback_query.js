@@ -36,11 +36,9 @@ async function answer(id, text = '') {
 
 async function editTarget(chatId, messageId, richMessage) {
   if (messageId && typeof messageId === 'object' && messageId.inline_message_id) {
-    const { reply_markup, ...content } = richMessage || {};
     return api.editMessageText({
       inline_message_id: messageId.inline_message_id,
-      rich_message: content,
-      ...(reply_markup ? { reply_markup } : {}),
+      rich_message: richMessage,
     });
   }
   if (messageId) return editRich(chatId, messageId, richMessage);
