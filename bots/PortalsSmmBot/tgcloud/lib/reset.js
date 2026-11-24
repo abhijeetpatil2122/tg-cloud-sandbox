@@ -5,7 +5,6 @@ import {
   depositIntents,
   paymentSupportTickets,
   serviceOrders,
-  termsAcceptances,
   userSessions,
   walletTransactions,
 } from '../schema.js';
@@ -16,16 +15,14 @@ export async function resetPreviewMessage() {
     eq(walletTransactions.kind, 'deposit'),
     inArray(walletTransactions.status, ['pending', 'failed']),
   ));
-  const terms = await db.$count(termsAcceptances);
   const sessions = await db.$count(userSessions);
   const tickets = await db.$count(paymentSupportTickets);
   const orders = await db.$count(serviceOrders);
   return { blocks: [
     { type: 'heading', size: 1, text: '🧹 Reset test data' },
-    { type: 'paragraph', text: 'This temporary admin tool clears test and unfinished workflow data so you can test the terms and payment screens again.' },
+    { type: 'paragraph', text: 'This temporary admin tool clears unfinished payment and order workflow data.' },
     { type: 'table', caption: 'Data that will be cleared', is_bordered: true, is_striped: true, cells: [
       [{ text: 'Data', is_header: true }, { text: 'Records', is_header: true, align: 'right' }],
-      [{ text: 'Terms acceptances' }, { text: String(terms), align: 'right' }],
       [{ text: 'Unfinished/failed invoices' }, { text: String(pendingIntents), align: 'right' }],
       [{ text: 'Unfinished deposit records' }, { text: String(pendingDeposits), align: 'right' }],
       [{ text: 'Payment support test tickets' }, { text: String(tickets), align: 'right' }],
@@ -51,7 +48,6 @@ export async function resetTestData() {
     eq(walletTransactions.kind, 'deposit'),
     inArray(walletTransactions.status, ['pending', 'failed']),
   ));
-  const terms = await db.$count(termsAcceptances);
   const sessions = await db.$count(userSessions);
   const adminPending = await db.$count(adminSessions);
   const tickets = await db.$count(paymentSupportTickets);
@@ -62,13 +58,12 @@ export async function resetTestData() {
     eq(walletTransactions.kind, 'deposit'),
     inArray(walletTransactions.status, ['pending', 'failed']),
   )).run();
-  await db.delete(termsAcceptances).run();
   await db.delete(userSessions).run();
   await db.delete(adminSessions).run();
   await db.delete(paymentSupportTickets).run();
   await db.delete(serviceOrders).run();
 
-  return { pendingIntents, pendingDeposits, terms, sessions, adminPending, tickets, orders };
+  return { pendingIntents, pendingDeposits, sessions, adminPending, tickets, orders };
 }
 
 export function resetCompleteMessage(result) {
@@ -76,10 +71,6 @@ export function resetCompleteMessage(result) {
   return { blocks: [
     { type: 'heading', size: 1, text: '✓ Test data cleared' },
     { type: 'paragraph', text: total + ' test/workflow records cleared. Confirmed Stars payments, wallet balances, financial ledger, provider catalogue and administrator accounts were preserved.' },
-    { type: 'paragraph', text: 'All users will be asked to accept the current store terms again before making another deposit.' },
-    { type: 'buttons', buttons: [
-      { text: '📜 Preview terms', callback_data: 'ps:terms' },
-      { text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' },
-    ] },
+    { type: 'buttons', buttons: [{ text: '‹ Administrator panel', callback_data: 'ps:admin', style: 'link' }] },
   ] };
 }
