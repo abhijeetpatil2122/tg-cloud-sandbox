@@ -133,7 +133,7 @@ export function vpnPlansMessage() {
     { type: 'heading', size: 1, text: '🔐 Portals VPN — Choose Your Plan' },
     { type: 'paragraph', text: 'Get 1-year access with unlimited country coverage.' },
     { type: 'heading', size: 2, text: 'Available Plans' },
-    { type: 'table', caption: 'VPN plans', is_bordered: true, is_striped: true, cells: [
+    { type: 'table', caption: 'Available plans · USD', is_bordered: true, is_striped: true, is_compact: true, cells: [
       [{ text: 'Plan', is_header: true }, { text: 'Price', is_header: true, align: 'right' }],
       [{ text: '🥉 Basic Plan' }, { text: '$100', align: 'right' }],
       [{ text: '🥈 Advanced Plan' }, { text: '$200', align: 'right' }],
@@ -141,8 +141,8 @@ export function vpnPlansMessage() {
     ] },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Validity: ' }, '1 Year'] },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Country Coverage: ' }, 'Unlimited countries'] },
-    row({ text: '💬 Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId }),
-    { type: 'paragraph', text: 'Support ID: ' + SUPPORT.userId + ' · Search this ID in Telegram if the contact button does not open.' },
+    row({ text: '💬 Contact ' + SUPPORT.displayName, url: 'tg://user?id=' + SUPPORT.userId }),
+    { type: 'paragraph', text: SUPPORT.displayName + ' · Telegram ID: ' + SUPPORT.userId },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -155,8 +155,8 @@ export function sectionMessage(section) {
     { type: 'paragraph', text: page.description },
     { type: 'divider' },
     ...(section === 'support' ? [
-      row({ text: '💬 Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId }),
-      { type: 'paragraph', text: 'Portal Support · Telegram ID: ' + SUPPORT.userId + ' · Search this ID in Telegram if the contact button does not open.' },
+      row({ text: '💬 Contact ' + SUPPORT.displayName, url: 'tg://user?id=' + SUPPORT.userId }),
+      { type: 'paragraph', text: SUPPORT.displayName + ' · Telegram ID: ' + SUPPORT.userId },
     ] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
