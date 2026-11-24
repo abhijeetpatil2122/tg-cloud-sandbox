@@ -8,12 +8,9 @@ const button = (text, callback_data, style) => ({
 });
 
 const row = (...buttons) => ({ type: 'buttons', buttons });
-// Link directly to the public support account from the Rich Message button.
-const supportProfileButton = () => ({
-  type: 'buttons',
-  align: 'left',
-  buttons: [{ text: 'Open profile', url: 'tg://user?id=' + SUPPORT.userId }],
-});
+// Use Telegram's native Rich HTML button-row markup for this URL action.
+const supportProfileHtml = () =>
+  '<tg-button-row align="left"><tg-button type="url" url="tg://user?id=' + SUPPORT.userId + '">Open profile</tg-button></tg-button-row>';
 
 export function fullName(user = {}) {
   const name = [user.first_name, user.last_name]
@@ -135,33 +132,40 @@ const screens = {
 };
 
 export function vpnPlansMessage() {
-  return { blocks: [
-    { type: 'heading', size: 1, text: '🔐 Portals VPN — Choose Your Plan' },
-    { type: 'paragraph', text: 'Get 1-year access with unlimited country coverage.' },
-    { type: 'heading', size: 2, text: 'Available Plans' },
-    { type: 'table', caption: 'Available plans · USD', is_bordered: true, is_striped: true, is_compact: true, cells: [
-      [{ text: 'Plan', is_header: true }, { text: 'Price', is_header: true, align: 'right' }],
-      [{ text: '🥉 Basic Plan' }, { text: '$100', align: 'right' }],
-      [{ text: '🥈 Advanced Plan' }, { text: '$200', align: 'right' }],
-      [{ text: '🥇 Premium Pack' }, { text: '$300', align: 'right' }],
-    ] },
-    { type: 'paragraph', text: [{ type: 'bold', text: 'Validity: ' }, '1 Year'] },
-    { type: 'paragraph', text: [{ type: 'bold', text: 'Country Coverage: ' }, 'Unlimited countries'] },
-    supportProfileButton(),
-    row(button('‹ Main menu', 'ps:home', 'link')),
-  ] };
+  return { html:
+    '<h1>🔐 Portals VPN — Choose Your Plan</h1>' +
+    '<p>Get 1-year access with unlimited country coverage.</p>' +
+    '<h2>Available Plans</h2>' +
+    '<table bordered striped compact>' +
+      '<caption>Available plans · USD</caption>' +
+      '<tr><th>Plan</th><th align="right">Price</th></tr>' +
+      '<tr><td>🥉 Basic Plan</td><td align="right">$100</td></tr>' +
+      '<tr><td>🥈 Advanced Plan</td><td align="right">$200</td></tr>' +
+      '<tr><td>🥇 Premium Pack</td><td align="right">$300</td></tr>' +
+    '</table>' +
+    '<p><b>Validity: </b>1 Year</p>' +
+    '<p><b>Country Coverage: </b>Unlimited countries</p>' +
+    supportProfileHtml() +
+    '<tg-button-row><tg-button type="callback_data" data="ps:home" style="link">‹ Main menu</tg-button></tg-button-row>',
+  };
 }
 
 export function sectionMessage(section) {
   const page = screens[section];
   if (!page) return unavailableMessage();
+  if (section === 'support') {
+    return { html:
+      '<h1>' + page.title + '</h1>' +
+      '<p>' + page.description + '</p>' +
+      '<hr/>' +
+      supportProfileHtml() +
+      '<tg-button-row><tg-button type="callback_data" data="ps:home" style="link">‹ Main menu</tg-button></tg-button-row>',
+    };
+  }
   return { blocks: [
     { type: 'heading', size: 1, text: page.title },
     { type: 'paragraph', text: page.description },
     { type: 'divider' },
-    ...(section === 'support' ? [
-      supportProfileButton(),
-    ] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }

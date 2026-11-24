@@ -1,11 +1,15 @@
 import { api, db } from 'sdk';
 import { desc, eq, sql, sum } from 'sdk/db';
-import { FEATURES, WALLET } from './config.js';
+import { FEATURES, WALLET, SUPPORT } from './config.js';
 import { depositIntents, walletLedger, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction, formatUsd } from './wallet.js';
 import { sendRich } from './ui.js';
 import { listAdmins } from './admins.js';
 import { isUserBanned } from './users.js';
+
+// Use Telegram's native Rich HTML button-row markup for this URL action.
+const supportProfileHtml = () =>
+  '<tg-button-row align="left"><tg-button type="url" url="tg://user?id=' + SUPPORT.userId + '">Open profile</tg-button></tg-button-row>';
 
 function makePayload(userId) {
   // Opaque database reference, not an authorization token.
@@ -24,34 +28,34 @@ async function notifyAdmins(message) {
 }
 
 export function depositUnavailableMessage() {
-  return { blocks: [
-    { type: 'heading', size: 1, text: '⭐ Stars deposit' },
-    { type: 'paragraph', text: 'Stars deposits are temporarily unavailable. Your balance is never credited from a screenshot or payment attempt — only Telegram’s confirmed receipt counts.' },
-    { type: 'buttons', align: 'left', buttons: [{ text: 'Open profile', url: 'tg://user?id=9170717027' }] },
-    { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
-  ] };
+  return { html:
+    '<h1>⭐ Stars deposit</h1>' +
+    '<p>Stars deposits are temporarily unavailable. Your balance is never credited from a screenshot or payment attempt — only Telegram’s confirmed receipt counts.</p>' +
+    supportProfileHtml() +
+    '<tg-button-row><tg-button type="callback_data" data="ps:home" style="link">‹ Main menu</tg-button></tg-button-row>',
+  };
 }
 
 export function depositMessage() {
-  return { blocks: [
-    { type: 'heading', size: 1, text: '⭐ Add funds' },
-    { type: 'paragraph', text: 'Pay with Telegram Stars. 80 Stars = $1.00 in your wallet.' },
-    { type: 'divider' },
-    { type: 'paragraph', text: 'Choose a package:' },
-    { type: 'buttons', buttons: [
-      { text: '80 ⭐ · $1', callback_data: 'ps:deposit:80' },
-      { text: '160 ⭐ · $2', callback_data: 'ps:deposit:160' },
-      { text: '400 ⭐ · $5', callback_data: 'ps:deposit:400' },
-    ] },
-    { type: 'buttons', buttons: [
-      { text: '4,000 ⭐ · $50', callback_data: 'ps:deposit:4000' },
-      { text: '8,000 ⭐ · $100', callback_data: 'ps:deposit:8000' },
-    ] },
-    { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
-    { type: 'paragraph', text: 'For a manual crypto top-up, open the support profile below and share the amount you want to add. Your balance is updated only after the payment is verified.' },
-    { type: 'buttons', align: 'left', buttons: [{ text: 'Open profile', url: 'tg://user?id=9170717027' }] },
-    { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
-  ] };
+  return { html:
+    '<h1>⭐ Add funds</h1>' +
+    '<p>Pay with Telegram Stars. 80 Stars = $1.00 in your wallet.</p>' +
+    '<hr/>' +
+    '<p>Choose a package:</p>' +
+    '<tg-button-row>' +
+      '<tg-button type="callback_data" data="ps:deposit:80">80 ⭐ · $1</tg-button>' +
+      '<tg-button type="callback_data" data="ps:deposit:160">160 ⭐ · $2</tg-button>' +
+      '<tg-button type="callback_data" data="ps:deposit:400">400 ⭐ · $5</tg-button>' +
+    '</tg-button-row>' +
+    '<tg-button-row>' +
+      '<tg-button type="callback_data" data="ps:deposit:4000">4,000 ⭐ · $50</tg-button>' +
+      '<tg-button type="callback_data" data="ps:deposit:8000">8,000 ⭐ · $100</tg-button>' +
+    '</tg-button-row>' +
+    '<tg-button-row><tg-button type="callback_data" style="primary" data="ps:deposit:custom">Custom amount</tg-button></tg-button-row>' +
+    '<p>For a manual crypto top-up, open the support profile below and share the amount you want to add. Your balance is updated only after the payment is verified.</p>' +
+    supportProfileHtml() +
+    '<tg-button-row><tg-button type="callback_data" data="ps:home" style="link">‹ Main menu</tg-button></tg-button-row>',
+  };
 }
 
 export async function createStarsInvoice(userId, chatId, stars) {
