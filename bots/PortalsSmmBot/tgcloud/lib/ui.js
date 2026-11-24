@@ -8,21 +8,15 @@ const button = (text, callback_data, style) => ({
 });
 
 const row = (...buttons) => ({ type: 'buttons', buttons });
-// Use a classic Bot API URL keyboard for the support profile. The keyboard
-// is attached separately to the Rich Message via reply_markup, not encoded as
-// a RichMessageButton action.
-export function supportProfileReplyMarkup() {
+// Keep every storefront action inside the block-based Rich Message format.
+export function supportProfileButtonBlock() {
   return {
-    inline_keyboard: [[{
-      text: 'Open profile',
+    type: 'buttons',
+    buttons: [{
+      text: 'Open support profile',
       url: 'tg://user?id=' + SUPPORT.userId,
-    }]],
+    }],
   };
-}
-
-function splitRichMessage(richMessage) {
-  const { reply_markup, ...content } = richMessage || {};
-  return { content, replyMarkup: reply_markup };
 }
 
 export function fullName(user = {}) {
@@ -158,9 +152,9 @@ export function vpnPlansMessage() {
       ] },
       { type: 'paragraph', text: [{ type: 'bold', text: 'Validity: ' }, '1 Year'] },
       { type: 'paragraph', text: [{ type: 'bold', text: 'Country Coverage: ' }, 'Unlimited countries'] },
+      supportProfileButtonBlock(),
       row(button('‹ Main menu', 'ps:home', 'link')),
     ],
-    reply_markup: supportProfileReplyMarkup(),
   };
 }
 
@@ -173,7 +167,9 @@ export function sectionMessage(section) {
     { type: 'divider' },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
-  if (section === 'support') message.reply_markup = supportProfileReplyMarkup();
+  if (section === 'support') {
+    message.blocks.splice(message.blocks.length - 1, 0, supportProfileButtonBlock());
+  }
   return message;
 }
 
@@ -384,21 +380,17 @@ export function customerServiceDetailsMessage(item) {
   ] };
 }
 export async function sendRich(chatId, richMessage) {
-  const { content, replyMarkup } = splitRichMessage(richMessage);
   return api.sendRichMessage({
     chat_id: chatId,
-    rich_message: content,
-    ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+    rich_message: richMessage,
   });
 }
 
 export async function editRich(chatId, messageId, richMessage) {
-  const { content, replyMarkup } = splitRichMessage(richMessage);
   return api.editMessageText({
     chat_id: chatId,
     message_id: messageId,
-    rich_message: content,
-    ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+    rich_message: richMessage,
   });
 }
 
