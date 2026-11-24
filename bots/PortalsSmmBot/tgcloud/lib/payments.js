@@ -3,7 +3,7 @@ import { desc, eq, sql, sum } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
 import { depositIntents, walletLedger, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction, formatUsd } from './wallet.js';
-import { sendRich, supportProfileButtonBlock, cryptoTopUpButtonBlock } from './ui.js';
+import { sendRich, cryptoTopUpButtonBlock } from './ui.js';
 import { listAdmins } from './admins.js';
 import { isUserBanned } from './users.js';
 
@@ -28,7 +28,7 @@ export function depositUnavailableMessage() {
     blocks: [
       { type: 'heading', size: 1, text: '⭐ Stars deposit' },
       { type: 'paragraph', text: 'Stars deposits are temporarily unavailable. Your balance is never credited from a screenshot or payment attempt — only Telegram’s confirmed receipt counts.' },
-      supportProfileButtonBlock(),
+      cryptoTopUpButtonBlock(),
       { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
     ],
   };
