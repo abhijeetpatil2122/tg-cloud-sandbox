@@ -28,7 +28,8 @@ export const PRICING = Object.freeze({
 });
 
 export const SUPPORT = Object.freeze({
-  displayName: 'Portal Support',
+  displayName: 'Portals Support',
+  username: 'PortalsSu',
   userId: 9170717027,
 });
 
