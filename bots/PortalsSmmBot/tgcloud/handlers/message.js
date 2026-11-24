@@ -230,14 +230,6 @@ export default async function handleMessage(message) {
     }
 
     if (parsed.command === '/start') {
-      try {
-        await api.sendAnimation({
-          chat_id: chatId,
-          animation: 'https://image.zaw-myo.workers.dev/file/0d5f9b44-b498-4539-b6e2-14e6637a032e',
-        });
-      } catch (animationError) {
-        console.error('PortalsSmmBot start animation failed:', animationError?.description || animationError);
-      }
       return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
     }
 
