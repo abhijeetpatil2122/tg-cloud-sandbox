@@ -153,7 +153,10 @@ export function sectionMessage(section) {
     { type: 'heading', size: 1, text: page.title },
     { type: 'paragraph', text: page.description },
     { type: 'divider' },
-    ...(section === 'support' ? [row({ text: 'Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId })] : []),
+    ...(section === 'support' ? [
+      row({ text: '💬 Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId }),
+      { type: 'paragraph', text: 'Telegram ID: ' + SUPPORT.userId + ' · If the button does not open, search this ID in Telegram.' },
+    ] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
