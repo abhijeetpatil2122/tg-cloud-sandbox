@@ -46,19 +46,30 @@ async function editTarget(chatId, messageId, richMessage) {
 }
 
 async function render(chatId, messageId, richMessage) {
+  let editFailure = null;
   try {
     const edited = await editTarget(chatId, messageId, richMessage);
     if (edited) return edited;
   } catch (editError) {
+    editFailure = editError;
     console.error('PortalsSmmBot rich screen edit failed:', editError?.description || editError?.message || editError);
   }
 
-  // All navigation and contact controls are now part of the Rich Message blocks.
+  // All navigation and contact controls are part of the block-based Rich Message.
   try {
     return await sendRich(chatId, richMessage);
   } catch (sendError) {
-    console.error('PortalsSmmBot rich screen send failed:', sendError?.description || sendError?.message || sendError);
-    throw sendError;
+    const failure = new Error(
+      'Rich screen delivery failed. Edit: ' +
+      (editFailure?.description || editFailure?.message || 'not attempted') +
+      '. Send: ' +
+      (sendError?.description || sendError?.message || String(sendError)),
+    );
+    failure.method = sendError?.method || editFailure?.method || 'render';
+    failure.code = sendError?.code || editFailure?.code;
+    failure.description = failure.message;
+    console.error('PortalsSmmBot rich screen delivery failed:', failure);
+    throw failure;
   }
 }
 
@@ -78,6 +89,7 @@ async function showAdmin(chatId, messageId, userId) {
 
 export default async function handleCallbackQuery(query) {
   if (!query?.id || !query?.from?.id) return;
+  let failureStage = 'callback:read-update';
   const message = query.message;
   const inlineMessageId = query.inline_message_id;
   const userId = Number(query.from.id);
@@ -102,6 +114,7 @@ export default async function handleCallbackQuery(query) {
   const messageId = message?.message_id || (inlineMessageId ? { inline_message_id: inlineMessageId } : null);
 
   try {
+    failureStage = 'callback:acknowledge';
     // A callback must be acknowledged, but a transient acknowledgement error
     // must never prevent the requested screen from being rendered.
     try {
@@ -110,6 +123,7 @@ export default async function handleCallbackQuery(query) {
       console.error('PortalsSmmBot callback acknowledgement failed:', ackError?.description || ackError?.message || ackError);
     }
 
+    failureStage = 'callback:route:' + (data || 'empty');
     // Public storefront navigation must not depend on database availability.
     // In particular, a slow user-registry lookup must not stall Deposit,
     // Support, or VPN navigation after the user taps a Rich Message button.
@@ -467,7 +481,24 @@ export default async function handleCallbackQuery(query) {
 
     return render(chatId, messageId, unavailableMessage());
   } catch (error) {
-    console.error('PortalsSmmBot callback handler failed:', error?.description || error?.stack || error);
+    const detail = String(error?.description || error?.message || error?.stack || error).slice(0, 900);
+    const diagnostic = [
+      'PortalsSmmBot callback diagnostic',
+      'Action: ' + (data || '(empty)'),
+      'Stage: ' + failureStage,
+      'Method: ' + (error?.method || 'runtime'),
+      'Code: ' + (error?.code ?? 'n/a'),
+      'Error: ' + detail,
+    ].join('\\n');
+    console.error('PortalsSmmBot callback handler failed:', diagnostic, error?.stack || '');
+    // Send the exact failure only to designated owners; never expose internals
+    // in the customer's storefront error screen.
+    await Promise.all(OWNER_IDS.map(ownerId => api.sendMessage({
+      chat_id: ownerId,
+      text: diagnostic,
+    }).catch(notifyError => {
+      console.error('PortalsSmmBot owner diagnostic delivery failed:', notifyError?.description || notifyError);
+    })));
     try {
       await render(chatId, messageId, {
         blocks: [
@@ -476,8 +507,8 @@ export default async function handleCallbackQuery(query) {
           { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
         ],
       });
-    } catch (editError) {
-      console.error('PortalsSmmBot callback error screen failed:', editError?.description || editError);
+    } catch (screenError) {
+      console.error('PortalsSmmBot callback error screen failed:', screenError?.description || screenError);
     }
   }
 }
