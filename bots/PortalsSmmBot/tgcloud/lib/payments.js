@@ -3,7 +3,7 @@ import { desc, eq, sql, sum } from 'sdk/db';
 import { FEATURES, WALLET } from './config.js';
 import { depositIntents, walletLedger, walletTransactions } from '../schema.js';
 import { createWalletTransaction, creditWalletPoints, debitWalletPoints, updateWalletTransaction, formatUsd } from './wallet.js';
-import { sendRich, supportProfileReplyMarkup } from './ui.js';
+import { sendRich, supportProfileButtonBlock } from './ui.js';
 import { listAdmins } from './admins.js';
 import { isUserBanned } from './users.js';
 
@@ -28,9 +28,9 @@ export function depositUnavailableMessage() {
     blocks: [
       { type: 'heading', size: 1, text: '⭐ Stars deposit' },
       { type: 'paragraph', text: 'Stars deposits are temporarily unavailable. Your balance is never credited from a screenshot or payment attempt — only Telegram’s confirmed receipt counts.' },
+      supportProfileButtonBlock(),
       { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
     ],
-    reply_markup: supportProfileReplyMarkup(),
   };
 }
 
@@ -52,9 +52,9 @@ export function depositMessage() {
       ] },
       { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
       { type: 'paragraph', text: 'For a manual crypto top-up, open the support profile below and share the amount you want to add. Your balance is updated only after the payment is verified.' },
+      supportProfileButtonBlock(),
       { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
     ],
-    reply_markup: supportProfileReplyMarkup(),
   };
 }
 
