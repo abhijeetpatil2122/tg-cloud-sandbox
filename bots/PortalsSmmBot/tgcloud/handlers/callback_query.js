@@ -53,8 +53,7 @@ async function render(chatId, messageId, richMessage) {
     console.error('PortalsSmmBot rich screen edit failed:', editError?.description || editError?.message || editError);
   }
 
-  // sendRich preserves the separate Bot API inline keyboard attached to a
-  // Rich Message, including the support profile URL action.
+  // All navigation and contact controls are now part of the Rich Message blocks.
   try {
     return await sendRich(chatId, richMessage);
   } catch (sendError) {
