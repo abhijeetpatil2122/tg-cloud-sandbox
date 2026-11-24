@@ -108,10 +108,15 @@ export default async function handleCallbackQuery(query) {
     }
     if (data === 'ps:help') return render(chatId, messageId, helpMessage(false));
     if (data === 'ps:deposit') {
-      return render(chatId, messageId, FEATURES.depositsEnabled ? depositMessage() : depositUnavailableMessage());
+      const screen = FEATURES.depositsEnabled ? depositMessage() : depositUnavailableMessage();
+      return await render(chatId, messageId, screen);
     }
-    if (data === 'ps:support') return render(chatId, messageId, sectionMessage('support'));
-    if (data === 'ps:vpn') return render(chatId, messageId, vpnPlansMessage());
+    if (data === 'ps:support') {
+      return await render(chatId, messageId, sectionMessage('support'));
+    }
+    if (data === 'ps:vpn') {
+      return await render(chatId, messageId, vpnPlansMessage());
+    }
 
     // Only database-backed actions need user tracking and ban enforcement.
     await trackUser(query.from, message?.chat?.type || 'private');
@@ -157,7 +162,6 @@ export default async function handleCallbackQuery(query) {
         });
       }
     }
-    if (data === 'ps:vpn') return render(chatId, messageId, vpnPlansMessage());
     if (data === 'ps:wallet') return render(chatId, messageId, await walletMessage(userId));
     if (data === 'ps:history') return render(chatId, messageId, await transactionHistoryMessage(userId, 0));
     if (data === 'ps:orders') return render(chatId, messageId, await myOrdersMessage(userId, 0));
@@ -196,12 +200,6 @@ export default async function handleCallbackQuery(query) {
         return render(chatId, messageId, customerServicesMessage([]));
       }
     }
-
-    const sections = {
-      'ps:deposit': 'deposit',
-      'ps:support': 'support',
-    };
-    if (sections[data]) return render(chatId, messageId, sectionMessage(sections[data]));
 
     if (data.startsWith('ps:admin')) {
       if (!await isAdmin(userId)) {
