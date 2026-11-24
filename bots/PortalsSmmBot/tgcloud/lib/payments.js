@@ -48,9 +48,9 @@ export function depositMessage() {
     ] },
     { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
     { type: 'buttons', buttons: [{ text: '💎 Add Balance via Crypto', url: 'tg://user?id=' + SUPPORT.userId }] },
-    { type: 'paragraph', text: 'For a manual crypto top-up, contact Portal Support and share the amount you want to add. Your balance is updated only after the payment is verified.' },
-    { type: 'buttons', buttons: [{ text: '💬 Payment Support', url: 'tg://user?id=' + SUPPORT.userId }] },
-    { type: 'paragraph', text: 'Support ID: ' + SUPPORT.userId + ' · Search this ID in Telegram if the contact button does not open.' },
+    { type: 'paragraph', text: 'For a manual crypto top-up, contact ' + SUPPORT.displayName + ' and share the amount you want to add. Your balance is updated only after the payment is verified.' },
+    { type: 'buttons', buttons: [{ text: '💬 Contact ' + SUPPORT.displayName, url: 'tg://user?id=' + SUPPORT.userId }] },
+    { type: 'paragraph', text: SUPPORT.displayName + ' · Telegram ID: ' + SUPPORT.userId },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
 }
