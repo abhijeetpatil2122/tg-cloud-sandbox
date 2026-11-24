@@ -19,6 +19,17 @@ export function supportProfileButtonBlock() {
   };
 }
 
+// Use the public support username for manual crypto top-ups.
+export function cryptoTopUpButtonBlock() {
+  return {
+    type: 'buttons',
+    buttons: [{
+      text: '💎 Add Balance via Crypto',
+      url: 'https://t.me/' + SUPPORT.username,
+    }],
+  };
+}
+
 export function fullName(user = {}) {
   const name = [user.first_name, user.last_name]
     .filter(value => typeof value === 'string' && value.trim())
@@ -32,7 +43,7 @@ export function homeMessage(name = 'there', showAdmin = false) {
     { type: 'heading', size: 1, text: '🚀 Portals SMM' },
     { type: 'paragraph', text: `Welcome, ${name}!` },
     { type: 'paragraph', text: 'Your Telegram growth workspace — manage services, wallet and service history in one place.' },
-    { type: 'heading', size: 2, text: '✨ Quick access' }, 
+    { type: 'heading', size: 2, text: '✨ Quick access' },
     { type: 'divider' },
     row(button('📈 Services', 'ps:services', 'primary'), button('⭐ Deposit', 'ps:deposit', 'success')),
     row(button('💼 Wallet', 'ps:wallet'), button('🧾 Payment History', 'ps:history')),
@@ -152,7 +163,7 @@ export function vpnPlansMessage() {
       ] },
       { type: 'paragraph', text: [{ type: 'bold', text: 'Validity: ' }, '1 Year'] },
       { type: 'paragraph', text: [{ type: 'bold', text: 'Country Coverage: ' }, 'Unlimited countries'] },
-      supportProfileButtonBlock(),
+      cryptoTopUpButtonBlock(),
       row(button('‹ Main menu', 'ps:home', 'link')),
     ],
   };
@@ -394,10 +405,3 @@ export async function editRich(chatId, messageId, richMessage) {
   });
 }
 
-export async function sendHome(chatId, user, showAdmin = false) {
-  return sendRich(chatId, homeMessage(fullName(user), showAdmin));
-}
-
-export async function sendHelp(chatId) {
-  return sendRich(chatId, helpMessage());
-}
