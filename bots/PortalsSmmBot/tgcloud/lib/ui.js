@@ -1,4 +1,5 @@
 import { api } from 'sdk';
+import { SUPPORT } from './config.js';
 
 const button = (text, callback_data, style) => ({
   text,
@@ -24,8 +25,8 @@ export function homeMessage(name = 'there', showAdmin = false) {
     { type: 'heading', size: 2, text: '✨ Quick access' }, 
     { type: 'divider' },
     row(button('📈 Services', 'ps:services', 'primary'), button('⭐ Deposit', 'ps:deposit', 'success')),
-    row(button('💼 Wallet', 'ps:wallet'), button('🧾 History', 'ps:history')),
-    row(button('🧾 Service History', 'ps:orders'), button('🔒 VPN Service', 'ps:vpn')),
+    row(button('💼 Wallet', 'ps:wallet'), button('🧾 Payment History', 'ps:history')),
+    row(button('📈 Order History', 'ps:orders'), button('🔒 VPN Service', 'ps:vpn')),
     row(button('💬 Support', 'ps:support'), button('❔ Help', 'ps:help', 'link')),
   ];
   if (showAdmin) blocks.push(row(button('⚙️ Administrator panel', 'ps:admin')));
@@ -33,7 +34,7 @@ export function homeMessage(name = 'there', showAdmin = false) {
 }
 
 export function helpMessage(showAdmin = false) {
-  const items = [
+  const commands = [
     '/start — Open the storefront',
     '/menu — Return to the main menu',
     '/services — Browse available Telegram services',
@@ -44,11 +45,10 @@ export function helpMessage(showAdmin = false) {
     '/support — Contact service support',
     '/paysupport — Get help with a payment or deposit',
     '/vpn — View VPN plans and contact support',
-    '/terms — Read store terms',
     '/help — View this command guide',
     '/cancel — Cancel an active custom-deposit input',
   ];
-  if (showAdmin) items.push(
+  if (showAdmin) commands.push(
     '/admin — Open the administrator panel',
     '/payments — Review Stars payment records',
     '/refund [transaction_id] — Review a Stars refund',
@@ -58,8 +58,27 @@ export function helpMessage(showAdmin = false) {
   );
   return { blocks: [
     { type: 'heading', size: 1, text: '❔ Help' },
+    { type: 'expandable_blockquote', text: [
+      { type: 'bold', text: '💳 Payments' },
+      '\\nTelegram Stars payments are automatic. Your balance is credited instantly after Telegram confirms a successful payment. For payment assistance, contact Portal Support.',
+      '\\n\\n',
+      { type: 'bold', text: '💼 Wallet' },
+      '\\nWallet balance is store credit in USD, not withdrawable cash.',
+      '\\n\\n',
+      { type: 'bold', text: '📈 Orders' },
+      '\\nCheck service details, requirements and delivery estimates before ordering. Delivery times may vary.',
+      '\\n\\n',
+      { type: 'bold', text: '↩️ Refunds' },
+      '\\nRefunds are reviewed individually. Spent balance may not be refundable.',
+      '\\n\\n',
+      { type: 'bold', text: '🔄 Guaranteed Refill' },
+      '\\nIf your order includes a refill guarantee and you experience a drop within the guarantee period, contact Support with your order ID for assistance.',
+      '\\n\\n',
+      { type: 'bold', text: '🛡️ Fair Use' },
+      '\\nFraud, payment abuse and service exploitation are prohibited.',
+    ] },
     { type: 'paragraph', text: 'Use the menu buttons or these commands to navigate the storefront.' },
-    { type: 'list', items: items.map(text => ({ blocks: [{ type: 'paragraph', text }] })) },
+    { type: 'list', items: commands.map(text => ({ blocks: [{ type: 'paragraph', text }] })) },
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -78,26 +97,29 @@ const screens = {
     description: 'Your USD balance and transaction history will appear here.',
   },
   orders: {
-    title: '🧾 Service History',
+    title: '📈 Order History',
     description: 'Your past service orders, charges and delivery statuses.',
   },
   support: {
     title: '💬 Support',
-    description: 'For service, order or payment assistance, include your order or transaction reference. Never share passwords or login codes.',
+    description: 'For service, Order refills or payment assistance, include your order or transaction reference.',
   },
 };
 
 export function vpnPlansMessage() {
   return { blocks: [
-    { type: 'heading', size: 1, text: 'VPN Service Plans' },
-    { type: 'paragraph', text: 'VPN plans are listed below. Contact support to confirm current availability, setup requirements and plan details before proceeding.' },
-    { type: 'table', caption: 'VPN plan catalogue', is_bordered: true, is_striped: true, is_compact: false, cells: [
+    { type: 'heading', size: 1, text: '🔐 Portals VPN — Choose Your Plan' },
+    { type: 'paragraph', text: 'Get 1-year access with unlimited country coverage.' },
+    { type: 'heading', size: 2, text: 'Available Plans' },
+    { type: 'table', caption: 'VPN plans', is_bordered: true, is_striped: true, is_compact: false, cells: [
       [{ text: 'Plan', is_header: true }, { text: 'Price', is_header: true, align: 'right' }],
-      [{ text: 'Plan 1' }, { text: '$100', align: 'right' }],
-      [{ text: 'Plan 2' }, { text: '$200', align: 'right' }],
-      [{ text: 'Plan 3' }, { text: '$300', align: 'right' }],
+      [{ text: '🥉 Basic Plan' }, { text: '$100', align: 'right' }],
+      [{ text: '🥈 Advanced Plan' }, { text: '$200', align: 'right' }],
+      [{ text: '🥇 Premium Pack' }, { text: '$300', align: 'right' }],
     ] },
-    row({ text: 'Ask about VPN plans', url: 'tg://user?id=6522801911' }),
+    { type: 'paragraph', text: [{ type: 'bold', text: 'Validity: ' }, '1 Year'] },
+    { type: 'paragraph', text: [{ type: 'bold', text: 'Country Coverage: ' }, 'Unlimited countries'] },
+    row({ text: 'Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId }),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -109,7 +131,7 @@ export function sectionMessage(section) {
     { type: 'heading', size: 1, text: page.title },
     { type: 'paragraph', text: page.description },
     { type: 'divider' },
-    ...(section === 'support' ? [row({ text: 'Contact @roexe', url: 'tg://user?id=6522801911' })] : []),
+    ...(section === 'support' ? [row({ text: 'Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId })] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
