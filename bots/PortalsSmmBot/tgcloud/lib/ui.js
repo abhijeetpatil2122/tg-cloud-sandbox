@@ -1,5 +1,4 @@
 import { api } from 'sdk';
-import { SUPPORT } from './config.js';
 
 const button = (text, callback_data, style) => ({
   text,
