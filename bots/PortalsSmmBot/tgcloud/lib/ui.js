@@ -1,4 +1,5 @@
 import { api } from 'sdk';
+import { SUPPORT } from './config.js';
 
 const button = (text, callback_data, style) => ({
   text,
@@ -7,12 +8,11 @@ const button = (text, callback_data, style) => ({
 });
 
 const row = (...buttons) => ({ type: 'buttons', buttons });
-// Use a callback in Rich Messages. The callback sends a conventional
-// Bot API inline-keyboard URL button, which has broader client compatibility.
+// Link directly to the public support account from the Rich Message button.
 const supportProfileButton = () => ({
   type: 'buttons',
   align: 'left',
-  buttons: [{ text: 'Open profile', callback_data: 'ps:support:contact' }],
+  buttons: [{ text: 'Open profile', url: 'tg://user?id=' + SUPPORT.userId }],
 });
 
 export function fullName(user = {}) {
