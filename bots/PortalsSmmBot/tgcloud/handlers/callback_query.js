@@ -8,6 +8,7 @@ import {
   serviceSetupGuideMessage,
   adminRemovalMessage,
   editRich,
+  sendRich,
   helpMessage,
   homeMessage,
   sectionMessage,
@@ -34,7 +35,12 @@ async function answer(id, text = '') {
 }
 
 async function render(chatId, messageId, richMessage) {
-  return editRich(chatId, messageId, richMessage);
+  try {
+    return await editRich(chatId, messageId, richMessage);
+  } catch (editError) {
+    console.error('PortalsSmmBot rich screen edit failed; sending a new message:', editError?.description || editError?.message || editError);
+    return sendRich(chatId, richMessage);
+  }
 }
 
 async function getAdminIds() {
