@@ -36,11 +36,17 @@ async function answer(id, text = '') {
 
 async function render(chatId, messageId, richMessage) {
   try {
-    return await editRich(chatId, messageId, richMessage);
+    if (messageId && typeof messageId === 'object' && messageId.inline_message_id) {
+      return await api.editMessageText({
+        inline_message_id: messageId.inline_message_id,
+        rich_message: richMessage,
+      });
+    }
+    if (messageId) return await editRich(chatId, messageId, richMessage);
   } catch (editError) {
     console.error('PortalsSmmBot rich screen edit failed; sending a new message:', editError?.description || editError?.message || editError);
-    return sendRich(chatId, richMessage);
   }
+  return sendRich(chatId, richMessage);
 }
 
 async function getAdminIds() {
@@ -60,20 +66,32 @@ async function showAdmin(chatId, messageId, userId) {
 export default async function handleCallbackQuery(query) {
   if (!query?.id || !query?.from?.id) return;
   const message = query.message;
-  if (!message?.chat?.id || message.chat.type !== 'private' || message.chat.id !== query.from.id) {
+  const inlineMessageId = query.inline_message_id;
+  const userId = Number(query.from.id);
+
+  // Bot API 10.5 can deliver callbacks with inline_message_id instead of
+  // message, depending on callback_query_mode. Do not discard those updates.
+  if (!message && !inlineMessageId) {
+    await answer(query.id, 'This button is no longer available.');
+    return;
+  }
+  if (message && (
+    !message.chat?.id ||
+    message.chat.type !== 'private' ||
+    Number(message.chat.id) !== userId
+  )) {
     await answer(query.id, 'Open the bot in a private chat.');
     return;
   }
 
-  const userId = Number(query.from.id);
-  await trackUser(query.from, message.chat.type);
+  await trackUser(query.from, message?.chat?.type || 'private');
   if (await isUserBanned(userId) && !await isAdmin(userId)) {
     await answer(query.id, 'This account is restricted.');
     return;
   }
   const data = String(query.data || '');
-  const chatId = message.chat.id;
-  const messageId = message.message_id;
+  const chatId = message?.chat?.id || userId;
+  const messageId = message?.message_id || (inlineMessageId ? { inline_message_id: inlineMessageId } : null);
 
   try {
     // Acknowledge promptly; subsequent screen edits happen on the same message.
