@@ -47,6 +47,8 @@ export function depositMessage() {
       { text: '8,000 ⭐ · $100', callback_data: 'ps:deposit:8000' },
     ] },
     { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
+    { type: 'buttons', buttons: [{ text: '💎 Add Balance via Crypto', url: 'tg://user?id=' + SUPPORT.userId }] },
+    { type: 'paragraph', text: 'For a manual crypto top-up, contact Portal Support and share the amount you want to add. Your balance is updated only after the payment is verified.' },
     { type: 'buttons', buttons: [{ text: '💬 Payment Support', url: 'tg://user?id=' + SUPPORT.userId }] },
     { type: 'paragraph', text: 'Support ID: ' + SUPPORT.userId + ' · Search this ID in Telegram if the contact button does not open.' },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
