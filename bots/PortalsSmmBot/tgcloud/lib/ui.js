@@ -8,6 +8,11 @@ const button = (text, callback_data, style) => ({
 });
 
 const row = (...buttons) => ({ type: 'buttons', buttons });
+const supportProfileButton = () => ({
+  type: 'buttons',
+  align: 'left',
+  buttons: [{ text: 'Open profile', url: 'tg://user?id=' + SUPPORT.userId }],
+});
 
 export function fullName(user = {}) {
   const name = [user.first_name, user.last_name]
@@ -72,7 +77,7 @@ export function helpMessage(showAdmin = false) {
         ...helpSection('💳 Payments', [
           'Choose a Telegram Stars package or enter a custom amount.',
           'Your wallet is credited only after Telegram confirms the successful payment.',
-          'For a missing or delayed credit, contact Portal Support with the payment reference.',
+          'For a missing or delayed credit, open the Support section and include your payment reference.',
         ]),
         ...helpSection('💼 Wallet', [
           'Your wallet displays available store credit in USD.',
@@ -141,8 +146,7 @@ export function vpnPlansMessage() {
     ] },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Validity: ' }, '1 Year'] },
     { type: 'paragraph', text: [{ type: 'bold', text: 'Country Coverage: ' }, 'Unlimited countries'] },
-    row({ text: '💬 Contact ' + SUPPORT.displayName, url: 'tg://user?id=' + SUPPORT.userId }),
-    { type: 'paragraph', text: SUPPORT.displayName + ' · Telegram ID: ' + SUPPORT.userId },
+    supportProfileButton(),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
 }
@@ -155,8 +159,7 @@ export function sectionMessage(section) {
     { type: 'paragraph', text: page.description },
     { type: 'divider' },
     ...(section === 'support' ? [
-      row({ text: '💬 Contact ' + SUPPORT.displayName, url: 'tg://user?id=' + SUPPORT.userId }),
-      { type: 'paragraph', text: SUPPORT.displayName + ' · Telegram ID: ' + SUPPORT.userId },
+      supportProfileButton(),
     ] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
