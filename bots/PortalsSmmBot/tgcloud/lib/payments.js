@@ -27,6 +27,7 @@ export function depositUnavailableMessage() {
   return { blocks: [
     { type: 'heading', size: 1, text: '⭐ Stars deposit' },
     { type: 'paragraph', text: 'Stars deposits are temporarily unavailable. Your balance is never credited from a screenshot or payment attempt — only Telegram’s confirmed receipt counts.' },
+    { type: 'buttons', align: 'left', buttons: [{ text: 'Open profile', url: 'tg://user?id=' + SUPPORT.userId }] },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
 }
@@ -47,8 +48,7 @@ export function depositMessage() {
       { text: '8,000 ⭐ · $100', callback_data: 'ps:deposit:8000' },
     ] },
     { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
-    { type: 'buttons', buttons: [{ text: '💎 Add Balance via Crypto', url: 'tg://user?id=' + SUPPORT.userId }] },
-    { type: 'paragraph', text: 'For a manual crypto top-up, use the profile button below and share the amount you want to add. Your balance is updated only after the payment is verified.' },
+    { type: 'paragraph', text: 'For a manual crypto top-up, open the support profile below and share the amount you want to add. Your balance is updated only after the payment is verified.' },
     { type: 'buttons', align: 'left', buttons: [{ text: 'Open profile', url: 'tg://user?id=' + SUPPORT.userId }] },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
