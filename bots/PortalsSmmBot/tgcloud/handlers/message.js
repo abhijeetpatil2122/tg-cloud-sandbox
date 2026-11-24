@@ -6,7 +6,7 @@ import { fullName, helpMessage, homeMessage, sendRich, sectionMessage, customerS
 import { adminSessions, userSessions } from '../schema.js';
 import { transactionHistoryMessage, walletMessage } from '../lib/wallet.js';
 import { listTelegramServices, setTelegramServicePrice } from '../lib/provider.js';
-import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage, hasAcceptedTerms, termsAcceptanceMessage, termsMessage, adminPaymentsMessage } from '../lib/payments.js';
+import { createStarsInvoice, depositMessage, depositUnavailableMessage, handleSuccessfulPayment, adminRefundsMessage, refundPreviewMessage, adminPaymentsMessage } from '../lib/payments.js';
 import { myOrdersMessage } from '../lib/orders.js';
 import { resetPreviewMessage } from '../lib/reset.js';
 import { trackUser, isUserBanned, adminStatsMessage, adjustUserBalance, setUserBanned } from '../lib/users.js';
@@ -229,16 +229,27 @@ export default async function handleMessage(message) {
       return;
     }
 
-    if (parsed.command === '/start' || parsed.command === '/menu') {
-        return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
+    if (parsed.command === '/start') {
+      try {
+        await api.sendAnimation({
+          chat_id: chatId,
+          animation: 'https://image.zaw-myo.workers.dev/file/0d5f9b44-b498-4539-b6e2-14e6637a032e',
+        });
+      } catch (animationError) {
+        console.error('PortalsSmmBot start animation failed:', animationError?.description || animationError);
+      }
+      return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
+    }
+
+    if (parsed.command === '/menu') {
+      return await sendRich(chatId, homeMessage(fullName(message.from), OWNER_IDS.includes(userId) || await isAdmin(userId)));
     }
 
     if (parsed.command === '/deposit') {
       if (!parsed.argument) {
         if (!FEATURES.depositsEnabled) return await sendRich(chatId, depositUnavailableMessage());
-        return await sendRich(chatId, await hasAcceptedTerms(userId) ? depositMessage() : termsAcceptanceMessage());
+        return await sendRich(chatId, depositMessage());
       }
-      if (!await hasAcceptedTerms(userId)) return await sendRich(chatId, termsAcceptanceMessage());
       const amount = Number(parsed.argument);
       try {
         await createStarsInvoice(userId, chatId, amount);
@@ -256,7 +267,6 @@ export default async function handleMessage(message) {
 
     if (parsed.command === '/paysupport') return await sendRich(chatId, sectionMessage('support'));
 
-    if (parsed.command === '/terms') return await sendRich(chatId, termsMessage());
     if (parsed.command === '/vpn') return await sendRich(chatId, vpnPlansMessage());
 
     if (parsed.command === '/services') {
