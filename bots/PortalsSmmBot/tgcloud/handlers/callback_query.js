@@ -84,31 +84,44 @@ export default async function handleCallbackQuery(query) {
     return;
   }
 
-  await trackUser(query.from, message?.chat?.type || 'private');
-  if (await isUserBanned(userId) && !await isAdmin(userId)) {
-    await answer(query.id, 'This account is restricted.');
-    return;
-  }
   const data = String(query.data || '');
   const chatId = message?.chat?.id || userId;
   const messageId = message?.message_id || (inlineMessageId ? { inline_message_id: inlineMessageId } : null);
 
   try {
-    // Acknowledge promptly; subsequent screen edits happen on the same message.
-    await answer(query.id);
+    // A callback must be acknowledged, but a transient acknowledgement error
+    // must never prevent the requested screen from being rendered.
+    try {
+      await answer(query.id);
+    } catch (ackError) {
+      console.error('PortalsSmmBot callback acknowledgement failed:', ackError?.description || ackError?.message || ackError);
+    }
 
+    // Public storefront navigation must not depend on database availability.
+    // In particular, a slow user-registry lookup must not stall Deposit,
+    // Support, or VPN navigation after the user taps a Rich Message button.
     if (data === 'ps:home') {
       return render(chatId, messageId, homeMessage(
         [query.from.first_name, query.from.last_name].filter(Boolean).join(' ') || 'there',
-        await isAdmin(userId),
+        OWNER_IDS.includes(userId),
       ));
     }
-
-    if (data === 'ps:help') return render(chatId, messageId, helpMessage(await isAdmin(userId)));
-
+    if (data === 'ps:help') return render(chatId, messageId, helpMessage(false));
     if (data === 'ps:deposit') {
-      if (!FEATURES.depositsEnabled) return render(chatId, messageId, depositUnavailableMessage());
-      return render(chatId, messageId, depositMessage());
+      return render(chatId, messageId, FEATURES.depositsEnabled ? depositMessage() : depositUnavailableMessage());
+    }
+    if (data === 'ps:support') return render(chatId, messageId, sectionMessage('support'));
+    if (data === 'ps:vpn') return render(chatId, messageId, vpnPlansMessage());
+
+    // Only database-backed actions need user tracking and ban enforcement.
+    await trackUser(query.from, message?.chat?.type || 'private');
+    if (await isUserBanned(userId) && !await isAdmin(userId)) {
+      return render(chatId, messageId, {
+        blocks: [
+          { type: 'heading', size: 2, text: 'Access restricted' },
+          { type: 'paragraph', text: 'This account is currently restricted from using the storefront. Contact support if you believe this is a mistake.' },
+        ],
+      });
     }
     if (data === 'ps:deposit:custom') {
       await db.insert(userSessions).values({ userId, action: 'custom_deposit', createdAt: new Date() })
