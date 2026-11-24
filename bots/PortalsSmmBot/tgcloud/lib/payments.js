@@ -48,6 +48,7 @@ export function depositMessage() {
     ] },
     { type: 'buttons', buttons: [{ text: 'Custom amount', callback_data: 'ps:deposit:custom', style: 'primary' }] },
     { type: 'buttons', buttons: [{ text: '💬 Payment Support', url: 'tg://user?id=' + SUPPORT.userId }] },
+    { type: 'paragraph', text: 'Support ID: ' + SUPPORT.userId + ' · Search this ID in Telegram if the contact button does not open.' },
     { type: 'buttons', buttons: [{ text: '‹ Main menu', callback_data: 'ps:home', style: 'link' }] },
   ] };
 }
