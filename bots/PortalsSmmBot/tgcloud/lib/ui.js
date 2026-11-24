@@ -8,10 +8,12 @@ const button = (text, callback_data, style) => ({
 });
 
 const row = (...buttons) => ({ type: 'buttons', buttons });
+// Use a callback in Rich Messages. The callback sends a conventional
+// Bot API inline-keyboard URL button, which has broader client compatibility.
 const supportProfileButton = () => ({
   type: 'buttons',
   align: 'left',
-  buttons: [{ text: 'Open profile', url: 'tg://user?id=' + SUPPORT.userId }],
+  buttons: [{ text: 'Open profile', callback_data: 'ps:support:contact' }],
 });
 
 export function fullName(user = {}) {
