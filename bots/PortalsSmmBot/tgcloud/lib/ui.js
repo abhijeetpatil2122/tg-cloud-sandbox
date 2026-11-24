@@ -124,7 +124,7 @@ const screens = {
   },
   support: {
     title: '💬 Support',
-    description: 'For service issues, order refills or payment assistance, include your order or transaction reference. Contact: Portal Support (Telegram ID 9170717027). If the contact button does not open, search this ID in Telegram.',
+    description: 'For service, Order refills or payment assistance, include your order or transaction reference.',
   },
 };
 
@@ -156,7 +156,7 @@ export function sectionMessage(section) {
     { type: 'divider' },
     ...(section === 'support' ? [
       row({ text: '💬 Contact Portal Support', url: 'tg://user?id=' + SUPPORT.userId }),
-      { type: 'paragraph', text: 'Telegram ID: ' + SUPPORT.userId + ' · If the button does not open, search this ID in Telegram.' },
+      { type: 'paragraph', text: 'Portal Support · Telegram ID: ' + SUPPORT.userId + ' · Search this ID in Telegram if the contact button does not open.' },
     ] : []),
     row(button('‹ Main menu', 'ps:home', 'link')),
   ] };
